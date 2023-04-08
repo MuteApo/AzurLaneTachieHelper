@@ -1,0 +1,3 @@
+numpy
+pillow
+pyglet==2.0.5
