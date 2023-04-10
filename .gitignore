@@ -1,1 +1,7 @@
 __pycache__
+build
+dist
+*.spec
+*-mesh.obj
+*-enc.png
+*-dec.png

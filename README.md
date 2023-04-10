@@ -4,6 +4,8 @@
 
 - Decode & encode texture via file wavefront obj mesh
 - Display bounding box with id on both textures for comparision
+- Easy drag & drop tachie file on `.exe` executable
+- Python environment is required to direct run on `.py`
 
 #### Components
 
@@ -14,17 +16,17 @@
     Azur Lane Tachie Decoder
 
     positional arguments:
-      chara          tachie to decode
+      chara          tachie to decode, eg. hailunna_h_rw
 
     options:
       -h, --help     show this help message and exit
       -l, --logging  enable console logging
     ```
-  - Typical usage: `python decoder.py hailunna_h_rw`
+  - Typical command line: `python decoder.py hailunna_h_rw`
   - Appointment:
-    - encoded texture as `hailunna_h_rw-enc.png`
-    - wavefront mesh as `hailunna_h_rw-mesh.obj`
-    - decoded texture will written into `hailunna_h_rw-dec.png`
+    - Encoded texture as `hailunna_h_rw-enc.png`
+    - Wavefront mesh as `hailunna_h_rw-mesh.obj`
+    - Decoded texture will be written into `hailunna_h_rw-dec.png`
 
 - encoder.py
   - ```
@@ -33,52 +35,48 @@
     Azur Lane Tachie Encoder
 
     positional arguments:
-    chara                 tachie to encode
+      chara                 tachie to encode, eg. hailunna_h_rw
 
     options:
-    -h, --help            show this help message and exit
-    -s S S, --enc_size S S
-                          size of encoded image
-    -l, --logging         enable console logging
+      -h, --help            show this help message and exit
+      -s S S, --enc_size S S
+                            size of encoded image
+      -l, --logging         enable console logging
     ```
-  - Typical usage: `python encoder.py hailunna_h_rw -s 2048 850`
+  - Typical command line: `python encoder.py hailunna_h_rw`
   - Appointment:
-    - Target size (width x height) is required to encode texture
+    - Target size (width x height) is required, if original encoded texture cannot be found
     - Decoded texture as `hailunna_h_rw-dec.png`
     - Wavefront mesh as `hailunna_h_rw-mesh.obj`
     - Encoded texture will be written into `hailunna_h_rw-dec.png`
 
 - viewer.py
   - ```
-    usage: viewer.py [-h] [-we W] [-wd W] [-p P] [-ls S] [-lc C C C C] [-bc C C C C] [-l] chara
+    usage: viewer.py [-h] [--win_width_enc W] [--win_width_dec W] [-p P] [--label_size S] [--label_color C C C C] [--bbox_color C C C C] [-l] chara
 
     Azur Lane Tachie Viewer
 
     positional arguments:
-      chara                 tachie to view
+      chara                 tachie to view, eg. hailunna_h_rw
 
     options:
       -h, --help            show this help message and exit
-      -we W, --win_width_enc W
-                            display Width of encoded image
-      -wd W, --win_width_dec W
-                            display Width of decoded image
+      --win_width_enc W     display width of encoded image
+      --win_width_dec W     display width of decoded image
       -p P, --padding P     padding for image in window
-      -ls S, --label_size S
-                            size of labels in bouding box
-      -lc C C C C, --label_color C C C C
+      --label_size S        size of labels in bouding box
+      --label_color C C C C
                             RGBA color of labels in bouding box
-      -bc C C C C, --bbox_color C C C C
-                            RGBA color of bouding box
+      --bbox_color C C C C  RGBA color of bouding box
       -l, --logging         enable console logging
     ```
-    - Typical usage: `python viewer.py hailunna_h_rw -lc 255 0 0 196`
+    - Typical command line: `python viewer.py hailunna_h_rw --label_color 255 0 0 196`
     - Appointment:
       - Encoded texture as `hailunna_h_rw-enc.png`
       - Decoded texture as `hailunna_h_rw-dec.png`
       - Wavefront mesh as `hailunna_h_rw-mesh.obj`
     - <img src="img/enc_view.png" width="640" />
-    - <img src="img/dec_view.png" width="600" />
+    - <img src="img/dec_view.png" width="640" />
 
 #### Requirements
 
@@ -86,7 +84,8 @@
   - PyGlet 2.0.5+
   - NumPy
   - Pillow
-- Or run command:
+  - (Optional) PyInstaller
+- Or just run:
   - ```shell
     pip install -r requirements.txt
     ```

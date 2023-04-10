@@ -1,12 +1,15 @@
 from .utility import create_window, decode_tex, encode_tex, parse_obj, read_img, save_img
+from PIL import Image
 from pyglet import app
+import os
 
 
 class TextureHelper():
     def __init__(self, chara, logging=False, **kwargs):
-        self.enc_tex = chara + '-enc.png'
-        self.dec_tex = chara + '-dec.png'
-        self.mesh = chara + '-mesh.obj'
+        self.chara = chara.split('-')[0]
+        self.enc_tex = self.chara + '-enc.png'
+        self.dec_tex = self.chara + '-dec.png'
+        self.mesh = self.chara + '-mesh.obj'
         self.logging = logging
 
     def parse(self):
@@ -42,20 +45,29 @@ class DecodeHelper(TextureHelper):
 
 
 class EncodeHelper(TextureHelper):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if os.path.exists(self.enc_tex):
+            self.enc_size = Image.open(self.enc_tex).size
+            os.rename(self.enc_tex, self.chara + '-bak.png')
+        else:
+            assert kwargs['enc_size'] is not None, 'enc_size must be given if original encoded texture is not found'
+            self.enc_size = kwargs['enc_size']
+
     def __str__(self):
         return 'EncodeHelper'
 
-    def encode(self, enc_size, **kwargs):
+    def encode(self, **kwargs):
         if not hasattr(self, 'data'):
             self.parse()
 
         dec_img = read_img(self.dec_tex)
-        enc_img = encode_tex(dec_img, enc_size, *self.mesh_data.values())
+        enc_img = encode_tex(dec_img, self.enc_size, *self.mesh_data.values())
 
         if self.logging:
             print(f'[{str(self)}: INFO] Processing texture...')
             print(f'[{str(self)}: INFO] Source image size:', self.dec_size)
-            print(f'[{str(self)}: INFO] Target image size:', enc_size)
+            print(f'[{str(self)}: INFO] Target image size:', self.enc_size)
             print(f'[{str(self)}: INFO] Dumping image to file...')
 
         save_img(enc_img, self.enc_tex)
