@@ -1,6 +1,7 @@
-import numpy as np
 from PIL import Image
 from pyglet import gl, graphics, image, shapes, sprite, text, window
+import numpy as np
+import UnityPy
 
 
 def parse_obj(mesh):  
@@ -23,18 +24,10 @@ def parse_obj(mesh):
             dtype=np.int32
         )
 
-        # resize: [0, w) x [0, h) to [0, 1)^2
         v[:, 0] = -v[:, 0]
         w, h, _ = np.stack(v, -1).max(-1) + 1
 
     return (w, h), {'v': v.astype(np.float32) / [w, h, 1], 'vt': vt, 'f': f}
-
-
-def get_rect(data, scaler):
-    coord = np.round(data * scaler).astype(np.int32)
-    x, y = np.stack(coord, -1).min(-1)
-    w, h = np.stack(coord, -1).max(-1) - [x, y]
-    return x, y, w, h
 
 
 def read_img(filename):
@@ -45,6 +38,13 @@ def save_img(data, filename):
     Image.fromarray(data).transpose(Image.FLIP_TOP_BOTTOM).save(filename)
 
 
+def get_img_area(data, scaler):
+    coord = np.round(data * scaler).astype(np.int32)
+    x, y = np.stack(coord, -1).min(-1)
+    w, h = np.stack(coord, -1).max(-1) - [x, y]
+    return x, y, w, h
+
+
 def decode_tex(enc_img, dec_size, v, vt, f):
     dec_img = np.empty((*dec_size[::-1], 4), dtype=np.uint8)
     enc_size = enc_img.shape[1::-1]
@@ -52,8 +52,8 @@ def decode_tex(enc_img, dec_size, v, vt, f):
     for rect in zip(f[::2], f[1::2]):
         index_v, index_vt = np.stack([*rect[0][:2, :2], *rect[1][:2, :2]], -1)
 
-        x1, y1, _, _ = get_rect(v[index_v - 1, :2], dec_size)
-        x2, y2, w, h = get_rect(vt[index_vt - 1], enc_size)
+        x1, y1, _, _ = get_img_area(v[index_v - 1, :2], dec_size)
+        x2, y2, w, h = get_img_area(vt[index_vt - 1], enc_size)
 
         dec_img[y1:y1 + h, x1:x1 + w, :] = enc_img[y2:y2 + h, x2:x2 + w, :]
 
@@ -67,8 +67,8 @@ def encode_tex(dec_img, enc_size, v, vt, f):
     for rect in zip(f[::2], f[1::2]):
         index_v, index_vt = np.stack([*rect[0][:2, :2], *rect[1][:2, :2]], -1)
 
-        x1, y1, _, _ = get_rect(v[index_v - 1, :2], dec_size)
-        x2, y2, w, h = get_rect(vt[index_vt - 1], enc_size)
+        x1, y1, _, _ = get_img_area(v[index_v - 1, :2], dec_size)
+        x2, y2, w, h = get_img_area(vt[index_vt - 1], enc_size)
 
         enc_img[y2:y2 + h, x2:x2 + w, :] = dec_img[y1:y1 + h, x1:x1 + w, :]
 
@@ -112,9 +112,33 @@ def create_window(
         ]
         line_list += [shapes.Line(*_, color=bbox_color, batch=batch) for _ in coord]
 
-    @win.event
-    def on_draw():
-        win.clear()
-        batch.draw()
+    return win, batch, (tex2d, line_list, label_list)
 
-    return tex2d, line_list, label_list
+
+def get_rect_transform(filename):
+    assets = UnityPy.load(filename)
+    game_objects = [_.read() for _ in assets.objects if _.type.name == 'GameObject']
+    face_gameobj = [_ for _ in game_objects if _.m_Name == 'face'][0]
+    face_rect = face_gameobj.read().m_Component[0].component.read()
+    base_rect = face_rect.read().m_Father.read()
+
+    print('[INFO] Face GameObject PathID:', face_gameobj.path_id)
+    print('[INFO] Face RectTransform PathID:', face_rect.path_id)
+    print('[INFO] Base RectTransform PathID:', base_rect.path_id)
+
+    def convert(raw: dict) -> dict[str, np.ndarray]:
+        entry = ['m_AnchorMin', 'm_AnchorMax', 'm_AnchoredPosition', 'm_SizeDelta']
+        return {_: np.array([*raw[_].values()]) for _ in entry}
+
+    base = convert(base_rect.to_dict())
+    face = convert(face_rect.to_dict())
+
+    face['m_AnchorCenter'] = np.mean([face['m_AnchorMax'], face['m_AnchorMin']])
+
+    anchor = face['m_AnchorCenter'] * base['m_SizeDelta']
+    pivot = anchor + face['m_AnchoredPosition']
+    align = pivot - face['m_AnchorCenter'] * face['m_SizeDelta']
+    x, y = np.round(align).astype(np.int32)
+    w, h = face['m_SizeDelta'].astype(np.int32)
+
+    return base, face, x, y, w, h

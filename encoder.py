@@ -6,7 +6,6 @@ parser.add_argument('chara', type=str, help='tachie to encode, eg. hailunna_h_rw
 parser.add_argument(
     '-s', '--enc_size', metavar='S', type=int, nargs=2, help='size of encoded image'
 )
-parser.add_argument('-l', '--logging', action='store_true', help='enable console logging')
 
 if __name__ == '__main__':
     args = parser.parse_args().__dict__

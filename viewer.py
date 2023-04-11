@@ -26,7 +26,6 @@ parser.add_argument(
     '--bbox_color', metavar='C', type=int, nargs=4,
     default=[217, 182, 18, 196], help='RGBA color of bouding box'
 )
-parser.add_argument('-l', '--logging', action='store_true', help='enable console logging')
 
 if __name__ == '__main__':
     args = parser.parse_args().__dict__

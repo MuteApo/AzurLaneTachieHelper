@@ -4,6 +4,7 @@
 
 - Decode & encode texture via file wavefront obj mesh
 - Display bounding box with id on both textures for comparision
+- Merge & split paintingface with main texture
 - Easy drag & drop tachie file on `.exe` executable
 - Python environment is required to direct run on `.py`
 
@@ -20,7 +21,6 @@
 
     options:
       -h, --help     show this help message and exit
-      -l, --logging  enable console logging
     ```
   - Typical command line: `python decoder.py hailunna_h_rw`
   - Appointment:
@@ -41,7 +41,6 @@
       -h, --help            show this help message and exit
       -s S S, --enc_size S S
                             size of encoded image
-      -l, --logging         enable console logging
     ```
   - Typical command line: `python encoder.py hailunna_h_rw`
   - Appointment:
@@ -68,15 +67,52 @@
       --label_color C C C C
                             RGBA color of labels in bouding box
       --bbox_color C C C C  RGBA color of bouding box
-      -l, --logging         enable console logging
     ```
-    - Typical command line: `python viewer.py hailunna_h_rw --label_color 255 0 0 196`
-    - Appointment:
-      - Encoded texture as `hailunna_h_rw-enc.png`
-      - Decoded texture as `hailunna_h_rw-dec.png`
-      - Wavefront mesh as `hailunna_h_rw-mesh.obj`
-    - <img src="img/enc_view.png" width="640" />
-    - <img src="img/dec_view.png" width="640" />
+  - Typical command line: `python viewer.py hailunna_h_rw --label_color 255 0 0 196`
+  - Appointment:
+    - Encoded texture as `hailunna_h_rw-enc.png`
+    - Decoded texture as `hailunna_h_rw-dec.png`
+    - Wavefront mesh as `hailunna_h_rw-mesh.obj`
+  - <img src="img/enc_view.png" width="640" />
+  - <img src="img/dec_view.png" width="640" />
+
+- merger.py
+  - ```
+    usage: merger.py [-h] chara
+
+    Azur Lane Tachie Merger
+
+    positional arguments:
+      chara       tachie to encode, eg. hailunna_h_rw
+
+    options:
+      -h, --help  show this help message and exit
+    ```
+  - Typical command line: `python merger.py hailunna_h_rw`
+  - Appointment:
+    - Tachie metadata as `hailunna_h_rw`, from `painting\` folder
+    - Decoded texture as `hailunna_h_rw-dec.png`
+    - Unpacked paintingface images as `paintingface\*.png`
+    - Merged texture will be written into `paintingface-merge\*.png`
+
+- splitter.py
+  - ```
+    usage: splitter.py [-h] chara
+
+    Azur Lane Tachie Splitter
+
+    positional arguments:
+      chara       tachie to encode, eg. hailunna_h_rw
+
+    options:
+      -h, --help  show this help message and exit
+    ```
+  - Typical command line: `python splitter.py hailunna_h_rw`
+  - Appointment:
+    - Tachie metadata as `hailunna_h_rw`, from `painting\` folder
+    - Tachie merged with paintingface as `paintingface-merge\*.png`
+    - Splitted pantingface images will be written into `paintingface-split\*.png`
+
 
 #### Requirements
 
@@ -84,6 +120,7 @@
   - PyGlet 2.0.5+
   - NumPy
   - Pillow
+  - UnityPy
   - (Optional) PyInstaller
 - Or just run:
   - ```shell

@@ -1,12 +1,22 @@
-pyinstaller -Fwy viewer.py -n AzurLaneTachieViewer -i ico/cheshire.ico --onedir --add-data ico/cheshire.ico";"ico
-mv dist/AzurLaneTachieViewer dist/AzurLaneTachieHelper
+rm -recurse dist\AzurLaneTachieHelper\*
 
-pyinstaller -Fwy encoder.py -n AzurLaneTachieEncoder -i ico/cheshire.ico --onedir --add-data ico/cheshire.ico";"ico
-cp dist/AzurLaneTachieEncoder/AzurLaneTachieEncoder.exe dist/AzurLaneTachieHelper
-rm -r dist/AzurLaneTachieEncoder
+$EnvDir = -Split $(conda env list | findstr "*")
+$UnityPyData = $EnvDir[2] + "\Lib\site-packages\UnityPy\resources\uncompressed.tpk"
 
-pyinstaller -Fwy decoder.py -n AzurLaneTachieDecoder -i ico/cheshire.ico --onedir --add-data ico/cheshire.ico";"ico
-cp dist/AzurLaneTachieDecoder/AzurLaneTachieDecoder.exe dist/AzurLaneTachieHelper
-rm -r dist/AzurLaneTachieDecoder
+$App = @{
+    AzurLaneTachieViewer = "viewer.py";
+    AzurLaneTachieEncoder = "encoder.py";
+    AzurLaneTachieDecoder = "decoder.py";
+    AzurLaneTachieMerger = "merger.py";
+    AzurLaneTachieSplitter = "splitter.py";
+}
 
-pyinstaller -Fw viewer.py -n AzurLaneTachieViewer -i ico/cheshire.ico --onefile
+$App.GetEnumerator().ForEach({
+    $name = $_.key
+    $src = $_.value
+    pyinstaller -Fy $src -n $name -i ico\cheshire.ico --onedir --add-data $UnityPyData";"UnityPy\resources
+    Copy-Item -Recurse -Force dist\$name\* dist\AzurLaneTachieHelper
+    Remove-Item -Recurse dist\$name
+})
+
+pyinstaller -Fw viewer.py -n AzurLaneTachieViewer -i ico\cheshire.ico --onefile --add-data $UnityPyData";"UnityPy\resources
