@@ -1,7 +1,5 @@
 __pycache__
 build
 dist
+test
 *.spec
-*-mesh.obj
-*-enc.png
-*-dec.png

@@ -1,44 +1,56 @@
 from .utility import create_window, decode_tex, encode_tex, get_rect_transform, parse_obj, read_img, save_img
 from PIL import Image
-from pprint import pprint
 from pyglet import app
 import numpy as np
 import os
+import UnityPy
 
 
 class TextureHelper():
     def __init__(self, chara, **kwargs):
-        self.chara = chara.split('-')[0]
+        seq = chara.split('-')
+        prefix = ''.join(seq[:len(seq)])
+        self.chara = prefix[:-4] if prefix.endswith('_tex') else prefix
         self.enc_tex = self.chara + '-enc.png'
         self.dec_tex = self.chara + '-dec.png'
-        self.mesh = self.chara + '-mesh.obj'
+        self.mesh_obj = self.chara + '-mesh.obj'
 
-    def parse(self):
-        self.dec_size, self.mesh_data = parse_obj(self.mesh)
+    def _unpack(self):
+        chara = self.chara + '_tex'
+        assert os.path.exists(chara), f'{chara} not found'
+        env = UnityPy.load(chara)
+
+        tex2d = [_ for _ in env.objects if _.type.name == 'Texture2D'][0]
+        tex2d.read().image.save(self.enc_tex)
+
+        mesh = [_ for _ in env.objects if _.type.name == 'Mesh'][0]
+        with open(self.mesh_obj, 'w', newline='') as f:
+            f.write(mesh.read().export())
+
+    def _parse(self):
+        self.dec_size, self.mesh_data = parse_obj(self.mesh_obj)
         v, vt, f = self.mesh_data.values()
 
-        print(f'[{str(self)}: INFO] Collecting wavefront metadata...')
-        print(f'[{str(self)}: INFO] Vertex count:{len(v)}')
-        print(f'[{str(self)}: INFO] Texcoord count:{len(vt)}')
-        print(f'[{str(self)}: INFO] Face count:{len(f)}')
-        print(f'[{str(self)}: INFO] Mesh size:{self.dec_size}')
+        print(f'[{str(self)}: INFO] Vertex count: {len(v)}')
+        print(f'[{str(self)}: INFO] Texcoord count: {len(vt)}')
+        print(f'[{str(self)}: INFO] Face count: {len(f)}')
+        print(f'[{str(self)}: INFO] Mesh size: {self.dec_size}')
 
 
 class DecodeHelper(TextureHelper):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._unpack()
+        self._parse()
+
     def __str__(self):
         return 'DecodeHelper'
 
     def decode(self):
-        if not hasattr(self, 'data'):
-            self.parse()
-
         enc_img = read_img(self.enc_tex)
         dec_img = decode_tex(enc_img, self.dec_size, *self.mesh_data.values())
 
-        print(f'[{str(self)}: INFO] Processing texture...')
-        print(f'[{str(self)}: INFO] Source image size:', enc_img.shape[1::-1])
-        print(f'[{str(self)}: INFO] Target image size:', self.dec_size)
-        print(f'[{str(self)}: INFO] Dumping image to file...')
+        print(f'[{str(self)}: INFO] Texture size: {enc_img.shape[1::-1]} -> {self.dec_size}', )
 
         save_img(dec_img, self.dec_tex)
 
@@ -46,39 +58,32 @@ class DecodeHelper(TextureHelper):
 class EncodeHelper(TextureHelper):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if os.path.exists(self.enc_tex):
-            self.enc_size = Image.open(self.enc_tex).size
-            os.rename(self.enc_tex, self.chara + '-bak.png')
-        else:
-            assert kwargs['enc_size'] is not None, 'enc_size must be given if original encoded texture is not found'
-            self.enc_size = kwargs['enc_size']
+        if not all([os.path.exists(self.enc_tex), os.path.exists(self.mesh_obj)]):
+            self._unpack()
+        self.enc_size = Image.open(self.enc_tex).size
+        self._parse()
 
     def __str__(self):
         return 'EncodeHelper'
 
-    def encode(self, **kwargs):
-        if not hasattr(self, 'data'):
-            self.parse()
-
+    def encode(self):
         dec_img = read_img(self.dec_tex)
         enc_img = encode_tex(dec_img, self.enc_size, *self.mesh_data.values())
 
-        print(f'[{str(self)}: INFO] Processing texture...')
-        print(f'[{str(self)}: INFO] Source image size:', self.dec_size)
-        print(f'[{str(self)}: INFO] Target image size:', self.enc_size)
-        print(f'[{str(self)}: INFO] Dumping image to file...')
+        print(f'[{str(self)}: INFO] Texture size: {self.dec_size} -> {self.enc_size}', )
 
         save_img(enc_img, self.enc_tex)
 
 
 class ViewHelper(TextureHelper):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._parse()
+
     def __str__(self):
         return 'ViewHelper'
 
     def display(self, **kwargs):
-        if not hasattr(self, 'data'):
-            self.parse()
-
         enc_win, enc_batch, enc_draw = create_window(
             self.enc_tex,
             self.mesh_data['vt'],
@@ -115,9 +120,7 @@ class MergeHelper(TextureHelper):
         return 'MergeHelper'
 
     def merge(self):
-        base, face, x, y, w, h = get_rect_transform(self.chara)
-        pprint(base)
-        pprint(face)
+        _, _, x, y, w, h = get_rect_transform(self.chara[:-4])
 
         pf_dir = os.path.join(os.path.dirname(self.dec_tex), 'paintingface')
         if not os.path.exists(pf_dir + '-merge'):
@@ -136,14 +139,12 @@ class SplitHelper(TextureHelper):
         return 'SplitHelper'
 
     def split(self):
-        base, face, x, y, w, h = get_rect_transform(self.chara)
-        pprint(base)
-        pprint(face)
+        _, face, x, y, w, h = get_rect_transform(self.chara)
 
         pf_dir = os.path.join(os.path.dirname(self.dec_tex), 'paintingface')
         if not os.path.exists(pf_dir + '-split'):
             os.mkdir(pf_dir + '-split')
-        main = np.empty((*face['m_SizeDelta'].astype(np.int32), 4), dtype=np.uint8)
+        main = np.empty((*face['m_SizeDelta'].astype(np.int32)[::-1], 4), dtype=np.uint8)
         for _, _, files in os.walk(pf_dir + '-merge'):
             for img in files:
                 print(os.path.join(pf_dir + '-merge', img))

@@ -1,6 +1,7 @@
 from PIL import Image
 from pyglet import gl, graphics, image, shapes, sprite, text, window
 import numpy as np
+import pprint
 import UnityPy
 
 
@@ -17,7 +18,7 @@ def parse_obj(mesh):
         for line in lines:
             data[line[0]].append(line[1:])
 
-        v = np.array(data['v'], dtype=np.int32)
+        v = np.array(data['v'], dtype=np.float32)
         vt = np.array(data['vt'], dtype=np.float32)
         f = np.array(
             [[[___ for ___ in __.split('/')] for __ in _] for _ in data['f']],
@@ -25,9 +26,9 @@ def parse_obj(mesh):
         )
 
         v[:, 0] = -v[:, 0]
-        w, h, _ = np.stack(v, -1).max(-1) + 1
+        s = np.stack(v, -1).max(-1) + 1
 
-    return (w, h), {'v': v.astype(np.float32) / [w, h, 1], 'vt': vt, 'f': f}
+    return tuple(s.astype(np.int32)[:2]), {'v': v / s, 'vt': vt, 'f': f}
 
 
 def read_img(filename):
@@ -133,6 +134,11 @@ def get_rect_transform(filename):
     base = convert(base_rect.to_dict())
     face = convert(face_rect.to_dict())
 
+    print('[INFO] Face RectTransform data:')
+    pprint.pprint(base)
+    print('[INFO] Base RectTransform data:')
+    pprint.pprint(face)
+
     face['m_AnchorCenter'] = np.mean([face['m_AnchorMax'], face['m_AnchorMin']])
 
     anchor = face['m_AnchorCenter'] * base['m_SizeDelta']
@@ -140,5 +146,7 @@ def get_rect_transform(filename):
     align = pivot - face['m_AnchorCenter'] * face['m_SizeDelta']
     x, y = np.round(align).astype(np.int32)
     w, h = face['m_SizeDelta'].astype(np.int32)
+
+    print('[INFO] Paintingface area:', x, y, w, h)
 
     return base, face, x, y, w, h
