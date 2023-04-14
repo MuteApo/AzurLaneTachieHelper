@@ -1,6 +1,5 @@
 from PIL import Image
 from pprint import pprint
-from pyglet import gl, graphics, image, shapes, sprite, text, window
 from typing import Dict
 from UnityPy.classes import RectTransform
 import numpy as np
@@ -36,13 +35,13 @@ def parse_obj(mesh):
         print(f'[INFO] Face count: {len(f)}')
         print(f'[INFO] Mesh size: {s[:2]}')
 
-    return {'v': v / s, 'vt': vt, 'f': f}
+    return {'v': v, 'vt': vt, 'f': f, 'v_normalized': v / s}
 
 
 def read_img(filename, resize=None):
     img = Image.open(filename)
     if resize is not None:
-        img = img.resize(resize, resample=Image.Resampling.LANCZOS)
+        img = img.resize(resize, resample=Image.Resampling.HAMMING)
     return np.array(img.transpose(Image.FLIP_TOP_BOTTOM))
 
 
@@ -51,7 +50,7 @@ def save_img(data, filename):
 
 
 def resize_img(data, size):
-    return np.array(Image.fromarray(data).resize(size, resample=Image.Resampling.LANCZOS))
+    return np.array(Image.fromarray(data).resize(size, resample=Image.Resampling.HAMMING))
 
 
 def get_rect_name(rect: RectTransform):
@@ -68,28 +67,15 @@ def convert(raw: RectTransform) -> Dict[str, np.ndarray]:
         'm_SizeDelta',
         'm_Pivot'
     ]
-    return {_: np.array([*raw.to_dict()[_].values()]) for _ in entry}
-
-
-def get_offset(x, f):
-    values = [
-        x['m_AnchorMax'] * x['m_Pivot'] * f['m_SizeDelta'],
-        x['m_AnchorMin'] * (1 - x['m_Pivot']) * f['m_SizeDelta'],
-        x['m_AnchoredPosition'],
-        -x['m_Pivot'] * x['m_SizeDelta'] * x['m_LocalScale'][:2]
-    ]
-    print(values)
-    return sum(values)
+    return {_: np.array([*raw.to_dict()[_].values()][:2]) for _ in entry}
 
 
 def get_img_area(data, size, pad=0):
-    data *= size
-
     # pad with one extra pixel and clip
     lb = np.round(np.maximum(np.stack(data, -1).min(-1) - pad, 0)).astype(np.int32)
     ru = np.round(np.minimum(np.stack(data, -1).max(-1) + pad, size - 1)).astype(np.int32)
 
-    return *lb, *(ru - lb)
+    return *lb, *(ru - lb + 1)
 
 
 def decode_tex(enc_img, dec_size, v, vt, f, *args):
@@ -101,7 +87,7 @@ def decode_tex(enc_img, dec_size, v, vt, f, *args):
         index_v, index_vt = np.stack([*rect[0][:2, :2], *rect[1][:2, :2]], -1)
 
         x1, y1, w1, h1 = get_img_area(v[index_v - 1, :2], dec_size, 0)
-        x2, y2, w2, h2 = get_img_area(vt[index_vt - 1], enc_size, 0)
+        x2, y2, w2, h2 = get_img_area(vt[index_vt - 1] * enc_size, enc_size, 0)
         # print(x1, y1, w1, h1)
         # print(x2, y2, w2, h2)
 
@@ -113,14 +99,14 @@ def decode_tex(enc_img, dec_size, v, vt, f, *args):
 
 def encode_tex(dec_img, enc_size, v, vt, f, *args):
     dec_img = Image.fromarray(dec_img)
-    enc_img = Image.new('RGBA', tuple(enc_size))
+    enc_img = Image.new('RGBA', tuple(enc_size), 1)
     dec_size = np.array(dec_img.size)
 
     for rect in zip(f[::2], f[1::2]):
         index_v, index_vt = np.stack([*rect[0][:2, :2], *rect[1][:2, :2]], -1)
 
         x1, y1, w1, h1 = get_img_area(v[index_v - 1, :2], dec_size, 1)
-        x2, y2, w2, h2 = get_img_area(vt[index_vt - 1], enc_size, 1)
+        x2, y2, w2, h2 = get_img_area(vt[index_vt - 1] * enc_size, enc_size, 1)
         # print(x1, y1, w1, h1)
         # print(x2, y2, w2, h2)
 
@@ -130,44 +116,6 @@ def encode_tex(dec_img, enc_size, v, vt, f, *args):
     return np.array(enc_img)
 
 
-def create_window(
-    tex, v, f, win_width, padding, label_size, label_color, bbox_color, **kwargs
-):
-    img = image.load(tex)
-    img_size = np.array([win_width, win_width / img.width * img.height])
-    win_size = np.round(img_size + padding * 2).astype(np.int32)
-    win = window.Window(*win_size, tex)
-    gl.glClearColor(1, 1, 1, 0)
-    batch = graphics.Batch()
-    line_list = []
-    label_list = []
-
-    tex2d = sprite.Sprite(img, padding, padding, batch=batch)
-    tex2d.scale_x, tex2d.scale_y = img_size / [img.width, img.height]
-
-    for id, rect in enumerate(zip(f[::2], f[1::2])):
-        index = np.reshape([list(zip(_, _[1:])) for _ in rect], (4, -1))
-        # print(index)
-        coord = np.reshape(
-            [[v[__ - 1][:2] * img_size + padding for __ in _] for _ in index], (4, -1)
-        )
-        # print(coord)
-        label_list += [
-            text.Label(
-                str(id + 1),
-                font_name='Times New Roman',
-                font_size=label_size,
-                color=label_color,
-                x=np.round((coord[0][0] + coord[0][2]) / 2),
-                y=np.round((coord[1][1] + coord[1][3]) / 2),
-                anchor_x='center',
-                anchor_y='center',
-                batch=batch
-            )
-        ]
-        line_list += [shapes.Line(*_, color=bbox_color, batch=batch) for _ in coord]
-
-    return win, batch, (tex2d, line_list, label_list)
 
 
 def get_rect_transform(filename):

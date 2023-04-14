@@ -10,7 +10,7 @@
 #### Components (exemplified by `hailunna_h_rw`)
 
 - `decoder.py`: extract and decode texture
-- `encoder.py`: encode texture
+- `encoder.py`: encode and replace texture
 - `merger.py`: redirect paintingface to correct position
 - `splitter.py`: clip off non-paintingface part
 - `viewer.py`

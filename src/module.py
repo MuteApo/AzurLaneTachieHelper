@@ -1,10 +1,10 @@
 from .utility import *
 from PIL import Image
-from pyglet import app
 import numpy as np
 import os
 import UnityPy
 from UnityPy.classes import GameObject, RectTransform, AssetBundle, MonoBehaviour, Texture2D, Mesh
+from UnityPy.enums import TextureFormat
 from typing import List, Dict
 from pprint import pprint
 
@@ -46,6 +46,26 @@ class TextureHelper():
 
         return np.array([tex2d.m_Width, tex2d.m_Height])
 
+    def _replace(self, asset, img):
+        asset_path = os.path.join(self.dir, 'painting', asset + '_tex')
+        assert os.path.exists(asset_path), f'file {asset_path} not found'
+
+        env = UnityPy.load(asset_path)
+        for _ in env.objects:
+            if _.type.name == 'Texture2D':
+                tex2d: Texture2D = _.read()
+                tex2d.set_image(
+                    img.transpose(Image.FLIP_TOP_BOTTOM),
+                    target_format=TextureFormat.RGBA32,
+                    in_cab=True
+                )
+                tex2d.save()
+
+        if not os.path.exists(os.path.join(self.dir, 'painting-out')):
+            os.mkdir(os.path.join(self.dir, 'painting-out'))
+        with open(os.path.join(self.dir, 'painting-out', asset + '_tex'), 'wb') as f:
+            f.write(env.file.save('lz4'))
+
 
 class DecodeHelper(TextureHelper):
     def decode(self):
@@ -73,8 +93,8 @@ class DecodeHelper(TextureHelper):
         dec_img = decode_tex(enc_img, base_rss, *mesh_data.values())
         # save_img(dec_img, os.path.join(self.dir, base_go.name + '-tmp.png'))
 
-        shape = np.array([*base_rt.m_SizeDelta.values()], dtype=np.int32)
-        full = Image.fromarray(dec_img).resize(tuple(shape), Image.Resampling.LANCZOS)
+        shape = base_info['m_SizeDelta'].astype(np.int32)
+        full = Image.fromarray(dec_img).resize(tuple(shape), Image.Resampling.HAMMING)
         save_img(np.array(full), self._dec_tex(base_go.name))
 
         if 'layers' in [_.name for _ in gos]:
@@ -82,7 +102,7 @@ class DecodeHelper(TextureHelper):
             layers_rect: RectTransform = [_ for _ in base_children if get_rect_name(_) == 'layers'][0]
             layers_children: List[RectTransform] = [_.read() for _ in layers_rect.m_Children]
             layers_info = convert(layers_rect)
-            layers_pivot = base_pivot + layers_info['m_LocalPosition'][:2]
+            layers_pivot = base_pivot + layers_info['m_LocalPosition']
 
             print('[INFO]', layers_rect, get_rect_name(layers_rect))
             pprint(layers_info)
@@ -93,7 +113,7 @@ class DecodeHelper(TextureHelper):
                 child_rss = np.array([*child_mb.mRawSpriteSize.values()], dtype=np.int32)
                 child_name = get_rect_name(child_rect)
                 child_info = convert(child_rect)
-                child_pivot = layers_pivot + child_info['m_LocalPosition'][:2]
+                child_pivot = layers_pivot + child_info['m_LocalPosition']
 
                 print('[INFO]', child_rect, child_name)
                 pprint(child_info)
@@ -106,10 +126,10 @@ class DecodeHelper(TextureHelper):
                 child_offset = child_pivot - child_info['m_Pivot'] * child_info['m_SizeDelta']
                 x, y = np.maximum(np.round(child_offset), 0).astype(np.int32)
                 w, h = np.minimum(child_info['m_SizeDelta'] + [x, y], shape).astype(np.int32) - [x, y]
-                # print(x, y, w, h)
+                print(x, y, w, h)
 
                 sub = np.empty((*shape[::-1], 4), dtype=np.uint8)
-                sub[y:y + h, x:x + w] = resize_img(dec_img, (w, h))[:, :]
+                sub[y:y + h, x:x + w, :] = resize_img(dec_img, (w, h))[:, :, :]
                 save_img(sub, self._dec_tex(child_name))
 
                 full.alpha_composite(Image.fromarray(sub))
@@ -140,18 +160,20 @@ class EncodeHelper(TextureHelper):
         pprint(base_info)
 
         mesh_data = parse_obj(self._mesh_obj(base_go.name))
-        dec_img = read_img(self._dec_tex(base_go.name))
+        dec_img = read_img(self._dec_tex(base_go.name), base_rss)
         # save_img(dec_img, os.path.join(self.dir, base_go.name + '-tmp.png'))
 
+        shape = base_info['m_SizeDelta'].astype(np.int32)
         enc_img = encode_tex(dec_img, enc_whs[base_go.name], *mesh_data.values())
         save_img(enc_img, self._enc_tex(base_go.name))
+        self._replace(base_go.name, Image.fromarray(enc_img))
 
         if 'layers' in [_.name for _ in gos]:
             base_children: List[RectTransform] = [_.read() for _ in base_rt.m_Children]
             layers_rt: RectTransform = [_ for _ in base_children if get_rect_name(_) == 'layers'][0]
             layers_children: List[RectTransform] = [_.read() for _ in layers_rt.m_Children]
             layers_info = convert(layers_rt)
-            layers_pivot = base_pivot + layers_info['m_LocalPosition'][:2]
+            layers_pivot = base_pivot + layers_info['m_LocalPosition']
 
             print('[INFO]', layers_rt, get_rect_name(layers_rt))
             pprint(layers_info)
@@ -162,61 +184,24 @@ class EncodeHelper(TextureHelper):
                 child_rss = np.array([*child_mb.mRawSpriteSize.values()], dtype=np.int32)
                 child_name = get_rect_name(child_rect)
                 child_info = convert(child_rect)
-                child_pivot = layers_pivot + child_info['m_LocalPosition'][:2]
+                child_pivot = layers_pivot + child_info['m_LocalPosition']
 
                 print('[INFO]', child_rect, child_name)
                 pprint(child_info)
 
-                child_offset = child_pivot - child_info['m_SizeDelta'] * child_info['m_Pivot']
-                x, y = np.round(child_offset).astype(np.int32)
-                w, h = child_rss
-                # print(x, y, w, h)
+                child_offset = child_pivot - child_info['m_Pivot'] * child_info['m_SizeDelta']
+                x, y = np.maximum(np.round(child_offset), 0).astype(np.int32)
+                w, h = np.minimum(child_info['m_SizeDelta'] + [x, y], shape).astype(np.int32) - [x, y]
+                print(x, y, w, h)
 
                 mesh_data = parse_obj(self._mesh_obj(child_name))
-                dec_img = read_img(self._dec_tex(child_name))[y:y + h, x:x + w]
+                dec_img = resize_img(read_img(self._dec_tex(child_name))[y:y + h, x:x + w], child_rss)
+                print(dec_img.shape)
                 # save_img(dec_img, self.dir, child_name + '-tmp.png'))
 
                 enc_img = encode_tex(dec_img, enc_whs[child_name], *mesh_data.values())
                 save_img(enc_img, self._enc_tex(child_name))
-
-
-class ViewHelper(TextureHelper):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def display(self, **kwargs):
-        name = self.chara.split('\\')[-1].split('_tex')[0]
-        mesh_data = parse_obj(self._mesh_obj(name))
-
-        enc_win, enc_batch, enc_draw = create_window(
-            self._enc_tex(name),
-            mesh_data['vt'],
-            mesh_data['f'][:, :, 1],
-            win_width=kwargs['win_width_enc'],
-            **kwargs
-        )
-
-        @enc_win.event
-        def on_draw():
-            enc_win.clear()
-            enc_batch.draw()
-
-        dec_win, dec_batch, dec_draw = create_window(
-            self._dec_tex(name),
-            mesh_data['v_normalized'],
-            mesh_data['f'][:, :, 0],
-            win_width=kwargs['win_width_dec'],
-            **kwargs
-        )
-
-        @dec_win.event
-        def on_draw():
-            dec_win.clear()
-            dec_batch.draw()
-
-        app.run()
-
-        return enc_draw, dec_draw
+                self._replace(child_name, Image.fromarray(enc_img))
 
 
 class MergeHelper(TextureHelper):
@@ -230,7 +215,7 @@ class MergeHelper(TextureHelper):
         asset_path = os.path.join(pf_dir, self._asset_name(self.chara))
         assert os.path.exists(asset_path), f'file {asset_path} not found'
         env = UnityPy.load(asset_path)
-        
+
         print('[INFO] Asset bundle:', asset_path)
 
         tex2d: List[Texture2D] = [_.read() for _ in env.objects if _.type.name == 'Texture2D']
