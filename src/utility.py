@@ -1,7 +1,9 @@
 from PIL import Image
+from pprint import pprint
 from pyglet import gl, graphics, image, shapes, sprite, text, window
+from typing import Dict
+from UnityPy.classes import RectTransform
 import numpy as np
-import pprint
 import UnityPy
 
 
@@ -28,52 +30,104 @@ def parse_obj(mesh):
         v[:, 0] = -v[:, 0]
         s = np.stack(v, -1).max(-1) + 1
 
-    return tuple(s.astype(np.int32)[:2]), {'v': v / s, 'vt': vt, 'f': f}
+        print(f'[INFO] Mesh file: {mesh}')
+        print(f'[INFO] Vertex count: {len(v)}')
+        print(f'[INFO] Texcoord count: {len(vt)}')
+        print(f'[INFO] Face count: {len(f)}')
+        print(f'[INFO] Mesh size: {s[:2]}')
+
+    return {'v': v / s, 'vt': vt, 'f': f}
 
 
-def read_img(filename):
-    return np.array(Image.open(filename).transpose(Image.FLIP_TOP_BOTTOM))
+def read_img(filename, resize=None):
+    img = Image.open(filename)
+    if resize is not None:
+        img = img.resize(resize, resample=Image.Resampling.LANCZOS)
+    return np.array(img.transpose(Image.FLIP_TOP_BOTTOM))
 
 
 def save_img(data, filename):
     Image.fromarray(data).transpose(Image.FLIP_TOP_BOTTOM).save(filename)
 
 
-def get_img_area(data, scaler):
-    coord = np.round(data * scaler).astype(np.int32)
-    x, y = np.stack(coord, -1).min(-1)
-    w, h = np.stack(coord, -1).max(-1) - [x, y]
-    return x, y, w, h
+def resize_img(data, size):
+    return np.array(Image.fromarray(data).resize(size, resample=Image.Resampling.LANCZOS))
 
 
-def decode_tex(enc_img, dec_size, v, vt, f):
-    dec_img = np.empty((*dec_size[::-1], 4), dtype=np.uint8)
-    enc_size = enc_img.shape[1::-1]
+def get_rect_name(rect: RectTransform):
+    return rect.m_GameObject.read().m_Name
+
+
+def convert(raw: RectTransform) -> Dict[str, np.ndarray]:
+    entry = [
+        'm_LocalPosition',
+        'm_LocalScale',
+        'm_AnchorMin',
+        'm_AnchorMax',
+        'm_AnchoredPosition',
+        'm_SizeDelta',
+        'm_Pivot'
+    ]
+    return {_: np.array([*raw.to_dict()[_].values()]) for _ in entry}
+
+
+def get_offset(x, f):
+    values = [
+        x['m_AnchorMax'] * x['m_Pivot'] * f['m_SizeDelta'],
+        x['m_AnchorMin'] * (1 - x['m_Pivot']) * f['m_SizeDelta'],
+        x['m_AnchoredPosition'],
+        -x['m_Pivot'] * x['m_SizeDelta'] * x['m_LocalScale'][:2]
+    ]
+    print(values)
+    return sum(values)
+
+
+def get_img_area(data, size, pad=0):
+    data *= size
+
+    # pad with one extra pixel and clip
+    lb = np.round(np.maximum(np.stack(data, -1).min(-1) - pad, 0)).astype(np.int32)
+    ru = np.round(np.minimum(np.stack(data, -1).max(-1) + pad, size - 1)).astype(np.int32)
+
+    return *lb, *(ru - lb)
+
+
+def decode_tex(enc_img, dec_size, v, vt, f, *args):
+    enc_img = Image.fromarray(enc_img)
+    dec_img = Image.new('RGBA', tuple(dec_size))
+    enc_size = np.array(enc_img.size)
 
     for rect in zip(f[::2], f[1::2]):
         index_v, index_vt = np.stack([*rect[0][:2, :2], *rect[1][:2, :2]], -1)
 
-        x1, y1, _, _ = get_img_area(v[index_v - 1, :2], dec_size)
-        x2, y2, w, h = get_img_area(vt[index_vt - 1], enc_size)
+        x1, y1, w1, h1 = get_img_area(v[index_v - 1, :2], dec_size, 0)
+        x2, y2, w2, h2 = get_img_area(vt[index_vt - 1], enc_size, 0)
+        # print(x1, y1, w1, h1)
+        # print(x2, y2, w2, h2)
 
-        dec_img[y1:y1 + h, x1:x1 + w, :] = enc_img[y2:y2 + h, x2:x2 + w, :]
+        sub = enc_img.crop((x2, y2, x2 + w2, y2 + h2)).resize((w1, h1))
+        dec_img.paste(sub, (x1, y1))
 
-    return dec_img
+    return np.array(dec_img)
 
 
-def encode_tex(dec_img, enc_size, v, vt, f):
-    enc_img = np.empty((*enc_size[::-1], 4), dtype=np.uint8)
-    dec_size = dec_img.shape[1::-1]
+def encode_tex(dec_img, enc_size, v, vt, f, *args):
+    dec_img = Image.fromarray(dec_img)
+    enc_img = Image.new('RGBA', tuple(enc_size))
+    dec_size = np.array(dec_img.size)
 
     for rect in zip(f[::2], f[1::2]):
         index_v, index_vt = np.stack([*rect[0][:2, :2], *rect[1][:2, :2]], -1)
 
-        x1, y1, _, _ = get_img_area(v[index_v - 1, :2], dec_size)
-        x2, y2, w, h = get_img_area(vt[index_vt - 1], enc_size)
+        x1, y1, w1, h1 = get_img_area(v[index_v - 1, :2], dec_size, 1)
+        x2, y2, w2, h2 = get_img_area(vt[index_vt - 1], enc_size, 1)
+        # print(x1, y1, w1, h1)
+        # print(x2, y2, w2, h2)
 
-        enc_img[y2:y2 + h, x2:x2 + w, :] = dec_img[y1:y1 + h, x1:x1 + w, :]
+        sub = dec_img.crop((x1, y1, x1 + w1, y1 + h1)).resize((w2, h2))
+        enc_img.paste(sub, (x2, y2))
 
-    return enc_img
+    return np.array(enc_img)
 
 
 def create_window(
@@ -127,24 +181,19 @@ def get_rect_transform(filename):
     print('[INFO] Face RectTransform PathID:', face_rect.path_id)
     print('[INFO] Base RectTransform PathID:', base_rect.path_id)
 
-    def convert(raw: dict) -> dict[str, np.ndarray]:
-        entry = ['m_AnchorMin', 'm_AnchorMax', 'm_AnchoredPosition', 'm_SizeDelta']
-        return {_: np.array([*raw[_].values()]) for _ in entry}
-
-    base = convert(base_rect.to_dict())
-    face = convert(face_rect.to_dict())
+    base = convert(base_rect)
+    face = convert(face_rect)
 
     print('[INFO] Face RectTransform data:')
-    pprint.pprint(base)
+    pprint(base)
     print('[INFO] Base RectTransform data:')
-    pprint.pprint(face)
+    pprint(face)
 
-    face['m_AnchorCenter'] = np.mean([face['m_AnchorMax'], face['m_AnchorMin']])
+    base_pivot = base['m_SizeDelta'] * base['m_Pivot']
+    face_pivot = base_pivot + face['m_LocalPosition'][:2]
+    face_offset = face_pivot - face['m_SizeDelta'] * face['m_Pivot']
 
-    anchor = face['m_AnchorCenter'] * base['m_SizeDelta']
-    pivot = anchor + face['m_AnchoredPosition']
-    align = pivot - face['m_AnchorCenter'] * face['m_SizeDelta']
-    x, y = np.round(align).astype(np.int32)
+    x, y = np.round(face_offset).astype(np.int32)
     w, h = face['m_SizeDelta'].astype(np.int32)
 
     print('[INFO] Paintingface area:', x, y, w, h)
