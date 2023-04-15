@@ -3,6 +3,7 @@ from pprint import pprint
 from typing import Dict
 from UnityPy.classes import RectTransform
 import numpy as np
+import os
 import UnityPy
 
 
@@ -51,6 +52,13 @@ def save_img(data, filename):
 
 def resize_img(data, size):
     return np.array(Image.fromarray(data).resize(size, resample=Image.Resampling.HAMMING))
+
+
+def check_dir(*dir):
+    if len(dir) > 1:
+        check_dir(*dir[:-1])
+    if not os.path.exists(os.path.join(*dir)):
+        os.mkdir(os.path.join(*dir))
 
 
 def get_rect_name(rect: RectTransform):

@@ -34,20 +34,23 @@ class TextureHelper():
 
         print('[INFO] Asset bundle:', asset_path)
 
+        # extract mesh
+        mesh: Mesh = [_.read() for _ in env.objects if _.type.name == 'Mesh']
+        if len(mesh) == 0:
+            env = UnityPy.load(os.path.join(os.path.dirname(asset_path), self._asset_name(self.chara) + '_n_tex'))
+        mesh: Mesh = [_.read() for _ in env.objects if _.type.name == 'Mesh']
+        with open(self._mesh_obj(self._asset_name(asset)), 'w', newline='') as f:
+            f.write(mesh[0].export())
+
         # extract texture2d
         tex2d: Texture2D = [_.read() for _ in env.objects if _.type.name == 'Texture2D'][0]
         if not mesh_only:
             tex2d.image.save(self._enc_tex(self._asset_name(asset)))
 
-        # extract mesh
-        mesh: Mesh = [_.read() for _ in env.objects if _.type.name == 'Mesh'][0]
-        with open(self._mesh_obj(self._asset_name(asset)), 'w', newline='') as f:
-            f.write(mesh.export())
-
         return np.array([tex2d.m_Width, tex2d.m_Height])
 
-    def _replace(self, asset, img):
-        asset_path = os.path.join(self.dir, 'painting', asset + '_tex')
+    def _replace(self, folder, asset, img_dict):
+        asset_path = os.path.join(self.dir, folder, asset)
         assert os.path.exists(asset_path), f'file {asset_path} not found'
 
         env = UnityPy.load(asset_path)
@@ -55,15 +58,14 @@ class TextureHelper():
             if _.type.name == 'Texture2D':
                 tex2d: Texture2D = _.read()
                 tex2d.set_image(
-                    img.transpose(Image.FLIP_TOP_BOTTOM),
+                    img_dict[tex2d.name].transpose(Image.FLIP_TOP_BOTTOM),
                     target_format=TextureFormat.RGBA32,
                     in_cab=True
                 )
                 tex2d.save()
 
-        if not os.path.exists(os.path.join(self.dir, 'painting-out')):
-            os.mkdir(os.path.join(self.dir, 'painting-out'))
-        with open(os.path.join(self.dir, 'painting-out', asset + '_tex'), 'wb') as f:
+        check_dir(self.dir, 'output' , folder)
+        with open(os.path.join(self.dir, 'output' , folder, asset), 'wb') as f:
             f.write(env.file.save('lz4'))
 
 
@@ -166,7 +168,7 @@ class EncodeHelper(TextureHelper):
         shape = base_info['m_SizeDelta'].astype(np.int32)
         enc_img = encode_tex(dec_img, enc_whs[base_go.name], *mesh_data.values())
         save_img(enc_img, self._enc_tex(base_go.name))
-        self._replace(base_go.name, Image.fromarray(enc_img))
+        self._replace('painting', base_go.name + '_tex', {base_go.name: Image.fromarray(enc_img)})
 
         if 'layers' in [_.name for _ in gos]:
             base_children: List[RectTransform] = [_.read() for _ in base_rt.m_Children]
@@ -192,7 +194,7 @@ class EncodeHelper(TextureHelper):
                 child_offset = child_pivot - child_info['m_Pivot'] * child_info['m_SizeDelta']
                 x, y = np.maximum(np.round(child_offset), 0).astype(np.int32)
                 w, h = np.minimum(child_info['m_SizeDelta'] + [x, y], shape).astype(np.int32) - [x, y]
-                print(x, y, w, h)
+                # print(x, y, w, h)
 
                 mesh_data = parse_obj(self._mesh_obj(child_name))
                 dec_img = resize_img(read_img(self._dec_tex(child_name))[y:y + h, x:x + w], child_rss)
@@ -201,7 +203,7 @@ class EncodeHelper(TextureHelper):
 
                 enc_img = encode_tex(dec_img, enc_whs[child_name], *mesh_data.values())
                 save_img(enc_img, self._enc_tex(child_name))
-                self._replace(child_name, Image.fromarray(enc_img))
+                self._replace('painting', child_name + '_tex', {child_name: Image.fromarray(enc_img)})
 
 
 class MergeHelper(TextureHelper):
@@ -209,8 +211,7 @@ class MergeHelper(TextureHelper):
         base, _, x, y, w, h = get_rect_transform(os.path.join(self.dir, self._asset_name(self.chara)))
 
         pf_dir = os.path.join(self.dir, 'paintingface')
-        if not os.path.exists(pf_dir + '-merge'):
-            os.mkdir(pf_dir + '-merge')
+        check_dir(pf_dir, 'diff')
 
         asset_path = os.path.join(pf_dir, self._asset_name(self.chara))
         assert os.path.exists(asset_path), f'file {asset_path} not found'
@@ -219,29 +220,30 @@ class MergeHelper(TextureHelper):
         print('[INFO] Asset bundle:', asset_path)
 
         tex2d: List[Texture2D] = [_.read() for _ in env.objects if _.type.name == 'Texture2D']
-        [_.image.save(os.path.join(pf_dir, _.m_Name + '.png')) for _ in tex2d]
+        [_.image.save(os.path.join(pf_dir, 'diff', _.m_Name + '.png')) for _ in tex2d]
 
-        main = np.empty((*base['m_SizeDelta'].astype(np.int32)[::-1], 4), dtype=np.uint8)
-        for _, _, files in os.walk(pf_dir):
+        for path, _, files in os.walk(os.path.join(pf_dir, 'diff')):
             for img in [_ for _ in files if _.endswith('.png')]:
-                print(os.path.join(pf_dir, img))
-                diff = read_img(os.path.join(pf_dir, img))
+                print(os.path.join(path, img))
+                diff = read_img(os.path.join(path, img))
+                main = np.empty((*base['m_SizeDelta'].astype(np.int32)[::-1], 4), dtype=np.uint8)
                 main[y:y + h, x:x + w] = diff[:, :]
-                save_img(main, os.path.join(pf_dir + '-merge', img))
+                save_img(main, os.path.join(pf_dir, img))
 
 
 class SplitHelper(TextureHelper):
     def split(self):
-        _, face, x, y, w, h = get_rect_transform(os.path.join(self.dir, self._asset_name(self.chara)))
+        _, _, x, y, w, h = get_rect_transform(os.path.join(self.dir, self._asset_name(self.chara)))
 
         pf_dir = os.path.join(self.dir, 'paintingface')
-        if not os.path.exists(pf_dir + '-split'):
-            os.mkdir(pf_dir + '-split')
 
-        main = np.empty((*face['m_SizeDelta'].astype(np.int32)[::-1], 4), dtype=np.uint8)
-        for _, _, files in os.walk(pf_dir + '-merge'):
+        img_dict = {}
+        for path, _, files in os.walk(os.path.join(pf_dir, 'diff')):
             for img in [_ for _ in files if _.endswith('.png')]:
-                print(os.path.join(pf_dir + '-merge', img))
-                full = read_img(os.path.join(pf_dir + '-merge', img))
-                main[:, :] = full[y:y + h, x:x + w]
-                save_img(main, os.path.join(pf_dir + '-split', img))
+                print(os.path.join(path, img))
+                full = read_img(os.path.join(pf_dir, img))
+                main = full[y:y + h, x:x + w]
+                save_img(main, os.path.join(path, img))
+                img_dict[img.split('.')[0]] = Image.fromarray(main)
+
+        self._replace('paintingface', self._asset_name(self.chara), img_dict)
