@@ -1,0 +1,16 @@
+name: alth
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - "blas=*=openblas"
+  - numpy
+  - pillow
+  - pip
+  - pyinstaller
+  - pysocks
+  - pip:
+    - pytoshop
+    - pyglet==2.0.5
+    - unitypy

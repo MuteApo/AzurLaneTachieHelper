@@ -52,7 +52,7 @@
 
 #### Requirements
 
-- Python 3.8+ with following libraries:
+- Python 3.11+ with following libraries:
   - PyGlet 2.0.5+
   - NumPy
   - Pillow
