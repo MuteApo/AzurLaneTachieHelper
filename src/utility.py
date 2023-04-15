@@ -1,10 +1,19 @@
-from PIL import Image
+import os
 from pprint import pprint
 from typing import Dict
-from UnityPy.classes import RectTransform
+
 import numpy as np
-import os
 import UnityPy
+from PIL import Image
+from pytoshop.user import nested_layers
+from UnityPy.classes import RectTransform
+
+
+def check_dir(*dir):
+    if len(dir) > 1:
+        check_dir(*dir[:-1])
+    if not os.path.exists(os.path.join(*dir)):
+        os.mkdir(os.path.join(*dir))
 
 
 def parse_obj(mesh):
@@ -54,14 +63,7 @@ def resize_img(data, size):
     return np.array(Image.fromarray(data).resize(size, resample=Image.Resampling.LANCZOS))
 
 
-def check_dir(*dir):
-    if len(dir) > 1:
-        check_dir(*dir[:-1])
-    if not os.path.exists(os.path.join(*dir)):
-        os.mkdir(os.path.join(*dir))
-
-
-def get_rect_name(rect: RectTransform):
+def get_rt_name(rect: RectTransform):
     return rect.m_GameObject.read().m_Name
 
 
@@ -159,3 +161,20 @@ def get_rect_transform(filename):
     print("[INFO] Paintingface area:", x, y, w, h)
 
     return base, face, x, y, w, h
+
+
+def gen_ps_layer(img: Image.Image, name):
+    r, g, b, a = img.transpose(Image.FLIP_TOP_BOTTOM).split()
+    channels = {i - 1: np.array(x) for i, x in enumerate([a, r, g, b])}
+    w, h = img.size
+    layer = nested_layers.Image(
+        name=name,
+        visible=True,
+        opacity=255,
+        top=0,
+        left=0,
+        bottom=h,
+        right=w,
+        channels=channels,
+    )
+    return layer

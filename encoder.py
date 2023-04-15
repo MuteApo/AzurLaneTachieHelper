@@ -1,10 +1,99 @@
-from src.module import EncodeHelper
 import argparse
+from pprint import pprint
+from typing import List
 
-parser = argparse.ArgumentParser(description='Azur Lane Tachie Encoder')
-parser.add_argument('chara', type=str, help='tachie to encode, eg. hailunna_h_rw')
+import numpy as np
+import UnityPy
+from PIL import Image
+from UnityPy.classes import AssetBundle, GameObject, MonoBehaviour, RectTransform
 
-if __name__ == '__main__':
+from src.module import TextureHelper
+from src.utility import *
+
+
+class EncodeHelper(TextureHelper):
+    def _encode(self, name, rss, enc_size, box=(slice(None), slice(None))):
+        mesh_data = parse_obj(self._mesh_obj(name))
+        dec_img = resize_img(read_img(self._dec_tex(name))[*box], rss)
+        enc_img = encode_tex(dec_img, enc_size, *mesh_data.values())
+
+        return enc_img
+
+    def encode(self):
+        env = UnityPy.load(self.chara)
+
+        # resolve assetbundle dependencies
+        abs: List[AssetBundle] = [
+            _.read() for _ in env.objects if _.type.name == "AssetBundle"
+        ]
+        enc_whs = {
+            self._asset_name(_): self._extract(_, mesh_only=True)
+            for _ in abs[0].m_Dependencies
+        }
+
+        mbs: List[MonoBehaviour] = [
+            _.read() for _ in env.objects if _.type.name == "MonoBehaviour"
+        ]
+        base_go: GameObject = [_.read() for _ in env.container.values()][0]
+        base_rt: RectTransform = base_go.m_Transform.read()
+        base_children: List[RectTransform] = [_.read() for _ in base_rt.m_Children]
+        base_rss, base_name, base_info = self._parse_rect(base_rt, mbs)
+        base_pivot = base_info["m_SizeDelta"] * base_info["m_Pivot"]
+        shape = base_info["m_SizeDelta"].astype(np.int32)
+
+        print("[INFO]", base_rt, base_name)
+        pprint(base_info)
+
+        enc_img = self._encode(base_name, base_rss, enc_whs[base_name])
+        save_img(enc_img, self._enc_tex(base_name))
+
+        self._replace(
+            "painting", base_name + "_tex", {base_name: Image.fromarray(enc_img)}
+        )
+
+        layers_rts: List[RectTransform] = [
+            _ for _ in base_children if get_rt_name(_) == "layers"
+        ]
+        if len(layers_rts) > 0:
+            layers_rt = layers_rts[0]
+            layers_children: List[RectTransform] = [
+                _.read() for _ in layers_rt.m_Children
+            ]
+            layers_info = convert(layers_rt)
+            layers_pivot = base_pivot + layers_info["m_LocalPosition"]
+
+            print("[INFO]", layers_rt, get_rt_name(layers_rt))
+            pprint(layers_info)
+
+            for child_rt in layers_children:
+                child_rss, child_name, child_info = self._parse_rect(child_rt, mbs)
+                child_pivot = layers_pivot + child_info["m_LocalPosition"]
+
+                print("[INFO]", child_rt, child_name)
+                pprint(child_info)
+
+                child_pivot -= child_info["m_Pivot"] * child_info["m_SizeDelta"]
+                x, y, w, h = clip_box(child_pivot, child_info["m_SizeDelta"], shape)
+
+                enc_img = self._encode(
+                    child_name,
+                    child_rss,
+                    enc_whs[child_name],
+                    (slice(y, y + h), slice(x, x + w)),
+                )
+                save_img(enc_img, self._enc_tex(child_name))
+
+                self._replace(
+                    "painting",
+                    child_name + "_tex",
+                    {child_name: Image.fromarray(enc_img)},
+                )
+
+
+parser = argparse.ArgumentParser(description="Azur Lane Tachie Encoder")
+parser.add_argument("chara", type=str, help="tachie to encode, eg. hailunna_h_rw")
+
+if __name__ == "__main__":
     args = parser.parse_args().__dict__
 
     encoder = EncodeHelper(**args)
