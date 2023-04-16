@@ -14,7 +14,7 @@ class ViewHelper(TextureHelper):
         label_size,
         label_color,
         bbox_color,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.win_width_enc = win_width_enc
@@ -41,36 +41,39 @@ class ViewHelper(TextureHelper):
             index = np.reshape([list(zip(_, _[1:])) for _ in rect], (4, -1))
             # print(index)
             coord = np.reshape(
-                [[v[__ - 1][:2] * img_size + self.padding for __ in _] for _ in index], (4, -1)
+                [[v[__ - 1][:2] * img_size + self.padding for __ in _] for _ in index],
+                (4, -1),
             )
             # print(coord)
             label_list += [
                 text.Label(
                     str(id + 1),
-                    font_name='Times New Roman',
+                    font_name="Times New Roman",
                     font_size=self.label_size,
                     color=self.label_color,
                     x=np.round((coord[0][0] + coord[0][2]) / 2),
                     y=np.round((coord[1][1] + coord[1][3]) / 2),
-                    anchor_x='center',
-                    anchor_y='center',
-                    batch=batch
+                    anchor_x="center",
+                    anchor_y="center",
+                    batch=batch,
                 )
             ]
-            line_list += [shapes.Line(*_, color=self.bbox_color, batch=batch) for _ in coord]
+            line_list += [
+                shapes.Line(*_, color=self.bbox_color, batch=batch) for _ in coord
+            ]
 
         return win, batch, (tex2d, line_list, label_list)
 
     def display(self, **kwargs):
-        name = self.chara.split('\\')[-1].split('_tex')[0]
+        name = self.chara.split("\\")[-1].split("_tex")[0]
         mesh_data = parse_obj(self._mesh_obj(name))
 
         enc_win, enc_batch, enc_draw = self._create_window(
             self._enc_tex(name),
-            mesh_data['vt'],
-            mesh_data['f'][:, :, 1],
+            mesh_data["vt"],
+            mesh_data["f"][:, :, 1],
             self.win_width_enc,
-            **kwargs
+            **kwargs,
         )
 
         @enc_win.event
@@ -80,10 +83,10 @@ class ViewHelper(TextureHelper):
 
         dec_win, dec_batch, dec_draw = self._create_window(
             self._dec_tex(name),
-            mesh_data['v_normalized'],
-            mesh_data['f'][:, :, 0],
+            mesh_data["v_normalized"],
+            mesh_data["f"][:, :, 0],
             self.win_width_dec,
-            **kwargs
+            **kwargs,
         )
 
         @dec_win.event
@@ -96,32 +99,55 @@ class ViewHelper(TextureHelper):
         return enc_draw, dec_draw
 
 
-parser = argparse.ArgumentParser(description='Azur Lane Tachie Viewer')
-parser.add_argument('chara', type=str, help='tachie to view, eg. hailunna_h_rw')
+parser = argparse.ArgumentParser(description="Azur Lane Tachie Viewer")
+parser.add_argument("chara", type=str, help="tachie to view, eg. hailunna_h_rw")
 parser.add_argument(
-    '--win_width_enc', metavar='W', type=int,
-    default=1440, help='display width of encoded image'
+    "--win_width_enc",
+    metavar="W",
+    type=int,
+    default=1280,
+    help="display width of encoded image",
 )
 parser.add_argument(
-    '--win_width_dec', metavar='W', type=int,
-    default=1080, help='display width of decoded image'
+    "--win_width_dec",
+    metavar="W",
+    type=int,
+    default=960,
+    help="display width of decoded image",
 )
 parser.add_argument(
-    '-p', '--padding', metavar='P', type=int, default=10, help='padding for image in window'
+    "-p",
+    "--padding",
+    metavar="P",
+    type=int,
+    default=10,
+    help="padding for image in window",
 )
 parser.add_argument(
-    '--label_size', metavar='S', type=int, default=12, help='size of labels in bouding box'
+    "--label_size",
+    metavar="S",
+    type=int,
+    default=12,
+    help="size of labels in bouding box",
 )
 parser.add_argument(
-    '--label_color', metavar='C', type=int, nargs=4,
-    default=[157, 41, 50, 196], help='RGBA color of labels in bouding box'
+    "--label_color",
+    metavar="C",
+    type=int,
+    nargs=4,
+    default=[157, 41, 50, 196],
+    help="RGBA color of labels in bouding box",
 )
 parser.add_argument(
-    '--bbox_color', metavar='C', type=int, nargs=4,
-    default=[217, 182, 18, 196], help='RGBA color of bouding box'
+    "--bbox_color",
+    metavar="C",
+    type=int,
+    nargs=4,
+    default=[217, 182, 18, 196],
+    help="RGBA color of bouding box",
 )
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parser.parse_args().__dict__
 
     viewer = ViewHelper(**args)

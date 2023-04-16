@@ -4,10 +4,10 @@
 
 - Easy drag & drop
 - Decode & encode texture
-- Merge & split paintingface 
 - View bounding box comparision
-- Support tachie with multiple layers
-- Combine layers as photoshop document (psd)
+- Merge & split paintingface 
+- Support multi-layer tachies
+- Combine layers as psd
 
 #### Components (exemplified by `hailunna_h_rw`)
 
@@ -85,14 +85,19 @@
 
 #### Requirements
 
-- Python 3.11+ with following libraries:
+- Python 3.8+ with following libraries:
   - pyglet 2.0.5+
   - numpy
   - pillow
   - pytoshop
   - unitypy
   - (Optional) pyinstaller
-- Or just run:
-  - ```shell
+- Or just run
+  - for conda
+    ```shell
+    conda env create -f enviromnet.yml
+    ```
+  - for pip:
+    ```shell
     pip install -r requirements.txt
     ```

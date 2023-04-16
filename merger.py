@@ -1,6 +1,5 @@
 import argparse
 import os
-from typing import List
 
 import numpy as np
 import pytoshop
@@ -9,17 +8,19 @@ import win32api
 import win32con
 from PIL import Image
 from pytoshop.enums import ColorMode
+from pytoshop.user import nested_layers
 from UnityPy.classes import Texture2D
 
 from src.module import TextureHelper
-from src.utility import *
+from src.utility import check_dir, gen_ps_layer, get_rect_transform, read_img, save_img
 
 
 class MergeHelper(TextureHelper):
     def merge(self):
-        base, _, x, y, w, h = get_rect_transform(
+        base, _, x, y, _, _ = get_rect_transform(
             os.path.join(self.dir, self._asset_name(self.chara))
         )
+        shape = tuple(base["m_SizeDelta"].astype(np.int32)[::-1])
 
         pf_dir = os.path.join(self.dir, "paintingface")
         check_dir(pf_dir, "diff")
@@ -30,7 +31,7 @@ class MergeHelper(TextureHelper):
 
         print("[INFO] Asset bundle:", asset_path)
 
-        tex2d: List[Texture2D] = [
+        tex2d: list[Texture2D] = [
             _.read() for _ in env.objects if _.type.name == "Texture2D"
         ]
         [_.image.save(os.path.join(pf_dir, "diff", _.m_Name + ".png")) for _ in tex2d]
@@ -41,17 +42,15 @@ class MergeHelper(TextureHelper):
             for img in [_ for _ in files if _.endswith(".png")]:
                 print(os.path.join(path, img))
                 diff = read_img(os.path.join(path, img))
-                main = np.empty(
-                    (*base["m_SizeDelta"].astype(np.int32)[::-1], 4), dtype=np.uint8
-                )
-                main[y : y + h, x : x + w] = diff[:, :]
-                save_img(main, os.path.join(pf_dir, img))
-                ps_layer += [gen_ps_layer(Image.fromarray(main), img.split(".")[0])]
+                full = Image.new("RGBA", shape)
+                full.paste(diff, (x, y))
+                save_img(full, os.path.join(pf_dir, img))
+                ps_layer += [gen_ps_layer(full, img.split(".")[0], visible=False)]
 
         group = [
             nested_layers.Group(
                 name="paintingface",
-                visible=False,
+                visible=True,
                 opacity=255,
                 layers=ps_layer[::-1],
                 closed=False,

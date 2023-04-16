@@ -4,7 +4,7 @@ import os
 from PIL import Image
 
 from src.module import TextureHelper
-from src.utility import *
+from src.utility import get_rect_transform, read_img, save_img
 
 
 class SplitHelper(TextureHelper):
@@ -20,9 +20,9 @@ class SplitHelper(TextureHelper):
             for img in [_ for _ in files if _.endswith(".png")]:
                 print(os.path.join(path, img))
                 full = read_img(os.path.join(pf_dir, img))
-                main = full[y : y + h, x : x + w]
-                save_img(main, os.path.join(path, img))
-                img_dict[img.split(".")[0]] = Image.fromarray(main)
+                diff = full.crop((x, y, x + w, y + h))
+                save_img(diff, os.path.join(path, img))
+                img_dict[img.split(".")[0]] = diff
 
         self._replace("paintingface", self._asset_name(self.chara), img_dict)
 

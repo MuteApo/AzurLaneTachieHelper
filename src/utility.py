@@ -1,6 +1,5 @@
 import os
 from pprint import pprint
-from typing import Dict
 
 import numpy as np
 import UnityPy
@@ -16,7 +15,7 @@ def check_dir(*dir):
         os.mkdir(os.path.join(*dir))
 
 
-def parse_obj(mesh):
+def parse_obj(mesh: str):
     with open(mesh) as file:
         lines = [_.replace("\n", "").split(" ") for _ in file.readlines()]
 
@@ -48,26 +47,28 @@ def parse_obj(mesh):
     return {"v": v, "vt": vt, "f": f, "v_normalized": v / s}
 
 
-def read_img(filename, resize=None):
-    img = Image.open(filename)
-    if resize is not None:
-        img = img.resize(resize, resample=Image.Resampling.LANCZOS)
-    return np.array(img.transpose(Image.FLIP_TOP_BOTTOM))
+def resize_img(
+    img: Image.Image,
+    size: tuple[int, int],
+    resample: Image.Resampling = Image.Resampling.LANCZOS,
+) -> Image.Image:
+    return img.resize(size, resample=resample)
 
 
-def save_img(data, filename):
-    Image.fromarray(data).transpose(Image.FLIP_TOP_BOTTOM).save(filename)
+def read_img(filename: str, resize: tuple[int, int] = None) -> Image.Image:
+    img = Image.open(filename).transpose(Image.FLIP_TOP_BOTTOM)
+    return img if resize is None else resize_img(img, resize)
 
 
-def resize_img(data, size):
-    return np.array(Image.fromarray(data).resize(size, resample=Image.Resampling.LANCZOS))
+def save_img(img: Image.Image, filename: str):
+    img.transpose(Image.FLIP_TOP_BOTTOM).save(filename)
 
 
-def get_rt_name(rect: RectTransform):
+def get_rt_name(rect: RectTransform) -> str:
     return rect.m_GameObject.read().m_Name
 
 
-def convert(raw: RectTransform) -> Dict[str, np.ndarray]:
+def convert(rect: RectTransform) -> dict[str, np.ndarray]:
     entry = [
         "m_LocalPosition",
         "m_LocalScale",
@@ -77,26 +78,34 @@ def convert(raw: RectTransform) -> Dict[str, np.ndarray]:
         "m_SizeDelta",
         "m_Pivot",
     ]
-    return {_: np.array([*raw.to_dict()[_].values()][:2]) for _ in entry}
+    return {_: np.array([*rect.to_dict()[_].values()][:2]) for _ in entry}
 
 
-def clip_box(offset, size, bound):
+def clip_box(offset: np.ndarray, size: np.ndarray, bound: np.ndarray):
     x, y = np.maximum(np.round(offset), 0).astype(np.int32)
     w, h = np.minimum(size + [x, y], bound).astype(np.int32) - [x, y]
     return x, y, w, h
 
 
 def get_img_area(data, size, pad=0):
+    bound = np.array(size) - 1
+
     # pad with one extra pixel and clip
     lb = np.round(np.maximum(np.stack(data, -1).min(-1) - pad, 0)).astype(np.int32)
-    ru = np.round(np.minimum(np.stack(data, -1).max(-1) + pad, size - 1)).astype(np.int32)
+    ru = np.round(np.minimum(np.stack(data, -1).max(-1) + pad, bound)).astype(np.int32)
 
     return *lb, *(ru - lb + 1)
 
 
-def decode_tex(enc_img, dec_size, v, vt, f, *args):
-    enc_img = Image.fromarray(enc_img)
-    dec_img = Image.new("RGBA", tuple(dec_size))
+def decode_tex(
+    enc_img: Image.Image,
+    dec_size: tuple[int, int],
+    v: np.ndarray,
+    vt: np.ndarray,
+    f: np.ndarray,
+    **_,
+) -> Image.Image:
+    dec_img = Image.new("RGBA", dec_size)
     enc_size = np.array(enc_img.size)
 
     for rect in zip(f[::2], f[1::2]):
@@ -110,12 +119,18 @@ def decode_tex(enc_img, dec_size, v, vt, f, *args):
         sub = enc_img.crop((x2, y2, x2 + w2, y2 + h2)).resize((w1, h1))
         dec_img.paste(sub, (x1, y1))
 
-    return np.array(dec_img)
+    return dec_img
 
 
-def encode_tex(dec_img, enc_size, v, vt, f, *args):
-    dec_img = Image.fromarray(dec_img)
-    enc_img = Image.new("RGBA", tuple(enc_size), 1)
+def encode_tex(
+    dec_img: Image.Image,
+    enc_size: tuple[int, int],
+    v: np.ndarray,
+    vt: np.ndarray,
+    f: np.ndarray,
+    **kwargs,
+):
+    enc_img = Image.new("RGBA", enc_size)
     dec_size = np.array(dec_img.size)
 
     for rect in zip(f[::2], f[1::2]):
@@ -129,7 +144,7 @@ def encode_tex(dec_img, enc_size, v, vt, f, *args):
         sub = dec_img.crop((x1, y1, x1 + w1, y1 + h1)).resize((w2, h2))
         enc_img.paste(sub, (x2, y2))
 
-    return np.array(enc_img)
+    return enc_img
 
 
 def get_rect_transform(filename):
@@ -163,13 +178,15 @@ def get_rect_transform(filename):
     return base, face, x, y, w, h
 
 
-def gen_ps_layer(img: Image.Image, name):
+def gen_ps_layer(
+    img: Image.Image, name: str, visible: bool = True
+) -> nested_layers.Layer:
     r, g, b, a = img.transpose(Image.FLIP_TOP_BOTTOM).split()
     channels = {i - 1: np.array(x) for i, x in enumerate([a, r, g, b])}
     w, h = img.size
     layer = nested_layers.Image(
         name=name,
-        visible=True,
+        visible=visible,
         opacity=255,
         top=0,
         left=0,

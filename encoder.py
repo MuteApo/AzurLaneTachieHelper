@@ -1,6 +1,5 @@
 import argparse
 from pprint import pprint
-from typing import List
 
 import numpy as np
 import UnityPy
@@ -8,14 +7,30 @@ from PIL import Image
 from UnityPy.classes import AssetBundle, GameObject, MonoBehaviour, RectTransform
 
 from src.module import TextureHelper
-from src.utility import *
+from src.utility import (
+    clip_box,
+    convert,
+    encode_tex,
+    get_rt_name,
+    parse_obj,
+    read_img,
+    resize_img,
+    save_img,
+)
 
 
 class EncodeHelper(TextureHelper):
-    def _encode(self, name, rss, enc_size, box=(slice(None), slice(None))):
+    def _encode(
+        self,
+        name: str,
+        rss: tuple[int, int],
+        enc_size: tuple[int, int],
+        box: tuple[int, int, int, int] = None,
+    ) -> Image.Image:
         mesh_data = parse_obj(self._mesh_obj(name))
-        dec_img = resize_img(read_img(self._dec_tex(name))[*box], rss)
-        enc_img = encode_tex(dec_img, enc_size, *mesh_data.values())
+        dec_img = read_img(self._dec_tex(name))
+        dec_img = dec_img if box is None else dec_img.crop(box)
+        enc_img = encode_tex(resize_img(dec_img, rss), enc_size, **mesh_data)
 
         return enc_img
 
@@ -23,7 +38,7 @@ class EncodeHelper(TextureHelper):
         env = UnityPy.load(self.chara)
 
         # resolve assetbundle dependencies
-        abs: List[AssetBundle] = [
+        abs: list[AssetBundle] = [
             _.read() for _ in env.objects if _.type.name == "AssetBundle"
         ]
         enc_whs = {
@@ -31,12 +46,12 @@ class EncodeHelper(TextureHelper):
             for _ in abs[0].m_Dependencies
         }
 
-        mbs: List[MonoBehaviour] = [
+        mbs: list[MonoBehaviour] = [
             _.read() for _ in env.objects if _.type.name == "MonoBehaviour"
         ]
         base_go: GameObject = [_.read() for _ in env.container.values()][0]
         base_rt: RectTransform = base_go.m_Transform.read()
-        base_children: List[RectTransform] = [_.read() for _ in base_rt.m_Children]
+        base_children: list[RectTransform] = [_.read() for _ in base_rt.m_Children]
         base_rss, base_name, base_info = self._parse_rect(base_rt, mbs)
         base_pivot = base_info["m_SizeDelta"] * base_info["m_Pivot"]
         shape = base_info["m_SizeDelta"].astype(np.int32)
@@ -46,17 +61,14 @@ class EncodeHelper(TextureHelper):
 
         enc_img = self._encode(base_name, base_rss, enc_whs[base_name])
         save_img(enc_img, self._enc_tex(base_name))
+        self._replace("painting", base_name + "_tex", {base_name: enc_img})
 
-        self._replace(
-            "painting", base_name + "_tex", {base_name: Image.fromarray(enc_img)}
-        )
-
-        layers_rts: List[RectTransform] = [
+        layers_rts: list[RectTransform] = [
             _ for _ in base_children if get_rt_name(_) == "layers"
         ]
         if len(layers_rts) > 0:
             layers_rt = layers_rts[0]
-            layers_children: List[RectTransform] = [
+            layers_children: list[RectTransform] = [
                 _.read() for _ in layers_rt.m_Children
             ]
             layers_info = convert(layers_rt)
@@ -79,14 +91,13 @@ class EncodeHelper(TextureHelper):
                     child_name,
                     child_rss,
                     enc_whs[child_name],
-                    (slice(y, y + h), slice(x, x + w)),
+                    (x, y, x + w, y + h),
                 )
                 save_img(enc_img, self._enc_tex(child_name))
-
                 self._replace(
                     "painting",
                     child_name + "_tex",
-                    {child_name: Image.fromarray(enc_img)},
+                    {child_name: enc_img},
                 )
 
 

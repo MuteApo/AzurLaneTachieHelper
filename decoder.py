@@ -6,17 +6,28 @@ import numpy as np
 import UnityPy
 from PIL import Image
 from pytoshop.enums import ColorMode
+from pytoshop.user import nested_layers
 from UnityPy.classes import AssetBundle, GameObject, MonoBehaviour, RectTransform
 
 from src.module import TextureHelper
-from src.utility import *
+from src.utility import (
+    clip_box,
+    convert,
+    decode_tex,
+    gen_ps_layer,
+    get_rt_name,
+    parse_obj,
+    read_img,
+    resize_img,
+    save_img,
+)
 
 
 class DecodeHelper(TextureHelper):
-    def _decode(self, name, rss):
+    def _decode(self, name: str, rss: tuple[int, int]) -> Image.Image:
         mesh_data = parse_obj(self._mesh_obj(name))
         enc_img = read_img(self._enc_tex(name))
-        dec_img = decode_tex(enc_img, rss, *mesh_data.values())
+        dec_img = decode_tex(enc_img, rss, **mesh_data)
 
         return dec_img
 
@@ -43,10 +54,9 @@ class DecodeHelper(TextureHelper):
         pprint(base_info)
 
         dec_img = self._decode(base_name, base_rss)
+        save_img(dec_img, self._dec_tex(base_name))
 
-        full = Image.fromarray(dec_img).resize(tuple(shape), Image.Resampling.LANCZOS)
-        save_img(np.array(full), self._dec_tex(base_name))
-
+        full = resize_img(dec_img, shape)
         ps_layer = [gen_ps_layer(full, base_name)]
 
         layers_rts: List[RectTransform] = [
@@ -71,15 +81,14 @@ class DecodeHelper(TextureHelper):
                 pprint(child_info)
 
                 dec_img = self._decode(child_name, child_rss)
+                save_img(dec_img, self._dec_tex(child_name))
 
                 child_pivot -= child_info["m_Pivot"] * child_info["m_SizeDelta"]
                 x, y, w, h = clip_box(child_pivot, child_info["m_SizeDelta"], shape)
 
-                sub = np.empty((*shape[::-1], 4), dtype=np.uint8)
-                sub[y : y + h, x : x + w, :] = resize_img(dec_img, (w, h))[:, :, :]
-                save_img(sub, self._dec_tex(child_name))
-
-                ps_layer += [gen_ps_layer(Image.fromarray(sub), child_name)]
+                sub = Image.new("RGBA", full.size)
+                sub.paste(resize_img(dec_img, (w, h)), (x, y))
+                ps_layer += [gen_ps_layer(sub, child_name)]
 
         group = [
             nested_layers.Group(
