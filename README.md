@@ -16,8 +16,9 @@
 - `merger.py`: reposition paintingface on painting, combine to psd file
 - `splitter.py`: clip off non-paintingface part from whole painting
 - `viewer.py`
-  - ```
-    usage: viewer.py [-h] [--win_width_enc W] [--win_width_dec W] [-p P] [--label_size S] [--label_color C C C C] [--bbox_color C C C C] [-l] chara
+  - ```shell
+    usage: viewer.py [-h] [--win_width_enc W] [--win_width_dec W] [-p P] [--label_size S]
+                     [--label_color C C C C] [--bbox_color C C C C] [-l] chara
 
     Azur Lane Tachie Viewer
 
@@ -83,21 +84,25 @@
   L--xinnong_2.psd
   ```
 
-#### Requirements
+#### Building Requirements
 
 - Python 3.8+ with following libraries:
-  - pyglet 2.0.5+
-  - numpy
-  - pillow
-  - pytoshop
-  - unitypy
-  - (Optional) pyinstaller
+  - PyGlet 2.0.5+
+  - NumPy
+  - Pillow
+  - Pytoshop
+  - UnityPy
+  - Pyinstaller
 - Or just run
-  - for conda
+  - for Conda:
     ```shell
     conda env create -f enviromnet.yml
     ```
-  - for pip:
+  - for Pypi:
     ```shell
     pip install -r requirements.txt
+    ```
+- Build by spec given:
+  - ```shell
+    pyinstaller app.spec
     ```
