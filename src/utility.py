@@ -138,7 +138,7 @@ def encode_tex(
     v: np.ndarray,
     vt: np.ndarray,
     f: np.ndarray,
-    **kwargs,
+    **_,
 ):
     enc_img = Image.new("RGBA", enc_size)
     dec_size = np.array(dec_img.size)

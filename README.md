@@ -80,7 +80,7 @@
   L--xinnong_2.psd
   ```
 
-#### Building Requirements
+#### Building Dependencies
 
 - Python 3.8+ with following libraries:
   - PyGlet
@@ -98,7 +98,7 @@
     ```shell
     pip install -r requirements.txt
     ```
-- Build by spec given:
+- Build app by spec file given:
   - ```shell
     pyinstaller app.spec
     ```

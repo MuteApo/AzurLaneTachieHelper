@@ -51,7 +51,7 @@ class TextureHelper:
             _.read() for _ in env.objects if _.type.name == "Texture2D"
         ]
         if not mesh_only:
-            tex2d[0].image.save(self._enc_tex(self._asset_name(asset)))
+            tex2d[0].image.save(self._enc_tex(self._asset_name(asset)) + ".png", "png")
 
         return tex2d[0].m_Width, tex2d[0].m_Height
 
