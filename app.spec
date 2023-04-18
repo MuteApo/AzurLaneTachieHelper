@@ -26,7 +26,7 @@ def gen_exe(a, _, target):
         debug=False,
         strip=False,
         upx=True,
-        console=True,
+        console=False,
         icon=["ico\\cheshire.ico"],
     )
 
@@ -45,10 +45,4 @@ analysis_list = [gen_a(*_) for _ in app]
 MERGE(*analysis_list)
 
 info = itertools.chain(*[gen_exe(*_) for _ in analysis_list])
-coll = COLLECT(
-    *info,
-    tpk,
-    strip=False,
-    upx=True,
-    name="AzurLaneTachieHelper",
-)
+coll = COLLECT(*info, tpk, strip=False, upx=True, name="AzurLaneTachieHelper")

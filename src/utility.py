@@ -16,7 +16,7 @@ def check_dir(*dir):
 
 
 def parse_obj(mesh: str):
-    with open(mesh) as file:
+    with open(mesh + ".obj") as file:
         lines = [_.replace("\n", "").split(" ") for _ in file.readlines()]
 
         data = {
@@ -55,13 +55,23 @@ def resize_img(
     return img.resize(size, resample=resample)
 
 
+def scale_img(
+    img: Image.Image,
+    scale: float,
+    resample: Image.Resampling = Image.Resampling.LANCZOS,
+) -> Image.Image:
+    w, h = img.size
+    size = np.round([w * scale, h * scale]).astype(np.int32)
+    return img.resize(size, resample=resample)
+
+
 def read_img(filename: str, resize: tuple[int, int] = None) -> Image.Image:
-    img = Image.open(filename).transpose(Image.FLIP_TOP_BOTTOM)
+    img = Image.open(filename + ".png").transpose(Image.FLIP_TOP_BOTTOM)
     return img if resize is None else resize_img(img, resize)
 
 
 def save_img(img: Image.Image, filename: str):
-    img.transpose(Image.FLIP_TOP_BOTTOM).save(filename)
+    img.transpose(Image.FLIP_TOP_BOTTOM).save(filename + ".png")
 
 
 def get_rt_name(rect: RectTransform) -> str:

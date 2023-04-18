@@ -1,6 +1,7 @@
 numpy
 pillow
 pyinstaller
-pyglet==2.0.5
+pyglet
 pytoshop
+six
 unitypy

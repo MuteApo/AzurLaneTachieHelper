@@ -15,13 +15,13 @@ class TextureHelper:
         self.dir = os.path.dirname(chara)
 
     def _enc_tex(self, filename):
-        return os.path.join(self.dir, filename + "-enc.png")
+        return os.path.join(self.dir, filename + "-enc")
 
     def _dec_tex(self, filename):
-        return os.path.join(self.dir, filename + "-dec.png")
+        return os.path.join(self.dir, filename + "-dec")
 
     def _mesh_obj(self, filename):
-        return os.path.join(self.dir, filename + "-mesh.obj")
+        return os.path.join(self.dir, filename + "-mesh")
 
     def _asset_name(self, asset):
         return asset.split("/")[-1].split("\\")[-1].split("_tex")[0]

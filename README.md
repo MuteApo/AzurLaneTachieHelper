@@ -4,7 +4,7 @@
 
 - Easy drag & drop
 - Decode & encode texture
-- View bounding box comparision
+- Mark corresponding bounding box
 - Merge & split paintingface 
 - Support multi-layer tachies
 - Combine layers as psd
@@ -17,8 +17,7 @@
 - `splitter.py`: clip off non-paintingface part from whole painting
 - `viewer.py`
   - ```shell
-    usage: viewer.py [-h] [--win_width_enc W] [--win_width_dec W] [-p P] [--label_size S]
-                     [--label_color C C C C] [--bbox_color C C C C] [-l] chara
+    usage: viewer.py [-h] [--label_size S] [--label_color C C C C] [--bbox_color C C C C] chara
 
     Azur Lane Tachie Viewer
 
@@ -27,13 +26,10 @@
 
     options:
       -h, --help            show this help message and exit
-      --win_width_enc W     display width of encoded image
-      --win_width_dec W     display width of decoded image
-      -p P, --padding P     padding for image in window
-      --label_size S        size of labels in bouding box
+      --label_size S        size of labels in bounding box
       --label_color C C C C
-                            RGBA color of labels in bouding box
-      --bbox_color C C C C  RGBA color of bouding box
+                            RGBA color of labels in bounding box
+      --bbox_color C C C C  RGBA color of bounding box
     ```
   - Run in default mode when drag and drop
   - Advanced options are limited to command line
@@ -87,7 +83,7 @@
 #### Building Requirements
 
 - Python 3.8+ with following libraries:
-  - PyGlet 2.0.5+
+  - PyGlet
   - NumPy
   - Pillow
   - Pytoshop
@@ -96,7 +92,7 @@
 - Or just run
   - for Conda:
     ```shell
-    conda env create -f enviromnet.yml
+    conda env create -f environment.yml
     ```
   - for Pypi:
     ```shell
