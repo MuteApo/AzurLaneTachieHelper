@@ -16,7 +16,8 @@ def check_dir(*dir):
 
 
 def parse_obj(mesh: str):
-    with open(mesh + ".obj") as file:
+    name = mesh + ".obj"
+    with open(name) as file:
         lines = [_.replace("\n", "").split(" ") for _ in file.readlines()]
 
         data = {
@@ -38,7 +39,7 @@ def parse_obj(mesh: str):
         v[:, 0] = -v[:, 0]
         s = np.stack(v, -1).max(-1) + 1
 
-        print(f"[INFO] Mesh file: {mesh}")
+        print(f"[INFO] Mesh file: {name}")
         print(f"[INFO] Vertex count: {len(v)}")
         print(f"[INFO] Texcoord count: {len(vt)}")
         print(f"[INFO] Face count: {len(f)}")
