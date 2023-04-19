@@ -10,8 +10,7 @@ dependencies:
   - pip
   - pyinstaller
   - pysocks
-  - six
   - pip:
     - pytoshop
-    - pyglet
+    - six
     - unitypy

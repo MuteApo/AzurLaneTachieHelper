@@ -2,16 +2,16 @@ import argparse
 import os
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
-from pyglet import app, gl, image, sprite, window
+from PIL import Image, ImageDraw, ImageFont, ImageTk
 
 from src.module import TextureHelper
 from src.utility import parse_obj, read_img, save_img, scale_img
+import tkinter as tk
 
 
 class ViewHelper(TextureHelper):
-    def __init__(self, label_size, label_color, bbox_color, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, chara, label_size, label_color, bbox_color, **kwargs):
+        super().__init__(chara, **kwargs)
         self.font = ImageFont.truetype(os.path.join("font", "times.ttf"), label_size)
         self.label_color = label_color
         self.bbox_color = bbox_color
@@ -19,6 +19,10 @@ class ViewHelper(TextureHelper):
     def display(self):
         name = self.chara.split("\\")[-1].split("_tex")[0]
         _, vt, f, v = parse_obj(self._mesh_obj(name)).values()
+
+        main = tk.Tk()
+        main.withdraw()
+        img_list = []
 
         def _mark(name, v, f):
             img = read_img(name)
@@ -38,20 +42,21 @@ class ViewHelper(TextureHelper):
             img.alpha_composite(sub.transpose(Image.FLIP_TOP_BOTTOM))
             # save_img(img, name + "-mark")
 
-            img = scale_img(img, 0.5)
-            win = window.Window(*img.size, name + ".png")
-            tex2d = sprite.Sprite(image.ImageData(*img.size, "RGBA", img.tobytes()))
-            gl.glClearColor(1, 1, 1, 1)
+            img = scale_img(img, 0.5).transpose(Image.FLIP_TOP_BOTTOM)
+            img_tk = ImageTk.PhotoImage(img)
+            img_list.append(img_tk)
 
-            @win.event
-            def on_draw():
-                win.clear()
-                tex2d.draw()
+            win = tk.Toplevel(main, takefocus=True)
+            win.geometry("%dx%d" % img.size)
+            win.title(name + ".png")
+            win.protocol("WM_DELETE_WINDOW", lambda: main.quit())
+            draw = tk.Label(win, image=img_tk)
+            draw.pack()
 
         _mark(self._enc_tex(name), vt, f[:, :, 1])
         _mark(self._dec_tex(name), v, f[:, :, 1])
 
-        app.run()
+        main.mainloop()
 
 
 parser = argparse.ArgumentParser(description="Azur Lane Tachie Viewer")

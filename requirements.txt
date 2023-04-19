@@ -1,7 +1,6 @@
 numpy
 pillow
 pyinstaller
-pyglet
 pytoshop
 six
 unitypy

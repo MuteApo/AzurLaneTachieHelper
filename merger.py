@@ -4,8 +4,6 @@ import os
 import numpy as np
 import pytoshop
 import UnityPy
-import win32api
-import win32con
 from PIL import Image
 from pytoshop.enums import ColorMode
 from pytoshop.user import nested_layers
@@ -40,12 +38,13 @@ class MergeHelper(TextureHelper):
 
         for path, _, files in os.walk(os.path.join(pf_dir, "diff")):
             for img in [_ for _ in files if _.endswith(".png")]:
+                img = img.split(".")[0]
                 print(os.path.join(path, img))
                 diff = read_img(os.path.join(path, img))
                 full = Image.new("RGBA", shape)
                 full.paste(diff, (x, y))
                 save_img(full, os.path.join(pf_dir, img))
-                ps_layer += [gen_ps_layer(full, img.split(".")[0], visible=False)]
+                ps_layer += [gen_ps_layer(full, img, visible=False)]
 
         group = [
             nested_layers.Group(
@@ -59,7 +58,6 @@ class MergeHelper(TextureHelper):
         ps_dst = self.chara + ".psd"
         ps_src = self.chara + "~.psd"
         os.rename(ps_dst, ps_src)
-        win32api.SetFileAttributes(ps_src, win32con.FILE_ATTRIBUTE_HIDDEN)
         with open(ps_src, "rb") as f:
             group += nested_layers.psd_to_nested_layers(pytoshop.read(f))
             psd = nested_layers.nested_layers_to_psd(group, color_mode=ColorMode.rgb)
