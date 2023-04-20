@@ -83,7 +83,6 @@
 #### Building Dependencies
 
 - Python 3.8+ with following libraries:
-  - PyGlet
   - NumPy
   - Pillow
   - Pytoshop

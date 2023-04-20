@@ -18,23 +18,23 @@ from .utility import check_dir, convert, get_rt_name
 
 
 class TextureHelper:
-    def __init__(self, chara, **kwargs):
+    def __init__(self, chara: str, **kwargs):
         self.chara = "".join([chara.split("-")[0], *chara.split("-")[1:-1]])
         self.dir = os.path.dirname(chara)
 
-    def _enc_tex(self, filename):
+    def _enc_tex(self, filename: str):
         return os.path.join(self.dir, filename + "-enc")
 
-    def _dec_tex(self, filename):
+    def _dec_tex(self, filename: str) -> str:
         return os.path.join(self.dir, filename + "-dec")
 
-    def _mesh_obj(self, filename):
+    def _mesh_obj(self, filename: str) -> str:
         return os.path.join(self.dir, filename + "-mesh")
 
-    def _asset_name(self, asset):
+    def _asset_name(self, asset: str) -> str:
         return asset.split("/")[-1].split("\\")[-1].split("_tex")[0]
 
-    def _extract(self, asset, mesh_only=False):
+    def _extract(self, asset: str, mesh_only: bool = False):
         asset_path = os.path.join(self.dir, asset)
         assert os.path.exists(asset_path), f"file {asset_path} not found"
 
@@ -63,7 +63,7 @@ class TextureHelper:
 
         return tex2d[0].m_Width, tex2d[0].m_Height
 
-    def _replace(self, folder, asset, img_dict):
+    def _replace(self, folder: str, asset: str, img_dict: dict[str, Image.Image]):
         asset_path = os.path.join(self.dir, folder, asset)
         assert os.path.exists(asset_path), f"file {asset_path} not found"
 
@@ -108,7 +108,7 @@ class PaintingHelper(TextureHelper):
             _.read() for _ in env.objects if _.type.name == "AssetBundle"
         ]
         whs = {
-            self._asset_name(_): self._extract(_, mesh_only=mesh_only)
+            self._asset_name(_).lower(): self._extract(_, mesh_only=mesh_only)
             for _ in abs[0].m_Dependencies
         }
 
@@ -125,7 +125,7 @@ class PaintingHelper(TextureHelper):
         print("[INFO] RectTransform:", base_rt, base_name)
         pprint(base_info)
 
-        self.act_base(base_name, base_rss, whs[base_name])
+        self.act_base(base_name, base_rss, whs[base_name.lower()])
 
         layers_rts: list[RectTransform] = [
             _ for _ in base_children if get_rt_name(_) == "layers"
@@ -152,7 +152,7 @@ class PaintingHelper(TextureHelper):
                 self.act_child(
                     child_name,
                     child_rss,
-                    whs[child_name],
+                    whs[child_name.lower()],
                     child_pivot,
                     child_info["m_SizeDelta"],
                 )
