@@ -9,6 +9,7 @@ dependencies:
   - pillow
   - pip
   - pyinstaller
+  - pyside6
   - pysocks
   - pip:
     - pytoshop

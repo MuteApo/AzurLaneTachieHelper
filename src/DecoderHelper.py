@@ -4,8 +4,8 @@ from PIL import Image
 from pytoshop.enums import ColorMode
 from pytoshop.user import nested_layers
 
-from src.module import PaintingHelper
-from src.utility import (
+from .module import PaintingHelper
+from .utility import (
     clip_box,
     decode_tex,
     gen_ps_layer,

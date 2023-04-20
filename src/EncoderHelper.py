@@ -1,7 +1,7 @@
 import argparse
 
-from src.module import PaintingHelper
-from src.utility import clip_box, encode_tex, parse_obj, read_img, resize_img, save_img
+from .module import PaintingHelper
+from .utility import clip_box, encode_tex, parse_obj, read_img, resize_img, save_img
 
 
 class EncodeHelper(PaintingHelper):
