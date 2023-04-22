@@ -3,7 +3,7 @@ import os
 
 from PIL import Image
 
-from src.module import TextureHelper
+from src.TextureHelper import TextureHelper
 from src.utility import get_rect_transform, read_img, save_img
 
 

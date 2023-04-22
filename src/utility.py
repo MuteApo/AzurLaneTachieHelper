@@ -5,6 +5,7 @@ import numpy as np
 import UnityPy
 from PIL import Image
 from pytoshop.user import nested_layers
+from UnityPy import Environment
 from UnityPy.classes import RectTransform
 
 
@@ -13,6 +14,10 @@ def check_dir(*dir):
         check_dir(*dir[:-1])
     if not os.path.exists(os.path.join(*dir)):
         os.mkdir(os.path.join(*dir))
+
+
+def filter_typename(env: Environment, typename: str):
+    return [_.read() for _ in env.objects if _.type.name == typename]
 
 
 def parse_obj(mesh: str):

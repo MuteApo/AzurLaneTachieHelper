@@ -9,7 +9,7 @@ from pytoshop.enums import ColorMode
 from pytoshop.user import nested_layers
 from UnityPy.classes import Texture2D
 
-from src.module import TextureHelper
+from src.TextureHelper import TextureHelper
 from src.utility import check_dir, gen_ps_layer, get_rect_transform, read_img, save_img
 
 
