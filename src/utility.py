@@ -68,13 +68,17 @@ def scale_img(
     return img.resize(size, resample=resample)
 
 
-def read_img(filename: str, resize: tuple[int, int] = None) -> Image.Image:
-    img = Image.open(filename + ".png").transpose(Image.FLIP_TOP_BOTTOM)
+def read_img(filename: str, resize: tuple[int, int] = None, no_ext=False) -> Image.Image:
+    if no_ext:
+        filename += ".png"
+    img = Image.open(filename).transpose(Image.FLIP_TOP_BOTTOM)
     return img if resize is None else resize_img(img, resize)
 
 
-def save_img(img: Image.Image, filename: str):
-    img.transpose(Image.FLIP_TOP_BOTTOM).save(filename + ".png")
+def save_img(img: Image.Image, filename: str, no_ext=False):
+    if no_ext:
+        filename += ".png"
+    img.transpose(Image.FLIP_TOP_BOTTOM).save(filename)
 
 
 def get_rt_name(rect: RectTransform) -> str:

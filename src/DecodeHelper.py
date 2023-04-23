@@ -1,42 +1,39 @@
 import argparse
 import os
-
+import UnityPy
 from PIL import Image
 from pytoshop.enums import ColorMode
 from pytoshop.user import nested_layers
+from UnityPy.classes import AssetBundle
 
 from .PaintingHelper import PaintingHelper
-from .utility import (
-    clip_box,
-    decode_tex,
-    gen_ps_layer,
-    parse_obj,
-    read_img,
-    resize_img,
-    save_img,
-)
+from .utility import clip_box, decode_tex, gen_ps_layer, resize_img, filter_typename
 
 
 class DecodeHelper(PaintingHelper):
+    def get_dep(self, path: str) -> list[str]:
+        self.env = UnityPy.load(path)
+        self.abs: list[AssetBundle] = filter_typename(self.env, "AssetBundle")
+        self.dep: list[str] = self.abs[0].m_Dependencies
+        return self.dep
+
+    def extract_dep(self, file: str, path: str):
+        name = os.path.basename(file).split("_tex")[0].lower()
+        self._extract(name, path)
+
     def _decode(self, name, rss):
-        self.mesh_obj[name] = parse_obj(self.mesh_obj[name])
-
         self.dec_img[name] = decode_tex(self.enc_img[name], rss, **self.mesh_obj[name])
-
         return self.dec_img[name]
 
     def act_base(self, base_name, base_rss, base_wh):
         dec_img = self._decode(base_name, base_rss)
-
         full = resize_img(dec_img, self.shape)
         self.ps_layer = [gen_ps_layer(full, base_name)]
 
     def act_child(self, child_name, child_rss, child_wh, child_pivot, child_sd):
-        x, y, w, h = clip_box(child_pivot, child_sd, self.shape)
-
         dec_img = self._decode(child_name, child_rss)
-
         sub = Image.new("RGBA", self.shape)
+        x, y, w, h = clip_box(child_pivot, child_sd, self.shape)
         sub.paste(resize_img(dec_img, (w, h)), (x, y))
         self.ps_layer += [gen_ps_layer(sub, child_name)]
 
@@ -48,7 +45,6 @@ class DecodeHelper(PaintingHelper):
         path = os.path.join(self.dir, self.file + ".psd")
         with open(path, "wb") as fd:
             psd.write(fd)
-
         return path
 
 

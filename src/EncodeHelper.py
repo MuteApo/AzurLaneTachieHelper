@@ -1,28 +1,30 @@
 import argparse
 
 from .PaintingHelper import PaintingHelper
-from .utility import clip_box, encode_tex, parse_obj, read_img, resize_img, save_img
+from .utility import clip_box, encode_tex, read_img, resize_img
 
 
 class EncodeHelper(PaintingHelper):
-    def _encode(self, name, rss, enc_size, box=None):
-        mesh_data = parse_obj(self._mesh_obj(name))
-        dec_img = read_img(self._dec_img(name))
-        dec_img = dec_img if box is None else dec_img.crop(box)
-        enc_img = encode_tex(resize_img(dec_img, rss), enc_size, **mesh_data)
+    def from_decoder(self, decoder: PaintingHelper):
+        self.env = decoder.env
+        self.mesh_obj = decoder.mesh_obj
+        self.whs = decoder.whs
 
-        return enc_img
+    def load_replacer(self, name: str, path: str):
+        self.dec_img[name] = read_img(path)
+
+    def _encode(self, name, rss, size, box=None):
+        self.dec_img[name] = resize_img(self.dec_img[name].crop(box), rss)
+        self.enc_img[name] = encode_tex(self.dec_img[name], size, **self.mesh_obj[name])
+        return self.enc_img[name]
 
     def act_base(self, base_name, base_rss, base_wh):
         enc_img = self._encode(base_name, base_rss, base_wh)
-        save_img(enc_img, self._enc_img(base_name))
         self._replace("painting", base_name + "_tex", {base_name: enc_img})
 
     def act_child(self, child_name, child_rss, child_wh, child_pivot, child_sd):
         x, y, w, h = clip_box(child_pivot, child_sd, self.shape)
-
         enc_img = self._encode(child_name, child_rss, child_wh, (x, y, x + w, y + h))
-        save_img(enc_img, self._enc_img(child_name))
         self._replace("painting", child_name + "_tex", {child_name: enc_img})
 
     def act_after(self):

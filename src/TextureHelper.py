@@ -6,13 +6,11 @@ from PIL import Image
 from UnityPy.classes import GameObject, Mesh, MonoBehaviour, RectTransform, Texture2D
 from UnityPy.enums import TextureFormat
 
-from .utility import check_dir, convert, get_rt_name, filter_typename
+from .utility import check_dir, convert, get_rt_name, filter_typename, parse_obj
 
 
 class TextureHelper:
-    def __init__(self, path):
-        self.path = path
-        self.file = os.path.basename(path)
+    def __init__(self):
         self.mesh_obj = {}
         self.enc_img = {}
         self.dec_img = {}
@@ -35,7 +33,7 @@ class TextureHelper:
         if len(mesh) == 0:
             env = UnityPy.load(path.split("_tex")[0] + "_n_tex")
             mesh: list[Mesh] = filter_typename(env, "Mesh")
-        self.mesh_obj[name] = mesh[0].export().split("\r\n")[:-1]
+        self.mesh_obj[name] = parse_obj(mesh[0].export().split("\r\n")[:-1])
 
         # extract texture2d
         tex2d: list[Texture2D] = filter_typename(env, "Texture2D")

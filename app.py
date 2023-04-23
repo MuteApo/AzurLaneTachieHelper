@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from pprint import pprint
 
@@ -6,12 +7,14 @@ from PySide6.QtCore import QSettings, Qt, Slot
 from PySide6.QtGui import QAction, QFont, QFontMetrics, QIcon
 from PySide6.QtWidgets import (
     QApplication,
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QHeaderView,
     QLabel,
     QLayout,
     QMainWindow,
+    QMessageBox,
     QPushButton,
     QSizePolicy,
     QSpacerItem,
@@ -20,12 +23,11 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
-    QDialog,
-    QMessageBox,
 )
 from qt_material import apply_stylesheet
 
 from src.DecodeHelper import DecodeHelper
+from src.EncodeHelper import EncodeHelper
 
 
 class AzurLaneTachieHelper(QMainWindow):
@@ -41,24 +43,16 @@ class AzurLaneTachieHelper(QMainWindow):
         self._init_statusbar()
         self._init_menu()
 
+        self.decoder = DecodeHelper()
+        self.encoder = EncodeHelper()
+
     def _layout_abd(self):  # Layout for Assetbundle Dependencies
         label = QLabel("Assetbundle Dependencies")
         label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
-        # button = QPushButton("Import")
-        # button.clicked.connect(self.onClickDependencyImport)
-        # button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-
-        layout_1 = QHBoxLayout()
-        layout_1.addWidget(label)
-        # layout_1.addWidget(button)
-        layout_1.addItem(
-            QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        )
-
         self.tDependency = QTableWidget()
         self.tDependency.setColumnCount(2)
-        self.tDependency.setHorizontalHeaderLabels(["Name", "Path"])
+        self.tDependency.setHorizontalHeaderLabels(["Part Name", "Full Path"])
         self.tDependency.horizontalHeader().setSectionResizeMode(
             0, QHeaderView.ResizeMode.ResizeToContents
         )
@@ -66,21 +60,42 @@ class AzurLaneTachieHelper(QMainWindow):
             1, QHeaderView.ResizeMode.Stretch
         )
         self.tDependency.setSizePolicy(
-            QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Expanding
+            QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed
         )
 
-        layout_2 = QHBoxLayout()
-        layout_2.addWidget(self.tDependency)
+        layout = QVBoxLayout()
+        layout.addWidget(label)
+        layout.addWidget(self.tDependency)
 
-        layout_top = QVBoxLayout()
-        layout_top.addLayout(layout_1)
-        layout_top.addLayout(layout_2)
+        return layout
 
-        return layout_top
+    def _layout_ir(self):  # Layout for Image Replacers
+        label = QLabel("Image Replacers")
+        label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+
+        self.tReplacer = QTableWidget()
+        self.tReplacer.setColumnCount(2)
+        self.tReplacer.setHorizontalHeaderLabels(["Target", "Image Source"])
+        self.tReplacer.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.tReplacer.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.Stretch
+        )
+        self.tReplacer.setSizePolicy(
+            QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed
+        )
+
+        layout = QVBoxLayout()
+        layout.addWidget(label)
+        layout.addWidget(self.tReplacer)
+
+        return layout
 
     def _init_ui(self):
         layout = QVBoxLayout()
         layout.addLayout(self._layout_abd())
+        layout.addLayout(self._layout_ir())
         layout.addItem(
             QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         )
@@ -97,42 +112,68 @@ class AzurLaneTachieHelper(QMainWindow):
 
     def _init_menu(self):
         self.mFile = self.menuBar().addMenu("&File")
+
         self.mFileOpenMetadata = self.mFile.addAction("&Open Metadata")
         self.mFileOpenMetadata.triggered.connect(self.onClickFileOpenMetadata)
         self.mFileOpenMetadata.setCheckable(True)
         self.mFileOpenMetadata.setShortcut("Ctrl+M")
 
+        self.mFileImportReplacers = self.mFile.addAction("&Import Replacers")
+        self.mFileImportReplacers.triggered.connect(self.onClickFileImportReplacers)
+        self.mFileImportReplacers.setCheckable(True)
+        self.mFileImportReplacers.setShortcut("Ctrl+I")
+
         self.mEdit = self.menuBar().addMenu("&Edit")
-        self.mEditDecode = self.mEdit.addAction("&Decode")
+
+        self.mEditDecode = self.mEdit.addAction("&Decode Texture")
         self.mEditDecode.triggered.connect(self.onClickEditDecode)
         self.mEditDecode.setCheckable(True)
         self.mEditDecode.setShortcut("Ctrl+D")
 
+        self.mEditEncode = self.mEdit.addAction("&Encode Texture")
+        self.mEditEncode.triggered.connect(self.onClickEditEncode)
+        self.mEditEncode.setCheckable(True)
+        self.mEditEncode.setShortcut("Ctrl+E")
+
     def onClickFileOpenMetadata(self):
-        last = self.settings.value("File/OpenMetadata_Path", "")
+        last = self.settings.value("File/Path", "")
         file, _ = QFileDialog.getOpenFileName(self, dir=last)
         if file:
             print("[INFO] Metadata:", file)
-            self.settings.setValue("File/OpenMetadata_Path", file)
+            self.settings.setValue("File/Path", file)
+            self.message.setText(f"({os.path.basename(file)})  {file}")
 
-            self.decoder = DecodeHelper(file)
-            self.message.setText(f"({self.decoder.file})  {self.decoder.path}")
-
-            dependency = self.decoder.get_dep()
+            dependency = self.decoder.get_dep(file)
             print("[INFO] Dependencies:")
             [print("      ", _) for _ in dependency]
 
             self.tDependency.setRowCount(len(dependency))
+            self.tReplacer.setRowCount(len(dependency))
             for i, x in enumerate(dependency):
                 self.tDependency.setItem(i, 0, QTableWidgetItem(x))
+                self.tReplacer.setItem(i, 0, QTableWidgetItem(x))
+
                 path = os.path.join(os.path.dirname(file) + "/", x)
                 if os.path.exists(path):
                     print("[INFO] Auto-resolved:", path)
                     self.tDependency.setItem(i, 1, QTableWidgetItem(path))
                     self.decoder.extract_dep(x, path)
 
+    def onClickFileImportReplacers(self):
+        last = self.settings.value("File/Path", "")
+        files, _ = QFileDialog.getOpenFileNames(self, dir=last)
+        if files:
+            print("[INFO] Replacers:")
+            [print("      ", _) for _ in files]
+
+            for i in range(self.tReplacer.rowCount()):
+                name = re.split(r"/|_tex", self.tReplacer.item(i, 0).text())[-2].lower()
+                match = [_ for _ in files if os.path.splitext(_)[0].endswith(name)]
+                self.tReplacer.setItem(i, 1, QTableWidgetItem(match[0]))
+                self.encoder.load_replacer(name, match[0])
+
     def onClickEditDecode(self):
-        last = self.settings.value("File/OpenMetadata_Path", "")
+        last = self.settings.value("File/Path", "")
         dir = QFileDialog.getExistingDirectory(self, dir=os.path.dirname(last))
         if dir:
             psd_path = self.decoder.exec(dir + "/")
@@ -143,9 +184,15 @@ class AzurLaneTachieHelper(QMainWindow):
             msg_box.setStandardButtons(
                 QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Ok
             )
-            btn = msg_box.exec()
-            if btn == QMessageBox.StandardButton.Open:
+            if msg_box.exec() == QMessageBox.StandardButton.Open:
                 os.startfile(dir)
+
+    def onClickEditEncode(self):
+        last = self.settings.value("File/Path", "")
+        dir = QFileDialog.getExistingDirectory(self, dir=os.path.dirname(last))
+        if dir:
+            self.encoder.from_decoder(self.decoder)
+            self.encoder.exec(dir + "/")
 
 
 if __name__ == "__main__":

@@ -1,25 +1,11 @@
-import os
-from pprint import pprint
-
 import numpy as np
-import UnityPy
-from UnityPy.classes import AssetBundle, GameObject, MonoBehaviour, RectTransform
+from UnityPy.classes import GameObject, MonoBehaviour, RectTransform
 
 from .TextureHelper import TextureHelper
 from .utility import convert, filter_typename, get_rt_name
 
 
 class PaintingHelper(TextureHelper):
-    def get_dep(self) -> list[str]:
-        self.env = UnityPy.load(self.path)
-        self.abs: list[AssetBundle] = filter_typename(self.env, "AssetBundle")
-        self.dep: list[str] = self.abs[0].m_Dependencies
-        return self.dep
-
-    def extract_dep(self, file: str, path: str):
-        name = os.path.basename(file).split("_tex")[0].lower()
-        self._extract(name, path)
-
     def act_base(self, base_name, base_rss, base_wh):
         raise NotImplementedError
 
