@@ -6,14 +6,17 @@ from PIL import Image
 from UnityPy.classes import GameObject, Mesh, MonoBehaviour, RectTransform, Texture2D
 from UnityPy.enums import TextureFormat
 
-from .utility import check_dir, convert, get_rt_name
+from .utility import check_dir, convert, get_rt_name, filter_typename
 
 
 class TextureHelper:
     def __init__(self, path):
         self.path = path
-        self.dir = os.path.dirname(path)
         self.file = os.path.basename(path)
+        self.mesh_obj = {}
+        self.enc_img = {}
+        self.dec_img = {}
+        self.whs = {}
 
     def _enc_img(self, file: str) -> str:
         return file + "-enc"
@@ -24,34 +27,21 @@ class TextureHelper:
     def _mesh_obj(self, file: str) -> str:
         return file + "-mesh"
 
-    def _asset_name(self, file: str) -> str:
-        return file.split("_tex")[0]
-
-    def _extract(self, asset_path, output_dir, mesh_only=False):
-        env = UnityPy.load(asset_path)
-
-        print("[INFO] Asset bundle:", asset_path)
-
-        output_name = os.path.join(
-            output_dir, os.path.basename(self._asset_name(asset_path))
-        )
+    def _extract(self, name: str, path: str):
+        env = UnityPy.load(path)
 
         # extract mesh
-        mesh: list[Mesh] = [_.read() for _ in env.objects if _.type.name == "Mesh"]
+        mesh: list[Mesh] = filter_typename(env, "Mesh")
         if len(mesh) == 0:
-            env = UnityPy.load(self._asset_name(asset_path) + "_n_tex")
-        mesh: list[Mesh] = [_.read() for _ in env.objects if _.type.name == "Mesh"]
-        with open(self._mesh_obj(output_name) + ".obj", "w", newline="") as f:
-            f.write(mesh[0].export())
+            env = UnityPy.load(path.split("_tex")[0] + "_n_tex")
+            mesh: list[Mesh] = filter_typename(env, "Mesh")
+        self.mesh_obj[name] = mesh[0].export().split("\r\n")[:-1]
 
         # extract texture2d
-        tex2d: list[Texture2D] = [
-            _.read() for _ in env.objects if _.type.name == "Texture2D"
-        ]
-        if not mesh_only:
-            tex2d[0].image.save(self._enc_img(output_name) + ".png", "png")
+        tex2d: list[Texture2D] = filter_typename(env, "Texture2D")
+        self.enc_img[name] = tex2d[0].image.transpose(Image.FLIP_TOP_BOTTOM)
 
-        return tex2d[0].m_Width, tex2d[0].m_Height
+        self.whs[name] = (tex2d[0].m_Width, tex2d[0].m_Height)
 
     def _replace(self, folder, asset, img_dict):
         asset_path = os.path.join(self.dir, folder, asset)

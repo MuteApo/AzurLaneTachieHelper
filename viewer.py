@@ -42,7 +42,8 @@ class ViewHelper(TextureHelper):
             img.alpha_composite(sub.transpose(Image.FLIP_TOP_BOTTOM))
             # save_img(img, name + "-mark")
 
-            img = scale_img(img, 0.5).transpose(Image.FLIP_TOP_BOTTOM)
+            scaler = 0.5 if img.size[0] > 1024 else 1.0
+            img = scale_img(img, scaler).transpose(Image.FLIP_TOP_BOTTOM)
             img_tk = ImageTk.PhotoImage(img)
             img_list.append(img_tk)
 

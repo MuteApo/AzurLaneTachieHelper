@@ -10,39 +10,28 @@ tpk = Tree(root=src, prefix=dst, typecode="DATA")
 block_cipher = None
 
 
-def gen_a(script, target):
-    a = Analysis([script], cipher=block_cipher)
-    return a, script.split(".")[0], target
+a = Analysis(["app.py"], cipher=block_cipher)
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+exe = EXE(
+    pyz,
+    a.scripts,
+    [],
+    exclude_binaries=True,
+    name="AzurLaneTachieHelper",
+    debug=False,
+    strip=False,
+    upx=True,
+    console=False,
+    icon=["ico\\cheshire.ico"],
+)
 
-
-def gen_exe(a, _, target):
-    pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-    exe = EXE(
-        pyz,
-        a.scripts,
-        [],
-        exclude_binaries=True,
-        name=target,
-        debug=False,
-        strip=False,
-        upx=True,
-        console=False,
-        icon=["ico\\cheshire.ico"],
-    )
-
-    return exe, a.binaries, a.zipfiles, a.datas
-
-
-app = [
-    ("decoder.py", "AzurLaneTachieDecoder"),
-    ("encoder.py", "AzurLaneTachieEncoder"),
-    ("merger.py", "AzurLaneTachieMerger"),
-    ("splitter.py", "AzurLaneTachieSplitter"),
-    ("viewer.py", "AzurLaneTachieViewer"),
-]
-
-analysis_list = [gen_a(*_) for _ in app]
-MERGE(*analysis_list)
-
-info = itertools.chain(*[gen_exe(*_) for _ in analysis_list])
-coll = COLLECT(*info, tpk, strip=False, upx=True, name="AzurLaneTachieHelper")
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    tpk,
+    strip=False,
+    upx=True,
+    name="AzurLaneTachieHelper",
+)

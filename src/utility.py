@@ -20,35 +20,32 @@ def filter_typename(env: Environment, typename: str):
     return [_.read() for _ in env.objects if _.type.name == typename]
 
 
-def parse_obj(mesh: str):
-    name = mesh + ".obj"
-    with open(name) as file:
-        lines = [_.replace("\n", "").split(" ") for _ in file.readlines()]
+def parse_obj(mesh: list[str]):
+    lines = [_.split(" ") for _ in mesh]
 
-        data = {
-            "g": [],  # group name
-            "v": [],  # geometric vertices
-            "vt": [],  # texture vertices
-            "f": [],  # face, indexed as v/vt/vn
-        }
-        for line in lines:
-            data[line[0]].append(line[1:])
+    data = {
+        "g": [],  # group name
+        "v": [],  # geometric vertices
+        "vt": [],  # texture vertices
+        "f": [],  # face, indexed as v/vt/vn
+    }
+    for line in lines:
+        data[line[0]].append(line[1:])
 
-        v = np.array(data["v"], dtype=np.float32)
-        vt = np.array(data["vt"], dtype=np.float32)
-        f = np.array(
-            [[[___ for ___ in __.split("/")] for __ in _] for _ in data["f"]],
-            dtype=np.int32,
-        )
+    v = np.array(data["v"], dtype=np.float32)
+    vt = np.array(data["vt"], dtype=np.float32)
+    f = np.array(
+        [[[___ for ___ in __.split("/")] for __ in _] for _ in data["f"]],
+        dtype=np.int32,
+    )
 
-        v[:, 0] = -v[:, 0]
-        s = np.stack(v, -1).max(-1) + 1
+    v[:, 0] = -v[:, 0]
+    s = np.stack(v, -1).max(-1) + 1
 
-        print(f"[INFO] Mesh file: {name}")
-        print(f"[INFO] Vertex count: {len(v)}")
-        print(f"[INFO] Texcoord count: {len(vt)}")
-        print(f"[INFO] Face count: {len(f)}")
-        print(f"[INFO] Mesh size: {s[:2]}")
+    print("[INFO] Mesh size:", s[:2])
+    print("       Vertex count:", len(v))
+    print("       Texcoord count:", len(vt))
+    print("       Face count:", len(f))
 
     return {"v": v, "vt": vt, "f": f, "v_normalized": v / s}
 
@@ -106,8 +103,8 @@ def clip_box(offset: np.ndarray, size: np.ndarray, bound: np.ndarray):
 def get_img_area(data, size, pad=0):
     bound = np.array(size) - 1
 
-    # pad with one extra pixel and clip
-    lb = np.round(np.maximum(np.stack(data, -1).min(-1) - pad, 0)).astype(np.int32)
+    # pad and clip
+    lb = np.round(np.maximum(np.stack(data, -1).min(-1) - pad, [0])).astype(np.int32)
     ru = np.round(np.minimum(np.stack(data, -1).max(-1) + pad, bound)).astype(np.int32)
 
     return *lb, *(ru - lb + 1)
@@ -124,11 +121,12 @@ def decode_tex(
     dec_img = Image.new("RGBA", dec_size)
     enc_size = np.array(enc_img.size)
 
-    for rect in zip(f[::2], f[1::2]):
+    for idx, rect in enumerate(zip(f[::2], f[1::2])):
         index_v, index_vt = np.stack([*rect[0][:2, :2], *rect[1][:2, :2]], -1)
 
         x1, y1, w1, h1 = get_img_area(v[index_v - 1, :2], dec_size, 0)
         x2, y2, w2, h2 = get_img_area(vt[index_vt - 1] * enc_size, enc_size, 0)
+        # print(f"---{idx + 1}---")
         # print(x1, y1, w1, h1)
         # print(x2, y2, w2, h2)
 
@@ -149,11 +147,12 @@ def encode_tex(
     enc_img = Image.new("RGBA", enc_size)
     dec_size = np.array(dec_img.size)
 
-    for rect in zip(f[::2], f[1::2]):
+    for idx, rect in enumerate(zip(f[::2], f[1::2])):
         index_v, index_vt = np.stack([*rect[0][:2, :2], *rect[1][:2, :2]], -1)
 
         x1, y1, w1, h1 = get_img_area(v[index_v - 1, :2], dec_size, 1)
         x2, y2, w2, h2 = get_img_area(vt[index_vt - 1] * enc_size, enc_size, 1)
+        # print(f"---{idx + 1}---")
         # print(x1, y1, w1, h1)
         # print(x2, y2, w2, h2)
 

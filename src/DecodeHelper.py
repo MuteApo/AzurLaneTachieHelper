@@ -19,15 +19,14 @@ from .utility import (
 
 class DecodeHelper(PaintingHelper):
     def _decode(self, name, rss):
-        mesh_data = parse_obj(self._mesh_obj(name))
-        enc_img = read_img(self._enc_img(name))
-        dec_img = decode_tex(enc_img, rss, **mesh_data)
+        self.mesh_obj[name] = parse_obj(self.mesh_obj[name])
 
-        return dec_img
+        self.dec_img[name] = decode_tex(self.enc_img[name], rss, **self.mesh_obj[name])
+
+        return self.dec_img[name]
 
     def act_base(self, base_name, base_rss, base_wh):
         dec_img = self._decode(base_name, base_rss)
-        save_img(dec_img, self._dec_img(base_name))
 
         full = resize_img(dec_img, self.shape)
         self.ps_layer = [gen_ps_layer(full, base_name)]
@@ -36,19 +35,21 @@ class DecodeHelper(PaintingHelper):
         x, y, w, h = clip_box(child_pivot, child_sd, self.shape)
 
         dec_img = self._decode(child_name, child_rss)
-        save_img(dec_img, self._dec_img(child_name))
 
         sub = Image.new("RGBA", self.shape)
         sub.paste(resize_img(dec_img, (w, h)), (x, y))
         self.ps_layer += [gen_ps_layer(sub, child_name)]
 
-    def act_after(self, dir):
+    def act_after(self):
         group = [
             nested_layers.Group(name="painting", layers=self.ps_layer[::-1], closed=False)
         ]
         psd = nested_layers.nested_layers_to_psd(group, color_mode=ColorMode.rgb)
-        with open(os.path.join(dir, self.file + ".psd"), "wb") as fd:
+        path = os.path.join(self.dir, self.file + ".psd")
+        with open(path, "wb") as fd:
             psd.write(fd)
+
+        return path
 
 
 parser = argparse.ArgumentParser(description="Azur Lane Tachie Decoder")
