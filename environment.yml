@@ -3,15 +3,15 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.11
-  - "blas=*=openblas"
+  - blas=*=openblas
+  - nuitka
   - numpy
   - pillow
   - pip
   - pyinstaller
-  - pyside6
   - pysocks
   - pip:
+    - pyside6
     - pytoshop
     - six
     - unitypy

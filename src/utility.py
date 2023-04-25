@@ -5,7 +5,6 @@ import numpy as np
 import UnityPy
 from PIL import Image
 from pytoshop.user import nested_layers
-from UnityPy import Environment
 from UnityPy.classes import RectTransform
 
 
@@ -14,40 +13,6 @@ def check_dir(*dir):
         check_dir(*dir[:-1])
     if not os.path.exists(os.path.join(*dir)):
         os.mkdir(os.path.join(*dir))
-
-
-def filter_typename(env: Environment, typename: str):
-    return [_.read() for _ in env.objects if _.type.name == typename]
-
-
-def parse_obj(mesh: list[str]):
-    lines = [_.split(" ") for _ in mesh]
-
-    data = {
-        "g": [],  # group name
-        "v": [],  # geometric vertices
-        "vt": [],  # texture vertices
-        "f": [],  # face, indexed as v/vt/vn
-    }
-    for line in lines:
-        data[line[0]].append(line[1:])
-
-    v = np.array(data["v"], dtype=np.float32)
-    vt = np.array(data["vt"], dtype=np.float32)
-    f = np.array(
-        [[[___ for ___ in __.split("/")] for __ in _] for _ in data["f"]],
-        dtype=np.int32,
-    )
-
-    v[:, 0] = -v[:, 0]
-    s = np.stack(v, -1).max(-1) + 1
-
-    print("[INFO] Mesh size:", s[:2])
-    print("       Vertex count:", len(v))
-    print("       Texcoord count:", len(vt))
-    print("       Face count:", len(f))
-
-    return {"v": v, "vt": vt, "f": f, "v_normalized": v / s}
 
 
 def resize_img(
@@ -81,10 +46,6 @@ def save_img(img: Image.Image, filename: str, no_ext=False):
     img.transpose(Image.FLIP_TOP_BOTTOM).save(filename)
 
 
-def get_rt_name(rect: RectTransform) -> str:
-    return rect.m_GameObject.read().m_Name
-
-
 def convert(rect: RectTransform) -> dict[str, np.ndarray]:
     entry = [
         "m_LocalPosition",
@@ -104,66 +65,10 @@ def clip_box(offset: np.ndarray, size: np.ndarray, bound: np.ndarray):
     return x, y, w, h
 
 
-def get_img_area(data, size, pad=0):
-    bound = np.array(size) - 1
-
-    # pad and clip
-    lb = np.round(np.maximum(np.stack(data, -1).min(-1) - pad, [0])).astype(np.int32)
-    ru = np.round(np.minimum(np.stack(data, -1).max(-1) + pad, bound)).astype(np.int32)
-
-    return *lb, *(ru - lb + 1)
-
-
-def decode_tex(
-    enc_img: Image.Image,
-    dec_size: tuple[int, int],
-    v: np.ndarray,
-    vt: np.ndarray,
-    f: np.ndarray,
-    **_,
-) -> Image.Image:
-    dec_img = Image.new("RGBA", dec_size)
-    enc_size = np.array(enc_img.size)
-
-    for idx, rect in enumerate(zip(f[::2], f[1::2])):
-        index_v, index_vt = np.stack([*rect[0][:2, :2], *rect[1][:2, :2]], -1)
-
-        x1, y1, w1, h1 = get_img_area(v[index_v - 1, :2], dec_size, 0)
-        x2, y2, w2, h2 = get_img_area(vt[index_vt - 1] * enc_size, enc_size, 0)
-        # print(f"---{idx + 1}---")
-        # print(x1, y1, w1, h1)
-        # print(x2, y2, w2, h2)
-
-        sub = enc_img.crop((x2, y2, x2 + w2, y2 + h2)).resize((w1, h1))
-        dec_img.paste(sub, (x1, y1))
-
-    return dec_img
-
-
-def encode_tex(
-    dec_img: Image.Image,
-    enc_size: tuple[int, int],
-    v: np.ndarray,
-    vt: np.ndarray,
-    f: np.ndarray,
-    **_,
-):
-    enc_img = Image.new("RGBA", enc_size)
-    dec_size = np.array(dec_img.size)
-
-    for idx, rect in enumerate(zip(f[::2], f[1::2])):
-        index_v, index_vt = np.stack([*rect[0][:2, :2], *rect[1][:2, :2]], -1)
-
-        x1, y1, w1, h1 = get_img_area(v[index_v - 1, :2], dec_size, 1)
-        x2, y2, w2, h2 = get_img_area(vt[index_vt - 1] * enc_size, enc_size, 1)
-        # print(f"---{idx + 1}---")
-        # print(x1, y1, w1, h1)
-        # print(x2, y2, w2, h2)
-
-        sub = dec_img.crop((x1, y1, x1 + w1, y1 + h1)).resize((w2, h2))
-        enc_img.paste(sub, (x2, y2))
-
-    return enc_img
+def get_img_area(data):
+    lb = np.round(np.stack(data, -1).min(-1)).astype(np.int32)
+    ru = np.round(np.stack(data, -1).max(-1)).astype(np.int32)
+    return lb, ru, ru - lb
 
 
 def get_rect_transform(filename):
@@ -197,9 +102,7 @@ def get_rect_transform(filename):
     return base, face, x, y, w, h
 
 
-def gen_ps_layer(
-    img: Image.Image, name: str, visible: bool = True
-) -> nested_layers.Layer:
+def gen_ps_layer(img: Image.Image, name: str, visible: bool = True) -> nested_layers.Layer:
     r, g, b, a = img.transpose(Image.FLIP_TOP_BOTTOM).split()
     channels = {i - 1: np.array(x) for i, x in enumerate([a, r, g, b])}
     w, h = img.size
