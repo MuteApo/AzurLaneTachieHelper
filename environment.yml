@@ -4,6 +4,7 @@ channels:
   - defaults
 dependencies:
   - blas=*=openblas
+  - nuitka
   - numpy
   - pillow
   - pip
@@ -11,5 +12,6 @@ dependencies:
   - pysocks
   - six
   - pip:
+    - pyside6
     - pytoshop
     - unitypy

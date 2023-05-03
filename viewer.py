@@ -1,12 +1,12 @@
 import argparse
 import os
+import tkinter as tk
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 
-from src.module import TextureHelper
+from src.TextureHelper import TextureHelper
 from src.utility import parse_obj, read_img, save_img, scale_img
-import tkinter as tk
 
 
 class ViewHelper(TextureHelper):
@@ -42,7 +42,8 @@ class ViewHelper(TextureHelper):
             img.alpha_composite(sub.transpose(Image.FLIP_TOP_BOTTOM))
             # save_img(img, name + "-mark")
 
-            img = scale_img(img, 0.5).transpose(Image.FLIP_TOP_BOTTOM)
+            scaler = 0.5 if img.size[0] > 1024 else 1.0
+            img = scale_img(img, scaler).transpose(Image.FLIP_TOP_BOTTOM)
             img_tk = ImageTk.PhotoImage(img)
             img_list.append(img_tk)
 
@@ -53,8 +54,8 @@ class ViewHelper(TextureHelper):
             draw = tk.Label(win, image=img_tk)
             draw.pack()
 
-        _mark(self._enc_tex(name), vt, f[:, :, 1])
-        _mark(self._dec_tex(name), v, f[:, :, 1])
+        _mark(self._enc_img(name), vt, f[:, :, 1])
+        _mark(self._dec_img(name), v, f[:, :, 1])
 
         main.mainloop()
 

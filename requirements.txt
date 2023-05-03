@@ -1,6 +1,8 @@
+nuitka
 numpy
 pillow
 pyinstaller
+pyside6
 pytoshop
 six
 unitypy

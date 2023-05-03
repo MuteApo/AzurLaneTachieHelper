@@ -1,4 +1,6 @@
 __pycache__
 build
 dist
+out
 test
+*.ini
