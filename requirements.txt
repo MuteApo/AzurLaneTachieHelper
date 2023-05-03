@@ -1,5 +1,6 @@
 nuitka
 numpy
+ordered-set
 pillow
 pyinstaller
 pyside6

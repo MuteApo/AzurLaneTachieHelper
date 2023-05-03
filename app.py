@@ -102,11 +102,11 @@ class AzurLaneTachieHelper(QMainWindow):
     def _init_menu(self):
         self.mFile = self.menuBar().addMenu("&File")
 
-        self.mFileOpenMetadata = self.mFile.addAction("&Open Metadata")
+        self.mFileOpenMetadata = self.mFile.addAction("Open &Metadata")
         self.mFileOpenMetadata.triggered.connect(self.onClickFileOpenMetadata)
         self.mFileOpenMetadata.setCheckable(False)
         self.mFileOpenMetadata.setEnabled(True)
-        self.mFileOpenMetadata.setShortcut("Ctrl+O")
+        self.mFileOpenMetadata.setShortcut("Ctrl+M")
 
         self.mFileImportPainting = self.mFile.addAction("Import &Painting")
         self.mFileImportPainting.triggered.connect(self.onClickFileImportPainting)

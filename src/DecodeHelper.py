@@ -15,19 +15,21 @@ class DecodeHelper(TextureHelper):
         for _ in self.deps:
             name = raw_name(_)
             meta = self.metas[name]
-            sub = self.decode(meta["mesh"], meta["enc"], meta["RawSpriteSize"])
-            full = Image.new("RGBA", self.size)
-            full.paste(
-                sub.resize(meta["SizeDelta"], Image.Resampling.LANCZOS),
-                meta["Offset"],
-            )
-            painting += [gen_ps_layer(full, name)]
+            if "enc" in meta:
+                sub = self.decode(meta["mesh"], meta["enc"], meta["RawSpriteSize"])
+                full = Image.new("RGBA", self.size)
+                full.paste(
+                    sub.resize(meta["SizeDelta"], Image.Resampling.LANCZOS),
+                    meta["Offset"],
+                )
+                painting += [gen_ps_layer(full, name)]
 
         face = []
-        for k, v in sorted(self.metas["face"]["diff"].items(), key=lambda _: _[0]):
-            full = Image.new("RGBA", self.size)
-            full.paste(v, self.metas["face"]["Offset"])
-            face += [gen_ps_layer(full, k, False)]
+        if "diff" in self.metas["face"]:
+            for k, v in sorted(self.metas["face"]["diff"].items(), key=lambda _: _[0]):
+                full = Image.new("RGBA", self.size)
+                full.paste(v, self.metas["face"]["Offset"])
+                face += [gen_ps_layer(full, k, False)]
 
         layers = [
             nested_layers.Group(name="paintingface", layers=face, closed=False),

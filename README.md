@@ -4,12 +4,12 @@
 
 - Decode & encode painting
 - Merge & split paintingface 
-- Support multi-layer
-- Dump as psd
+- Support multi-layers
+- Dump as photoshop document, aka psd
 
 #### Components
 
-- `decoder`: extract and decode painting & paintingface, combine to psd file
+- `decoder`: extract and decode painting & paintingface
 - `encoder`: encode and replace painting & paintingface
 - `viewer` (deprecated)
 
@@ -59,7 +59,7 @@
     ```shell
     pip install -r requirements.txt
     ```
-- Build app by spec file given:
+- Build app by pyinstaller/nuitka:
   - ```shell
-    pyinstaller app.spec
+    python pack.py
     ```
