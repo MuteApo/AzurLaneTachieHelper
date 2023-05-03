@@ -45,7 +45,7 @@
 
 #### Building Dependencies
 
-- Python 3.8+ with following libraries:
+- Python 3.10 with following libraries:
   - NumPy
   - Pillow
   - Pytoshop
@@ -61,5 +61,5 @@
     ```
 - Build app by pyinstaller/nuitka:
   - ```shell
-    python pack.py
+    python pack.py --nuitka
     ```

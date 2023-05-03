@@ -60,18 +60,14 @@ class AssetManager:
         env: Environment = UnityPy.load(file)
         abs: list[AssetBundle] = filter_env(env, AssetBundle)
 
-        self.deps: list[str] = abs[0].m_Dependencies
-
         base_go: GameObject = [_.read() for _ in env.container.values()][0]
         base_rt: RectTransform = base_go.m_Transform.read()
         base_name = self._get_name(base_rt)
         base_info = self._parse_rt(base_rt) | self._get_rss(base_rt)
-        base_info |= {"Offset": (0, 0)}
 
         self.name = base_name
         self.size = base_info["SizeDelta"]
-
-        self.metas[base_name] = base_info
+        self.deps: list[str] = [_ for _ in abs[0].m_Dependencies if self.name in _]
 
         for layers_rt in self._filter_child(base_rt, "layers"):
             layers_info = self._parse_rt(layers_rt)

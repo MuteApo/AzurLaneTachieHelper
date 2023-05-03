@@ -1,10 +1,10 @@
 import os
-import re
 import sys
 from pprint import pprint
+import locale
 
-from PySide6.QtCore import QSettings
-from PySide6.QtGui import QIcon
+from PySide6.QtCore import QSettings, QTranslator
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -29,8 +29,8 @@ from src.utility import raw_name
 class AzurLaneTachieHelper(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("AzurLaneTachieHelper")
-        self.setWindowIcon(QIcon("ico/cheshire.ico"))
+        self.setWindowTitle(self.tr("AzurLane Tachie Helper"))
+        self.setWindowIcon(QPixmap("ico/cheshire.ico"))
         self.resize(840, 560)
 
         self.settings = QSettings("config.ini", QSettings.Format.IniFormat)
@@ -44,12 +44,12 @@ class AzurLaneTachieHelper(QMainWindow):
         self.encoder = EncodeHelper(self.asset_manager)
 
     def _layout_abd(self):  # Layout for Assetbundle Dependencies
-        label = QLabel("Assetbundle Dependencies")
+        label = QLabel(self.tr("Assetbundle Dependencies"))
         label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         self.tDependency = QTableWidget()
         self.tDependency.setColumnCount(2)
-        self.tDependency.setHorizontalHeaderLabels(["Part Name", "Full Path"])
+        self.tDependency.setHorizontalHeaderLabels([self.tr("Part Name"), self.tr("Full Path")])
         self.tDependency.horizontalHeader().setSectionResizeMode(
             0, QHeaderView.ResizeMode.ResizeToContents
         )
@@ -65,12 +65,12 @@ class AzurLaneTachieHelper(QMainWindow):
         return layout
 
     def _layout_ir(self):  # Layout for Image Replacers
-        label = QLabel("Image Replacers")
+        label = QLabel(self.tr("Image Replacers"))
         label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         self.tReplacer = QTableWidget()
         self.tReplacer.setColumnCount(2)
-        self.tReplacer.setHorizontalHeaderLabels(["Target", "Image Source"])
+        self.tReplacer.setHorizontalHeaderLabels([self.tr("Target"), self.tr("Image Source")])
         self.tReplacer.horizontalHeader().setSectionResizeMode(
             0, QHeaderView.ResizeMode.ResizeToContents
         )
@@ -94,41 +94,41 @@ class AzurLaneTachieHelper(QMainWindow):
         self.setCentralWidget(central_widget)
 
     def _init_statusbar(self):
-        self.message = QLabel("Ready")
+        self.message = QLabel(self.tr("Ready"))
         self.message.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.statusBar().addWidget(self.message)
         self.statusBar().setStyleSheet("QStatusBar::item{border:0px}")
 
     def _init_menu(self):
-        self.mFile = self.menuBar().addMenu("&File")
+        self.mFile = self.menuBar().addMenu(self.tr("File"))
 
-        self.mFileOpenMetadata = self.mFile.addAction("Open &Metadata")
+        self.mFileOpenMetadata = self.mFile.addAction(self.tr("Open Metadata"))
         self.mFileOpenMetadata.triggered.connect(self.onClickFileOpenMetadata)
         self.mFileOpenMetadata.setCheckable(False)
         self.mFileOpenMetadata.setEnabled(True)
         self.mFileOpenMetadata.setShortcut("Ctrl+M")
 
-        self.mFileImportPainting = self.mFile.addAction("Import &Painting")
+        self.mFileImportPainting = self.mFile.addAction(self.tr("Import Painting"))
         self.mFileImportPainting.triggered.connect(self.onClickFileImportPainting)
         self.mFileImportPainting.setCheckable(False)
         self.mFileImportPainting.setEnabled(False)
         self.mFileImportPainting.setShortcut("Ctrl+P")
 
-        self.mFileImportPaintingface = self.mFile.addAction("Import Painting&face")
+        self.mFileImportPaintingface = self.mFile.addAction(self.tr("Import Paintingface"))
         self.mFileImportPaintingface.triggered.connect(self.onClickFileImportPaintingface)
         self.mFileImportPaintingface.setCheckable(False)
         self.mFileImportPaintingface.setEnabled(False)
         self.mFileImportPaintingface.setShortcut("Ctrl+F")
 
-        self.mEdit = self.menuBar().addMenu("&Edit")
+        self.mEdit = self.menuBar().addMenu(self.tr("Edit"))
 
-        self.mEditDecode = self.mEdit.addAction("&Decode Texture")
+        self.mEditDecode = self.mEdit.addAction(self.tr("Decode Texture"))
         self.mEditDecode.triggered.connect(self.onClickEditDecode)
         self.mEditDecode.setCheckable(False)
         self.mEditDecode.setEnabled(False)
         self.mEditDecode.setShortcut("Ctrl+D")
 
-        self.mEditEncode = self.mEdit.addAction("&Encode Texture")
+        self.mEditEncode = self.mEdit.addAction(self.tr("Encode Texture"))
         self.mEditEncode.triggered.connect(self.onClickEditEncode)
         self.mEditEncode.setCheckable(False)
         self.mEditEncode.setEnabled(False)
@@ -136,24 +136,25 @@ class AzurLaneTachieHelper(QMainWindow):
 
     def onClickFileOpenMetadata(self):
         last = self.settings.value("File/Path", "")
-        file, _ = QFileDialog.getOpenFileName(self, "Select Metadata to Open", last)
+        file, _ = QFileDialog.getOpenFileName(self, self.tr("Select Metadata to Open"), last)
         if file:
             self.settings.setValue("File/Path", file)
             self.message.setText(f"({os.path.basename(file)})  {file}")
             print("[INFO] Metadata:", file)
+
+            self.tDependency.clearContents()
+            self.tReplacer.clearContents()
 
             self.asset_manager.analyze(file)
             pprint(self.asset_manager.metas)
 
             print("[INFO] Dependencies:", self.asset_manager.deps)
             self.num_deps = len(self.asset_manager.deps)
-            self.tDependency.clearContents()
             self.tDependency.setRowCount(self.num_deps + 1)
-            self.tReplacer.clearContents()
             self.tReplacer.setRowCount(self.num_deps + 1)
             for i, x in enumerate(self.asset_manager.deps):
                 self.tDependency.setItem(i, 0, QTableWidgetItem(x))
-                self.tDependency.setItem(i, 1, QTableWidgetItem("Not Found"))
+                self.tDependency.setItem(i, 1, QTableWidgetItem(self.tr("Not Found")))
                 self.tReplacer.setItem(i, 0, QTableWidgetItem(x))
 
                 path = os.path.join(os.path.dirname(file) + "/", x)
@@ -164,7 +165,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
             paintingface = "paintingface/" + os.path.basename(file)
             self.tDependency.setItem(self.num_deps, 0, QTableWidgetItem(paintingface))
-            self.tDependency.setItem(self.num_deps, 1, QTableWidgetItem("Not Found"))
+            self.tDependency.setItem(self.num_deps, 1, QTableWidgetItem(self.tr("Not Found")))
             self.tReplacer.setItem(self.num_deps, 0, QTableWidgetItem(paintingface))
 
             path = os.path.join(os.path.dirname(file) + "/", paintingface)
@@ -177,8 +178,8 @@ class AzurLaneTachieHelper(QMainWindow):
             self.mEditDecode.setEnabled(True)
 
     def onClickFileImportPainting(self):
-        last = self.settings.value("File/Path", "")
-        files, _ = QFileDialog.getOpenFileNames(self, "Select Paintings", os.path.dirname(last))
+        last = os.path.dirname(self.settings.value("File/Path", ""))
+        files, _ = QFileDialog.getOpenFileNames(self, self.tr("Select Paintings"), last)
         if files:
             print("[INFO] Paintings:")
             [print("      ", _) for _ in files]
@@ -191,10 +192,8 @@ class AzurLaneTachieHelper(QMainWindow):
             self.mEditEncode.setEnabled(True)
 
     def onClickFileImportPaintingface(self):
-        last = self.settings.value("File/Path", "")
-        dir = QFileDialog.getExistingDirectory(
-            self, "Select Paintingface Folder", os.path.dirname(last)
-        )
+        last = os.path.dirname(self.settings.value("File/Path", ""))
+        dir = QFileDialog.getExistingDirectory(self, self.tr("Select Paintingface Folder"), last)
         if dir:
             print("[INFO] Paintingface folder:", dir)
             print("[INFO] Paintingfaces:")
@@ -205,12 +204,12 @@ class AzurLaneTachieHelper(QMainWindow):
             self.mEditEncode.setEnabled(True)
 
     def onClickEditDecode(self):
-        last = self.settings.value("File/Path", "")
-        dir = QFileDialog.getExistingDirectory(self, "Select Output Folder", os.path.dirname(last))
+        last = os.path.dirname(self.settings.value("File/Path", ""))
+        dir = QFileDialog.getExistingDirectory(self, self.tr("Select Output Folder"), last)
         if dir:
             path = self.decoder.exec(dir + "/")
             msg_box = QMessageBox()
-            msg_box.setText(f"Successfully written into:\n{path}")
+            msg_box.setText(self.tr("Successfully written into:") + f"\n{path}")
             msg_box.setStandardButtons(
                 QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Ok
             )
@@ -223,7 +222,7 @@ class AzurLaneTachieHelper(QMainWindow):
         if dir:
             path = self.encoder.exec(dir + "/")
             msg_box = QMessageBox()
-            msg_box.setText(f"Successfully written into:\n{path}")
+            msg_box.setText(self.tr("Successfully written into:") + f"\n{path}")
             msg_box.setStandardButtons(
                 QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Ok
             )
@@ -233,7 +232,14 @@ class AzurLaneTachieHelper(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    win = AzurLaneTachieHelper()
 
+    path = os.path.join("i18n", locale.getdefaultlocale()[0] + ".qm")
+    if os.path.exists(path):
+        trans = QTranslator(app)
+        trans.load(path)
+        app.installTranslator(trans)
+
+    win = AzurLaneTachieHelper()
     win.show()
+
     app.exec()
