@@ -5,26 +5,35 @@ from PIL import Image
 from pytoshop.enums import ColorMode
 from pytoshop.user import nested_layers
 
-from .PaintingHelper import PaintingHelper
-from .utility import gen_ps_layer, get_img_area, resize_img
+from .TextureHelper import TextureHelper
+from .utility import gen_ps_layer, raw_name
 
 
-class DecodeHelper(PaintingHelper):
+class DecodeHelper(TextureHelper):
     def exec(self, dir: str):
-        layers = []
-        for k, v in self.metas.items():
-            v["dec"] = self.decode(
-                self.metas[k]["mesh"],
-                self.metas[k]["enc"],
-                self.metas[k]["RawSpriteSize"],
-            )
+        painting = []
+        for _ in self.deps:
+            name = raw_name(_)
+            self.metas[name]["dec"] = self.decode(
+                self.metas[name]["mesh"],
+                self.metas[name]["enc"],
+                self.metas[name]["RawSpriteSize"],
+            ).resize(self.metas[name]["SizeDelta"], Image.Resampling.LANCZOS)
             sub = Image.new("RGBA", self.size)
-            offset = tuple(np.round(self.metas[k]["Offset"]).astype(np.int32))
-            sub.paste(resize_img(v["dec"], self.metas[k]["SizeDelta"]), offset)
-            layers += [gen_ps_layer(sub, k)]
+            sub.paste(self.metas[name]["dec"], self.metas[name]["Offset"])
+            painting += [gen_ps_layer(sub, name)]
 
-        group = [nested_layers.Group(name="painting", layers=layers, closed=False)]
-        psd = nested_layers.nested_layers_to_psd(group, color_mode=ColorMode.rgb)
+        face = []
+        for _ in self.metas["face"]["diff"]:
+            full = Image.new("RGBA", self.size)
+            full.paste(_.image.transpose(Image.FLIP_TOP_BOTTOM), self.metas["face"]["Offset"])
+            face += [gen_ps_layer(full, _.name, False)]
+
+        layers = [
+            nested_layers.Group(name="paintingface", layers=face, closed=False),
+            nested_layers.Group(name="painting", layers=painting, closed=False),
+        ]
+        psd = nested_layers.nested_layers_to_psd(layers, color_mode=ColorMode.rgb)
         path = os.path.join(dir, self.name + ".psd")
         with open(path, "wb") as f:
             psd.write(f)
@@ -32,20 +41,18 @@ class DecodeHelper(PaintingHelper):
         return path
 
     def decode(self, mesh: dict, enc: Image.Image, rss: tuple) -> Image.Image:
-        v, vt, f = mesh.values()
         dec = Image.new("RGBA", rss)
 
-        for i, x in enumerate(f):
-            # print(f"---{i + 1}---")
-            # print(x)
-
-            lb1, ru1, wh1 = get_img_area(v[x])
-            lb2, ru2, wh2 = get_img_area(vt[x] * enc.size)
-            # print(lb1, ru1, wh1)
-            # print(lb2, ru2, wh2)
-            # ru2[0] -= wh2[0] - wh1[0]
-            # lb2[1] += wh2[1] - wh1[1]
+        v, vt, f = mesh.values()
+        for _ in f:
+            lb1, ru1 = self._measure(v[_])
+            lb2, ru2 = self._measure(vt[_] * enc.size)
 
             dec.paste(enc.crop((*lb2, *ru2)), (*lb1,))
 
         return dec
+
+    def _measure(self, data):
+        lb = np.round(np.stack(data, -1).min(-1)).astype(np.int32)
+        ru = np.round(np.stack(data, -1).max(-1)).astype(np.int32)
+        return lb, ru

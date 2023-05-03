@@ -30,7 +30,7 @@ class AzurLaneTachieHelper(QMainWindow):
         super().__init__()
         self.setWindowTitle("AzurLaneTachieHelper")
         self.setWindowIcon(QIcon("ico/cheshire.ico"))
-        self.resize(720, 480)
+        self.resize(840, 560)
 
         self.settings = QSettings("config.ini", QSettings.Format.IniFormat)
 
@@ -105,13 +105,19 @@ class AzurLaneTachieHelper(QMainWindow):
         self.mFileOpenMetadata.triggered.connect(self.onClickFileOpenMetadata)
         self.mFileOpenMetadata.setCheckable(False)
         self.mFileOpenMetadata.setEnabled(True)
-        self.mFileOpenMetadata.setShortcut("Ctrl+M")
+        self.mFileOpenMetadata.setShortcut("Ctrl+O")
 
-        self.mFileImportReplacers = self.mFile.addAction("&Import Replacers")
-        self.mFileImportReplacers.triggered.connect(self.onClickFileImportReplacers)
-        self.mFileImportReplacers.setCheckable(False)
-        self.mFileImportReplacers.setEnabled(False)
-        self.mFileImportReplacers.setShortcut("Ctrl+I")
+        self.mFileImportPainting = self.mFile.addAction("Import &Painting")
+        self.mFileImportPainting.triggered.connect(self.onClickFileImportPainting)
+        self.mFileImportPainting.setCheckable(False)
+        self.mFileImportPainting.setEnabled(False)
+        self.mFileImportPainting.setShortcut("Ctrl+P")
+
+        self.mFileImportPaintingface = self.mFile.addAction("Import Painting&face")
+        self.mFileImportPaintingface.triggered.connect(self.onClickFileImportPaintingface)
+        self.mFileImportPaintingface.setCheckable(False)
+        self.mFileImportPaintingface.setEnabled(False)
+        self.mFileImportPaintingface.setShortcut("Ctrl+F")
 
         self.mEdit = self.menuBar().addMenu("&Edit")
 
@@ -141,8 +147,8 @@ class AzurLaneTachieHelper(QMainWindow):
             print("[INFO] Dependencies:", self.asset_manager.deps)
             num_deps = len(self.asset_manager.deps)
             self.tDependency.clearContents()
-            self.tDependency.setRowCount(num_deps)
-            self.tReplacer.setRowCount(num_deps)
+            self.tDependency.setRowCount(num_deps + 1)
+            self.tReplacer.setRowCount(num_deps + 1)
             for i, x in enumerate(self.asset_manager.deps):
                 self.tDependency.setItem(i, 0, QTableWidgetItem(x))
                 self.tDependency.setItem(i, 1, QTableWidgetItem("Not Found"))
@@ -154,12 +160,23 @@ class AzurLaneTachieHelper(QMainWindow):
                     self.tDependency.setItem(i, 1, QTableWidgetItem(path))
                     self.asset_manager.extract(x, path)
 
-            self.mFileImportReplacers.setEnabled(True)
+            paintingface = "paintingface/" + os.path.basename(file)
+            self.tDependency.setItem(num_deps, 0, QTableWidgetItem(paintingface))
+            self.tDependency.setItem(num_deps, 1, QTableWidgetItem("Not Found"))
+            self.tReplacer.setItem(num_deps, 0, QTableWidgetItem(paintingface))
+
+            path = os.path.join(os.path.dirname(file) + "/", paintingface)
+            if os.path.exists(path):
+                self.tDependency.setItem(num_deps, 1, QTableWidgetItem(path))
+                self.asset_manager.extract(x, path, True)
+
+            self.mFileImportPainting.setEnabled(True)
+            self.mFileImportPaintingface.setEnabled(True)
             self.mEditDecode.setEnabled(True)
 
-    def onClickFileImportReplacers(self):
+    def onClickFileImportPainting(self):
         last = self.settings.value("File/Path", "")
-        files, _ = QFileDialog.getOpenFileNames(self, dir=last)
+        files, _ = QFileDialog.getOpenFileNames(self, "Import Painting", last)
         if files:
             print("[INFO] Replacers:")
             [print("      ", _) for _ in files]
@@ -167,9 +184,23 @@ class AzurLaneTachieHelper(QMainWindow):
             for i in range(self.tReplacer.rowCount()):
                 name = re.split(r"/|_tex", self.tReplacer.item(i, 0).text())[-2].lower()
                 self.tReplacer.setItem(i, 1, QTableWidgetItem(files[i]))
-                self.encoder.load_replacer(name, files[i])
+                self.encoder.load(name, files[i])
 
             self.mEditEncode.setEnabled(True)
+
+    def onClickFileImportPaintingface(self):
+        last = self.settings.value("File/Path", "")
+        dir = QFileDialog.getExistingDirectory(self, "Import Paintingface", last)
+        # if dir:
+        #     print("[INFO] Replacers:")
+        #     [print("      ", _) for _ in files]
+
+        #     for i in range(self.tReplacer.rowCount()):
+        #         name = re.split(r"/|_tex", self.tReplacer.item(i, 0).text())[-2].lower()
+        #         self.tReplacer.setItem(i, 1, QTableWidgetItem(files[i]))
+        #         self.encoder.load(name, files[i])
+
+        #     self.mEditEncode.setEnabled(True)
 
     def onClickEditDecode(self):
         last = self.settings.value("File/Path", "")

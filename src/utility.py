@@ -1,11 +1,17 @@
 import os
+import re
 from pprint import pprint
 
 import numpy as np
 import UnityPy
 from PIL import Image
 from pytoshop.user import nested_layers
+from UnityPy import Environment
 from UnityPy.classes import RectTransform
+
+
+def raw_name(path: str) -> str:
+    return re.split(r"/|_tex", path)[-2]
 
 
 def check_dir(*dir):
@@ -44,6 +50,10 @@ def save_img(img: Image.Image, filename: str, no_ext=False):
     if no_ext:
         filename += ".png"
     img.transpose(Image.FLIP_TOP_BOTTOM).save(filename)
+
+
+def filter_env(env: Environment, type: type, read: bool = True):
+    return [_.read() if read else _ for _ in env.objects if _.type.name == type.__name__]
 
 
 def convert(rect: RectTransform) -> dict[str, np.ndarray]:
