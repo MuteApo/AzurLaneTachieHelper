@@ -7,31 +7,21 @@ from UnityPy.classes import Mesh, Texture2D
 from UnityPy.enums import TextureFormat
 
 from .TextureHelper import TextureHelper
-from .utility import check_dir, filter_env, read_img
+from .utility import check_dir, filter_env, raw_name
 
 
 class EncodeHelper(TextureHelper):
-    def load(self, name: str, path: str):
-        x, y = self.metas[name]["Offset"]
-        w, h = self.metas[name]["SizeDelta"]
-        self.metas[name] |= {
-            "rep": read_img(path).resize(
-                self.metas[name]["RawSpriteSize"],
-                Image.Resampling.LANCZOS,
-                (x, y, x + w, y + h),
-            )
-        }
-
     def exec(self, dir: str):
-        return "\n".join(
-            [
-                self._replace(dir, "painting/", _ + "_tex", {_: self.metas[_]["rep"]})
-                for _ in self.metas.keys()
-            ]
-        )
+        painting = [
+            self._replace_painting(dir, _ + "_tex", {_: self.metas[_]["rep"]})
+            for _ in [raw_name(__) for __ in self.deps]
+            if "rep" in self.metas[_]
+        ]
+        face = self._replace_face(dir)
+        return "\n".join(painting + face)
 
-    def _replace(self, dir, folder, asset, img_dict):
-        env = UnityPy.load(os.path.join(dir, folder, asset))
+    def _replace_painting(self, dir, asset, img_dict):
+        env = UnityPy.load(os.path.join(dir, "painting/", asset))
 
         for _ in filter_env(env, Texture2D):
             tex2d: Texture2D = _.read()
@@ -59,9 +49,31 @@ class EncodeHelper(TextureHelper):
 
             _.save_typetree(mesh)
 
-        check_dir(dir, "output", folder)
-        output = os.path.join(dir, "output/", folder, asset)
+        check_dir(dir, "output", "painting")
+        output = os.path.join(dir, "output/painting/", asset)
         with open(output, "wb") as f:
             f.write(env.file.save("lz4"))
 
         return output
+
+    def _replace_face(self, dir):
+        if "rep" not in self.metas["face"]:
+            return []
+
+        env = UnityPy.load(os.path.join(dir, "paintingface", self.name))
+
+        for _ in filter_env(env, Texture2D):
+            tex2d: Texture2D = _.read()
+            tex2d.set_image(
+                self.metas["face"]["rep"][tex2d.name].transpose(Image.FLIP_TOP_BOTTOM),
+                target_format=TextureFormat.RGBA32,
+                in_cab=True,
+            )
+            tex2d.save()
+
+        check_dir(dir, "output", "paintingface")
+        output = os.path.join(dir, "output/paintingface/", self.name)
+        with open(output, "wb") as f:
+            f.write(env.file.save("lz4"))
+
+        return [output]

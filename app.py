@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 from src.AssetManager import AssetManager
 from src.DecodeHelper import DecodeHelper
 from src.EncodeHelper import EncodeHelper
+from src.utility import raw_name
 
 
 class AzurLaneTachieHelper(QMainWindow):
@@ -145,10 +146,11 @@ class AzurLaneTachieHelper(QMainWindow):
             pprint(self.asset_manager.metas)
 
             print("[INFO] Dependencies:", self.asset_manager.deps)
-            num_deps = len(self.asset_manager.deps)
+            self.num_deps = len(self.asset_manager.deps)
             self.tDependency.clearContents()
-            self.tDependency.setRowCount(num_deps + 1)
-            self.tReplacer.setRowCount(num_deps + 1)
+            self.tDependency.setRowCount(self.num_deps + 1)
+            self.tReplacer.clearContents()
+            self.tReplacer.setRowCount(self.num_deps + 1)
             for i, x in enumerate(self.asset_manager.deps):
                 self.tDependency.setItem(i, 0, QTableWidgetItem(x))
                 self.tDependency.setItem(i, 1, QTableWidgetItem("Not Found"))
@@ -156,18 +158,18 @@ class AzurLaneTachieHelper(QMainWindow):
 
                 path = os.path.join(os.path.dirname(file) + "/", x)
                 if os.path.exists(path):
-                    print("[INFO] Auto-resolved:", path)
+                    print("[INFO] Discovered:", path)
                     self.tDependency.setItem(i, 1, QTableWidgetItem(path))
                     self.asset_manager.extract(x, path)
 
             paintingface = "paintingface/" + os.path.basename(file)
-            self.tDependency.setItem(num_deps, 0, QTableWidgetItem(paintingface))
-            self.tDependency.setItem(num_deps, 1, QTableWidgetItem("Not Found"))
-            self.tReplacer.setItem(num_deps, 0, QTableWidgetItem(paintingface))
+            self.tDependency.setItem(self.num_deps, 0, QTableWidgetItem(paintingface))
+            self.tDependency.setItem(self.num_deps, 1, QTableWidgetItem("Not Found"))
+            self.tReplacer.setItem(self.num_deps, 0, QTableWidgetItem(paintingface))
 
             path = os.path.join(os.path.dirname(file) + "/", paintingface)
             if os.path.exists(path):
-                self.tDependency.setItem(num_deps, 1, QTableWidgetItem(path))
+                self.tDependency.setItem(self.num_deps, 1, QTableWidgetItem(path))
                 self.asset_manager.extract(x, path, True)
 
             self.mFileImportPainting.setEnabled(True)
@@ -176,31 +178,31 @@ class AzurLaneTachieHelper(QMainWindow):
 
     def onClickFileImportPainting(self):
         last = self.settings.value("File/Path", "")
-        files, _ = QFileDialog.getOpenFileNames(self, "Import Painting", last)
+        files, _ = QFileDialog.getOpenFileNames(self, "Select Paintings", os.path.dirname(last))
         if files:
-            print("[INFO] Replacers:")
+            print("[INFO] Paintings:")
             [print("      ", _) for _ in files]
 
-            for i in range(self.tReplacer.rowCount()):
-                name = re.split(r"/|_tex", self.tReplacer.item(i, 0).text())[-2].lower()
+            for i in range(self.num_deps):
+                name = raw_name(self.tReplacer.item(i, 0).text()).lower()
                 self.tReplacer.setItem(i, 1, QTableWidgetItem(files[i]))
-                self.encoder.load(name, files[i])
+                self.asset_manager.load_painting(name, files[i])
 
             self.mEditEncode.setEnabled(True)
 
     def onClickFileImportPaintingface(self):
         last = self.settings.value("File/Path", "")
-        dir = QFileDialog.getExistingDirectory(self, "Import Paintingface", last)
-        # if dir:
-        #     print("[INFO] Replacers:")
-        #     [print("      ", _) for _ in files]
+        dir = QFileDialog.getExistingDirectory(
+            self, "Select Paintingface Folder", os.path.dirname(last)
+        )
+        if dir:
+            print("[INFO] Paintingface folder:", dir)
+            print("[INFO] Paintingfaces:")
 
-        #     for i in range(self.tReplacer.rowCount()):
-        #         name = re.split(r"/|_tex", self.tReplacer.item(i, 0).text())[-2].lower()
-        #         self.tReplacer.setItem(i, 1, QTableWidgetItem(files[i]))
-        #         self.encoder.load(name, files[i])
+            self.tReplacer.setItem(self.num_deps, 1, QTableWidgetItem(dir))
+            self.asset_manager.load_face(dir)
 
-        #     self.mEditEncode.setEnabled(True)
+            self.mEditEncode.setEnabled(True)
 
     def onClickEditDecode(self):
         last = self.settings.value("File/Path", "")

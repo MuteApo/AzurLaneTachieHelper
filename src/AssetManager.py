@@ -14,7 +14,7 @@ from UnityPy.classes import (
     Texture2D,
 )
 
-from .utility import filter_env, raw_name
+from .utility import filter_env, raw_name, read_img
 
 
 class AssetManager:
@@ -115,10 +115,37 @@ class AssetManager:
             mesh: list[Mesh] = filter_env(env, Mesh)
 
         if is_paintingface:
-            self.metas["face"] |= {"diff": tex2d}
+            self.metas["face"] |= {
+                "diff": {_.name: _.image.transpose(Image.FLIP_TOP_BOTTOM) for _ in tex2d}
+            }
         else:
             self.metas[raw_name(dep).lower()] |= {
                 "mesh": self._parse_mesh(mesh[0]),
                 "enc": tex2d[0].image.transpose(Image.FLIP_TOP_BOTTOM),
                 "whs": tex2d[0].image.size,
             }
+
+    def load_painting(self, name: str, path: str):
+        x, y = self.metas[name]["Offset"]
+        w, h = self.metas[name]["SizeDelta"]
+        self.metas[name] |= {
+            "rep": read_img(path).resize(
+                self.metas[name]["RawSpriteSize"],
+                Image.Resampling.LANCZOS,
+                (x, y, x + w, y + h),
+            )
+        }
+
+    def load_face(self, dir: str):
+        x, y = self.metas["face"]["Offset"]
+        w, h = self.metas["face"]["SizeDelta"]
+        img_dict = {}
+        for path, _, files in os.walk(dir):
+            for img in [_ for _ in files if _.endswith(".png")]:
+                name = img.split(".png")[0]
+                if name in self.metas["face"]["diff"]:
+                    print("      ", os.path.join(path + "/", img))
+                    full = read_img(os.path.join(path, img))
+                    img_dict[name] = full.crop((x, y, x + w, y + h))
+
+        self.metas["face"] |= {"rep": img_dict}
