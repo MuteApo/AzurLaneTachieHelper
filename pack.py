@@ -22,7 +22,6 @@ if __name__ == "__main__":
             f"nuitka app.py \
             --standalone \
             --lto=yes \
-            --disable-console \
             --enable-plugin=pyside6 \
             --nofollow-import-to=tkinter \
             --windows-icon-from-ico=ico/cheshire.ico \
@@ -33,7 +32,7 @@ if __name__ == "__main__":
         )
     elif args.pyinstaller:
         os.system(
-            f"pyinstaller -Dwy app.py \
+            f"pyinstaller -Dcy app.py \
             --name AzurLaneTachieHelper \
             --icon ico/cheshire.ico \
             --add-data {';'.join(data['tpk'])} \

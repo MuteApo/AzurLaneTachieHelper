@@ -22,10 +22,10 @@ class AssetManager:
         self.init()
 
     def init(self):
-        self.metas = {}
-        self.deps = []
         self.name = None
         self.size = None
+        self.metas = {}
+        self.deps = []
 
     def _filter_child(self, rt: RectTransform, name: str):
         rts: list[RectTransform] = [_.read() for _ in rt.m_Children]
@@ -64,9 +64,11 @@ class AssetManager:
         base_rt: RectTransform = base_go.m_Transform.read()
         base_name = self._get_name(base_rt)
         base_info = self._parse_rt(base_rt) | self._get_rss(base_rt)
+        base_info["Offset"] = (0, 0)
 
         self.name = base_name
         self.size = base_info["SizeDelta"]
+        self.metas[base_name] = base_info
         self.deps: list[str] = [_ for _ in abs[0].m_Dependencies if self.name in _]
 
         for layers_rt in self._filter_child(base_rt, "layers"):
@@ -124,12 +126,10 @@ class AssetManager:
     def load_painting(self, name: str, path: str):
         x, y = self.metas[name]["Offset"]
         w, h = self.metas[name]["SizeDelta"]
+        sub = Image.new("RGBA", (w, h))
+        sub.paste(read_img(path).crop((x, y, min(x + w, self.size[0]), min(y + h, self.size[1]))))
         self.metas[name] |= {
-            "rep": read_img(path).resize(
-                self.metas[name]["RawSpriteSize"],
-                Image.Resampling.LANCZOS,
-                (x, y, x + w, y + h),
-            )
+            "rep": sub.resize(self.metas[name]["RawSpriteSize"], Image.Resampling.LANCZOS)
         }
 
     def load_face(self, dir: str):

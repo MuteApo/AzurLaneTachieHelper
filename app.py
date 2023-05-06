@@ -31,7 +31,7 @@ class AzurLaneTachieHelper(QMainWindow):
         super().__init__()
         self.setWindowTitle(self.tr("AzurLane Tachie Helper"))
         self.setWindowIcon(QPixmap("ico/cheshire.ico"))
-        self.resize(840, 560)
+        self.resize(720, 480)
 
         self.settings = QSettings("config.ini", QSettings.Format.IniFormat)
 
@@ -179,15 +179,19 @@ class AzurLaneTachieHelper(QMainWindow):
 
     def onClickFileImportPainting(self):
         last = os.path.dirname(self.settings.value("File/Path", ""))
-        files, _ = QFileDialog.getOpenFileNames(self, self.tr("Select Paintings"), last)
+        files, _ = QFileDialog.getOpenFileNames(
+            self, self.tr("Select Paintings"), last, "Image (*.png)"
+        )
         if files:
             print("[INFO] Paintings:")
             [print("      ", _) for _ in files]
 
             for i in range(self.num_deps):
                 name = raw_name(self.tReplacer.item(i, 0).text()).lower()
-                self.tReplacer.setItem(i, 1, QTableWidgetItem(files[i]))
-                self.asset_manager.load_painting(name, files[i])
+                match = [_ for _ in files if name in _]
+                if len(match) > 0:
+                    self.tReplacer.setItem(i, 1, QTableWidgetItem(match[0]))
+                    self.asset_manager.load_painting(name, match[0])
 
             self.mEditEncode.setEnabled(True)
 
