@@ -1,7 +1,16 @@
 __pycache__
 build
+char
 dist
 out
+script32
+sharecfgdata
+spine
 test
 *.ini
+*.json
 *.spec
+*.txt
+char.py
+gametip.py
+ship_skin_words.py

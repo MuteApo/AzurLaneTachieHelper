@@ -2,22 +2,16 @@
 
 #### Features
 
-- Decode & encode painting
+- Unpack & pack painting
 - Merge & split paintingface 
 - Support multi-layers
-- Dump as photoshop document, aka psd
-
-#### Components
-
-- `decoder`: extract and decode painting & paintingface
-- `encoder`: encode and replace painting & paintingface
-- `viewer` (deprecated)
+- Dump into photoshop document (i.e. psd)
 
 #### File Organization (exemplified by `xinnong_2`)
 
 - Before:
   ```
-  main folder/
+  main_folder/
   |--painting/
   |  |--xinnong_2_front_tex
   |  L--xinnong_2_tex
@@ -27,7 +21,7 @@
   ```
 - After:
   ```
-  main folder/
+  main_folder/
   |--output/
   |  |--painting/
   |  |  |--xinnong_2_front_tex
@@ -50,16 +44,21 @@
   - Pillow
   - Pytoshop
   - UnityPy
-- Or just run
-  - for Conda:
+- Or with given env spec:
+  - Conda
     ```shell
     conda env create -f environment.yml
     ```
-  - for Pypi:
+  - Pypi
     ```shell
     pip install -r requirements.txt
     ```
-- Build app by pyinstaller/nuitka:
-  - ```shell
-    python pack.py --nuitka
+- Build app
+  - pyinstaller
+    ```shell
+    python build.py --pyinstaller/-p
+    ```
+  - nuitka (C++ compiler required, eg. msvc, gcc, clang, etc.)
+    ```shell
+    python build.py --nuitka/-n
     ```
