@@ -54,6 +54,19 @@ class AssetManager:
             "f": np.array(mesh.m_Indices).reshape((-1, 6))[:, (0, 1, 3, 4)],
         }
 
+    def _calc_layer_offset(self, base: dict, layers: dict, child: dict) -> tuple[int, int]:
+        base_pivot = base["Pivot"] * base["SizeDelta"]
+        layers_pivot = base_pivot + layers["LocalPosition"]
+        child_pivot = layers_pivot + child["LocalPosition"]
+        child_offset = child_pivot - child["Pivot"] * child["SizeDelta"]
+        return tuple(np.round(child_offset).astype(np.int32))
+
+    def _calc_face_offset(self, base: dict, face: dict) -> tuple[int, int]:
+        base_pivot = base["Pivot"] * base["SizeDelta"]
+        face_pivot = base_pivot + face["LocalPosition"]
+        face_offset = face_pivot - face["Pivot"] * face["SizeDelta"]
+        return tuple(np.round(face_offset).astype(np.int32))
+
     def analyze(self, file: str):
         self.init()
 
@@ -69,34 +82,21 @@ class AssetManager:
         self.name = base_name
         self.size = base_info["SizeDelta"]
         self.metas[base_name] = base_info
-        self.deps: list[str] = [_ for _ in abs[0].m_Dependencies if self.name in _]
 
         for layers_rt in self._filter_child(base_rt, "layers"):
             layers_info = self._parse_rt(layers_rt)
-
             for child_rt in [_.read() for _ in layers_rt.m_Children]:
                 child_name = self._get_name(child_rt)
                 child_info = self._parse_rt(child_rt) | self._get_rss(child_rt)
-                child_info["Offset"] = tuple(
-                    np.round(
-                        base_info["Pivot"] * base_info["SizeDelta"]
-                        + layers_info["LocalPosition"]
-                        + child_info["LocalPosition"]
-                        - child_info["Pivot"] * child_info["SizeDelta"]
-                    ).astype(np.int32)
-                )
+                child_info["Offset"] = self._calc_layer_offset(base_info, layers_info, child_info)
 
                 self.metas[child_name] = child_info
 
+        self.deps: list[str] = [_ for _ in abs[0].m_Dependencies if raw_name(_) in self.metas]
+
         for face_rt in self._filter_child(base_rt, "face"):
             face_info = self._parse_rt(face_rt)
-            face_info["Offset"] = tuple(
-                np.round(
-                    base_info["Pivot"] * base_info["SizeDelta"]
-                    + face_info["LocalPosition"]
-                    - face_info["Pivot"] * face_info["SizeDelta"]
-                ).astype(np.int32)
-            )
+            face_info["Offset"] = self._calc_face_offset(base_info, face_info)
 
             self.metas["face"] = face_info
 
