@@ -1,9 +1,7 @@
 import os
 import re
 
-import numpy as np
 from PIL import Image
-from pytoshop.user import nested_layers
 from UnityPy import Environment
 
 
@@ -35,20 +33,3 @@ def save_img(img: Image.Image, filename: str, no_ext=False):
 
 def filter_env(env: Environment, type: type, read: bool = True):
     return [_.read() if read else _ for _ in env.objects if _.type.name == type.__name__]
-
-
-def gen_ps_layer(img: Image.Image, name: str, visible: bool = True) -> nested_layers.Layer:
-    r, g, b, a = img.transpose(Image.FLIP_TOP_BOTTOM).split()
-    channels = {i - 1: np.array(x) for i, x in enumerate([a, r, g, b])}
-    w, h = img.size
-    layer = nested_layers.Image(
-        name=name,
-        visible=visible,
-        opacity=255,
-        top=0,
-        left=0,
-        bottom=h,
-        right=w,
-        channels=channels,
-    )
-    return layer
