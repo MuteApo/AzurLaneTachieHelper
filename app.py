@@ -163,7 +163,7 @@ class AzurLaneTachieHelper(QMainWindow):
                     self.tDependency.setItem(i, 1, QTableWidgetItem(path))
                     self.asset_manager.extract(x, path)
 
-            paintingface = "paintingface/" + os.path.basename(file)
+            paintingface = "paintingface/" + os.path.basename(file).strip("_n")
             self.tDependency.setItem(self.num_deps, 0, QTableWidgetItem(paintingface))
             self.tDependency.setItem(self.num_deps, 1, QTableWidgetItem(self.tr("Not Found")))
             self.tReplacer.setItem(self.num_deps, 0, QTableWidgetItem(paintingface))

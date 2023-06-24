@@ -33,7 +33,7 @@ class DecodeHelper(TextureHelper):
 
         layers = [
             nested_layers.Group(name="paintingface", layers=face, closed=False),
-            nested_layers.Group(name="painting", layers=painting, closed=False),
+            nested_layers.Group(name="painting", layers=painting[::-1], closed=False),
         ]
         psd = nested_layers.nested_layers_to_psd(layers, color_mode=ColorMode.rgb)
         path = os.path.join(dir, self.name + ".psd")

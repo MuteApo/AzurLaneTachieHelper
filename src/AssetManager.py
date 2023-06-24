@@ -47,11 +47,20 @@ class AssetManager:
             "Pivot": items["m_Pivot"],
         }
 
-    def _parse_mesh(self, mesh: Mesh):
+    def _parse_mesh(self, mesh: list[Mesh], tex2d: list[Texture2D]):
+        if mesh == []:
+            return self._quad_mesh(*tex2d[0].image.size)
         return {
-            "v": np.array(mesh.m_Vertices).reshape((-1, 3))[:, :2],
-            "vt": np.array(mesh.m_UV0).reshape((-1, 2)),
-            "f": np.array(mesh.m_Indices).reshape((-1, 6))[:, (0, 1, 3, 4)],
+            "v": np.array(mesh[0].m_Vertices).reshape((-1, 3))[:, :2],
+            "vt": np.array(mesh[0].m_UV0).reshape((-1, 2)),
+            "f": np.array(mesh[0].m_Indices).reshape((-1, 6))[:, (0, 1, 3, 4)],
+        }
+
+    def _quad_mesh(self, w: float, h: float):
+        return {
+            "v": np.array([[0, 0], [0, h], [w, h], [w, 0]]),
+            "vt": np.array([[0, 0], [0, 1], [1, 1], [1, 0]]),
+            "f": np.array([[0, 1, 2, 3]]),
         }
 
     def _calc_layer_offset(self, base: dict, layers: dict, child: dict) -> tuple[int, int]:
@@ -72,6 +81,7 @@ class AssetManager:
 
         env: Environment = UnityPy.load(file)
         abs: list[AssetBundle] = filter_env(env, AssetBundle)
+        raw_dep = {raw_name(_): _ for _ in abs[0].m_Dependencies}
 
         base_go: GameObject = [_.read() for _ in env.container.values()][0]
         base_rt: RectTransform = base_go.m_Transform.read()
@@ -82,6 +92,7 @@ class AssetManager:
         self.name = base_name
         self.size = base_info["SizeDelta"]
         self.metas[base_name] = base_info
+        self.deps = [raw_dep[base_name]]
 
         for layers_rt in self._filter_child(base_rt, "layers"):
             layers_info = self._parse_rt(layers_rt)
@@ -91,8 +102,7 @@ class AssetManager:
                 child_info["Offset"] = self._calc_layer_offset(base_info, layers_info, child_info)
 
                 self.metas[child_name] = child_info
-
-        self.deps: list[str] = [_ for _ in abs[0].m_Dependencies if raw_name(_) in self.metas]
+                self.deps += [raw_dep[child_name]]
 
         for face_rt in self._filter_child(base_rt, "face"):
             face_info = self._parse_rt(face_rt)
@@ -108,9 +118,9 @@ class AssetManager:
 
         # extract mesh
         mesh: list[Mesh] = filter_env(env, Mesh)
-        if len(mesh) == 0:
-            env = UnityPy.load(path.split("_tex")[0] + "_n_tex")
-            mesh: list[Mesh] = filter_env(env, Mesh)
+        # if len(mesh) == 0:
+        #     env = UnityPy.load(path.split("_tex")[0] + "_n_tex")
+        #     mesh: list[Mesh] = filter_env(env, Mesh)
 
         if is_paintingface:
             self.metas["face"] |= {
@@ -118,7 +128,7 @@ class AssetManager:
             }
         else:
             self.metas[raw_name(dep).lower()] |= {
-                "mesh": self._parse_mesh(mesh[0]),
+                "mesh": self._parse_mesh(mesh, tex2d),
                 "enc": tex2d[0].image.transpose(Image.FLIP_TOP_BOTTOM),
                 "whs": tex2d[0].image.size,
             }

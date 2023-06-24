@@ -25,7 +25,7 @@ class EncodeHelper(TextureHelper):
 
         for _ in filter_env(env, Texture2D):
             tex2d: Texture2D = _.read()
-            img = img_dict[tex2d.name]
+            img = img_dict[tex2d.name.lower()]
             tex2d.m_Width, tex2d.m_Height = img.size
             tex2d.set_image(
                 img.transpose(Image.FLIP_TOP_BOTTOM),
@@ -42,7 +42,7 @@ class EncodeHelper(TextureHelper):
             mesh["m_IndexBuffer"] = [0, 0, 1, 0, 2, 0, 2, 0, 3, 0, 0, 0]
             mesh["m_VertexData"]["m_VertexCount"] = 4
 
-            w, h = img_dict[mesh["m_Name"].split("-mesh")[0]].size
+            w, h = img_dict[mesh["m_Name"].lower().split("-mesh")[0]].size
             buf = [0, 0, 0, 0, 0, 0, h, 0, 0, 1, w, h, 0, 1, 1, w, 0, 0, 1, 0]
             data_size = struct.pack(_.reader.endian + "f" * 20, *buf)
             mesh["m_VertexData"]["m_DataSize"] = memoryview(data_size)
