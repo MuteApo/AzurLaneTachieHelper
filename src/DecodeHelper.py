@@ -6,30 +6,23 @@ from pytoshop.enums import ColorMode
 from pytoshop.user import nested_layers
 
 from .TextureHelper import TextureHelper
-from .utility import raw_name
 
 
 class DecodeHelper(TextureHelper):
     def exec(self, dir: str):
         painting = []
-        for _ in self.deps:
-            name = raw_name(_)
-            meta = self.metas[name]
-            if "enc" in meta:
-                sub = self.decode(meta["mesh"], meta["enc"], meta["RawSpriteSize"])
+        for k, v in self.layers.items():
+            if k != "face":
+                sub = self.decode(v.mesh, v.tex, v.rawSpriteSize)
                 full = Image.new("RGBA", self.size)
-                full.paste(
-                    sub.resize(meta["SizeDelta"], Image.Resampling.LANCZOS),
-                    meta["Offset"],
-                )
-                painting += [self.ps_layer(full, name)]
+                full.paste(sub.resize(v.sizeDelta, Image.Resampling.LANCZOS), v.offset)
+                painting += [self.ps_layer(full, k)]
 
         face = []
-        if "diff" in self.metas["face"]:
-            for k, v in sorted(self.metas["face"]["diff"].items(), key=lambda _: _[0]):
-                full = Image.new("RGBA", self.size)
-                full.paste(v, self.metas["face"]["Offset"])
-                face += [self.ps_layer(full, k, False)]
+        for k, v in sorted(self.faces.items()):
+            full = Image.new("RGBA", self.size)
+            full.paste(v, self.face_layer.offset)
+            face += [self.ps_layer(full, k, False)]
 
         layers = [
             nested_layers.Group(name="paintingface", layers=face, closed=False),

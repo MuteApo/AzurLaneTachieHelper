@@ -21,3 +21,19 @@ class TextureHelper:
     @property
     def size(self):
         return self.asset_manager.size
+
+    @property
+    def layers(self):
+        return self.asset_manager.layers
+
+    @property
+    def face_layer(self):
+        return self.asset_manager.layers["face"]
+
+    @property
+    def faces(self):
+        return self.asset_manager.faces
+
+    @property
+    def repls(self):
+        return self.asset_manager.repls

@@ -7,21 +7,21 @@ from UnityPy.classes import Mesh, Texture2D
 from UnityPy.enums import TextureFormat
 
 from .TextureHelper import TextureHelper
-from .utility import check_dir, filter_env, raw_name
+from .utility import check_dir, filter_env
 
 
 class EncodeHelper(TextureHelper):
     def exec(self, dir: str):
         painting = [
-            self._replace_painting(dir, _ + "_tex", {_: self.metas[_]["rep"]})
-            for _ in [raw_name(__) for __ in self.deps]
-            if "rep" in self.metas[_]
+            self._replace_painting(dir, x + "_tex", self.repls)
+            for x in self.layers.keys()
+            if x in self.repls
         ]
         face = self._replace_face(dir)
         return "\n".join(painting + face)
 
     def _replace_painting(self, dir, asset, img_dict):
-        env = UnityPy.load(os.path.join(dir, "painting/", asset))
+        env = UnityPy.load(os.path.join(dir, "painting", asset))
 
         for _ in filter_env(env, Texture2D):
             tex2d: Texture2D = _.read()
@@ -50,29 +50,29 @@ class EncodeHelper(TextureHelper):
             _.save_typetree(mesh)
 
         check_dir(dir, "output", "painting")
-        output = os.path.join(dir, "output/painting/", asset)
+        output = os.path.join(dir, "output", "painting", asset)
         with open(output, "wb") as f:
             f.write(env.file.save("lz4"))
 
         return output
 
     def _replace_face(self, dir):
-        if "rep" not in self.metas["face"]:
+        if "1" not in self.repls:
             return []
 
-        env = UnityPy.load(os.path.join(dir, "paintingface", self.name))
+        env = UnityPy.load(os.path.join(dir, "paintingface", self.name.strip("_n")))
 
         for _ in filter_env(env, Texture2D):
             tex2d: Texture2D = _.read()
             tex2d.set_image(
-                self.metas["face"]["rep"][tex2d.name].transpose(Image.FLIP_TOP_BOTTOM),
+                self.repls[tex2d.name].transpose(Image.FLIP_TOP_BOTTOM),
                 target_format=TextureFormat.RGBA32,
                 in_cab=True,
             )
             tex2d.save()
 
         check_dir(dir, "output", "paintingface")
-        output = os.path.join(dir, "output/paintingface/", self.name)
+        output = os.path.join(dir, "output", "paintingface", self.name.strip("_n"))
         with open(output, "wb") as f:
             f.write(env.file.save("lz4"))
 

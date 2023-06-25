@@ -1,7 +1,6 @@
+import locale
 import os
 import sys
-from pprint import pprint
-import locale
 
 from PySide6.QtCore import QSettings, QTranslator
 from PySide6.QtGui import QPixmap
@@ -146,32 +145,16 @@ class AzurLaneTachieHelper(QMainWindow):
             self.tReplacer.clearContents()
 
             self.asset_manager.analyze(file)
-            pprint(self.asset_manager.metas)
 
-            print("[INFO] Dependencies:", self.asset_manager.deps)
+            print("[INFO] Dependencies:", [*self.asset_manager.deps.keys()])
             self.num_deps = len(self.asset_manager.deps)
-            self.tDependency.setRowCount(self.num_deps + 1)
-            self.tReplacer.setRowCount(self.num_deps + 1)
-            for i, x in enumerate(self.asset_manager.deps):
-                self.tDependency.setItem(i, 0, QTableWidgetItem(x))
-                self.tDependency.setItem(i, 1, QTableWidgetItem(self.tr("Not Found")))
-                self.tReplacer.setItem(i, 0, QTableWidgetItem(x))
-
-                path = os.path.join(os.path.dirname(file) + "/", x)
-                if os.path.exists(path):
-                    print("[INFO] Discovered:", path)
-                    self.tDependency.setItem(i, 1, QTableWidgetItem(path))
-                    self.asset_manager.extract(x, path)
-
-            paintingface = "paintingface/" + os.path.basename(file).strip("_n")
-            self.tDependency.setItem(self.num_deps, 0, QTableWidgetItem(paintingface))
-            self.tDependency.setItem(self.num_deps, 1, QTableWidgetItem(self.tr("Not Found")))
-            self.tReplacer.setItem(self.num_deps, 0, QTableWidgetItem(paintingface))
-
-            path = os.path.join(os.path.dirname(file) + "/", paintingface)
-            if os.path.exists(path):
-                self.tDependency.setItem(self.num_deps, 1, QTableWidgetItem(path))
-                self.asset_manager.extract(x, path, True)
+            self.tDependency.setRowCount(self.num_deps)
+            self.tReplacer.setRowCount(self.num_deps)
+            for i, (k, v) in enumerate(self.asset_manager.deps.items()):
+                x = self.tr("Not Found") if v is None else v
+                self.tDependency.setItem(i, 0, QTableWidgetItem(k))
+                self.tDependency.setItem(i, 1, QTableWidgetItem(x))
+                self.tReplacer.setItem(i, 0, QTableWidgetItem(k))
 
             self.mFileImportPainting.setEnabled(True)
             self.mFileImportPaintingface.setEnabled(True)
@@ -186,7 +169,7 @@ class AzurLaneTachieHelper(QMainWindow):
             print("[INFO] Paintings:")
             [print("      ", _) for _ in files]
 
-            for i in range(self.num_deps):
+            for i in range(self.num_deps - 1):
                 name = raw_name(self.tReplacer.item(i, 0).text()).lower()
                 match = [_ for _ in files if name in _]
                 if len(match) > 0:
@@ -202,7 +185,7 @@ class AzurLaneTachieHelper(QMainWindow):
             print("[INFO] Paintingface folder:", dir)
             print("[INFO] Paintingfaces:")
 
-            self.tReplacer.setItem(self.num_deps, 1, QTableWidgetItem(dir))
+            self.tReplacer.setItem(self.num_deps - 1, 1, QTableWidgetItem(dir))
             self.asset_manager.load_face(dir)
 
             self.mEditEncode.setEnabled(True)

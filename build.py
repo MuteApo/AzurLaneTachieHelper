@@ -21,7 +21,6 @@ if __name__ == "__main__":
         os.system(
             f"nuitka app.py \
             --standalone \
-            --lto=yes \
             --enable-plugin=pyside6 \
             --nofollow-import-to=tkinter \
             --windows-icon-from-ico=ico/cheshire.ico \
