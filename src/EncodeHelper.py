@@ -11,14 +11,14 @@ from .utility import check_dir, filter_env
 
 
 class EncodeHelper(TextureHelper):
-    def exec(self, dir: str):
+    def exec(self, dir: str) -> list[str]:
         painting = [
             self._replace_painting(dir, x + "_tex", self.repls)
             for x in self.layers.keys()
             if x in self.repls
         ]
         face = self._replace_face(dir)
-        return "\n".join(painting + face)
+        return painting + face
 
     def _replace_painting(self, dir, asset, img_dict):
         env = UnityPy.load(os.path.join(dir, "painting", asset))
@@ -57,7 +57,7 @@ class EncodeHelper(TextureHelper):
         return output
 
     def _replace_face(self, dir):
-        if "1" not in self.repls:
+        if 1 not in self.repls:
             return []
 
         env = UnityPy.load(os.path.join(dir, "paintingface", self.name.strip("_n")))
@@ -65,7 +65,7 @@ class EncodeHelper(TextureHelper):
         for _ in filter_env(env, Texture2D):
             tex2d: Texture2D = _.read()
             tex2d.set_image(
-                self.repls[tex2d.name].transpose(Image.FLIP_TOP_BOTTOM),
+                self.repls[eval(tex2d.name)].transpose(Image.FLIP_TOP_BOTTOM),
                 target_format=TextureFormat.RGBA32,
                 in_cab=True,
             )

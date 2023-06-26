@@ -20,8 +20,8 @@ class AssetManager:
         self.size = None
         self.deps = {}
         self.layers: dict[str, Layer] = {}
-        self.faces: dict[str, Image.Image] = {}
-        self.repls: dict[str, Image.Image] = {}
+        self.faces: dict[int, Image.Image] = {}
+        self.repls: dict[str | int, Image.Image] = {}
 
     def _filter_child(self, rt: RectTransform, name: str):
         rts: list[RectTransform] = [_.read() for _ in rt.m_Children]
@@ -29,22 +29,6 @@ class AssetManager:
 
     def _get_name(self, rt: RectTransform):
         return rt.m_GameObject.read().m_Name.lower()
-
-    def _parse_mesh(self, mesh: list[Mesh], tex2d: list[Texture2D]):
-        if mesh == []:
-            return self._quad_mesh(*tex2d[0].image.size)
-        return {
-            "v": np.array(mesh[0].m_Vertices).reshape((-1, 3))[:, :2],
-            "vt": np.array(mesh[0].m_UV0).reshape((-1, 2)),
-            "f": np.array(mesh[0].m_Indices).reshape((-1, 6))[:, (0, 1, 3, 4)],
-        }
-
-    def _quad_mesh(self, w: float, h: float):
-        return {
-            "v": np.array([[0, 0], [0, h], [w, h], [w, 0]]),
-            "vt": np.array([[0, 0], [0, 1], [1, 1], [1, 0]]),
-            "f": np.array([[0, 1, 2, 3]]),
-        }
 
     def analyze(self, file: str):
         self.init()
@@ -79,7 +63,7 @@ class AssetManager:
             for face_rt in self._filter_child(base_rt, "face"):
                 self.layers |= {"face": Layer(face_rt, base_layer)}
                 self.faces |= {
-                    _.name: _.image.transpose(Image.FLIP_TOP_BOTTOM)
+                    eval(_.name): _.image.transpose(Image.FLIP_TOP_BOTTOM)
                     for _ in filter_env(env, Texture2D)
                     if re.match(r"[1-9][0-9]*", _.name)
                 }
@@ -100,7 +84,7 @@ class AssetManager:
         w, h = self.layers["face"].sizeDelta
         for path, _, files in os.walk(dir):
             for img in [_ for _ in files if _.endswith(".png")]:
-                name = img.split(".png")[0]
+                name = eval(os.path.splitext(img)[0])
                 if name in self.faces:
                     print("      ", os.path.join(path + "/", img))
                     full = read_img(os.path.join(path, img))

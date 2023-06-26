@@ -9,7 +9,7 @@ from .TextureHelper import TextureHelper
 
 
 class DecodeHelper(TextureHelper):
-    def exec(self, dir: str):
+    def exec(self, dir: str) -> str:
         painting = []
         for k, v in self.layers.items():
             if k != "face":
@@ -22,7 +22,7 @@ class DecodeHelper(TextureHelper):
         for k, v in sorted(self.faces.items()):
             full = Image.new("RGBA", self.size)
             full.paste(v, self.face_layer.offset)
-            face += [self.ps_layer(full, k, False)]
+            face += [self.ps_layer(full, str(k), False)]
 
         layers = [
             nested_layers.Group(name="paintingface", layers=face, closed=False),

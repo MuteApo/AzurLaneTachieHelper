@@ -2,7 +2,7 @@ import locale
 import os
 import sys
 
-from PySide6.QtCore import QSettings, QTranslator
+from PySide6.QtCore import QSettings, QTranslator, QDir
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -138,7 +138,7 @@ class AzurLaneTachieHelper(QMainWindow):
         file, _ = QFileDialog.getOpenFileName(self, self.tr("Select Metadata to Open"), last)
         if file:
             self.settings.setValue("File/Path", file)
-            self.message.setText(f"({os.path.basename(file)})  {file}")
+            self.message.setText(f"({os.path.basename(file)})  {QDir.toNativeSeparators(file) }")
             print("[INFO] Metadata:", file)
 
             self.tDependency.clearContents()
@@ -151,7 +151,7 @@ class AzurLaneTachieHelper(QMainWindow):
             self.tDependency.setRowCount(self.num_deps)
             self.tReplacer.setRowCount(self.num_deps)
             for i, (k, v) in enumerate(self.asset_manager.deps.items()):
-                x = self.tr("Not Found") if v is None else v
+                x = self.tr("Not Found") if v is None else QDir.toNativeSeparators(v)
                 self.tDependency.setItem(i, 0, QTableWidgetItem(k))
                 self.tDependency.setItem(i, 1, QTableWidgetItem(x))
                 self.tReplacer.setItem(i, 0, QTableWidgetItem(k))
@@ -171,10 +171,12 @@ class AzurLaneTachieHelper(QMainWindow):
 
             for i in range(self.num_deps - 1):
                 name = raw_name(self.tReplacer.item(i, 0).text()).lower()
-                match = [_ for _ in files if name in _]
-                if len(match) > 0:
-                    self.tReplacer.setItem(i, 1, QTableWidgetItem(match[0]))
-                    self.asset_manager.load_painting(name, match[0])
+                for file in files:
+                    if os.path.splitext(os.path.basename(file))[0] == name:
+                        path = QDir.toNativeSeparators(file)
+                        self.tReplacer.setItem(i, 1, QTableWidgetItem(path))
+                        self.asset_manager.load_painting(name, path)
+                        break
 
             self.mEditEncode.setEnabled(True)
 
@@ -185,8 +187,9 @@ class AzurLaneTachieHelper(QMainWindow):
             print("[INFO] Paintingface folder:", dir)
             print("[INFO] Paintingfaces:")
 
-            self.tReplacer.setItem(self.num_deps - 1, 1, QTableWidgetItem(dir))
-            self.asset_manager.load_face(dir)
+            path = QDir.toNativeSeparators(dir)
+            self.tReplacer.setItem(self.num_deps - 1, 1, QTableWidgetItem(path))
+            self.asset_manager.load_face(path)
 
             self.mEditEncode.setEnabled(True)
 
@@ -194,7 +197,7 @@ class AzurLaneTachieHelper(QMainWindow):
         last = os.path.dirname(self.settings.value("File/Path", ""))
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Output Folder"), last)
         if dir:
-            path = self.decoder.exec(dir + "/")
+            path = QDir.toNativeSeparators(self.decoder.exec(dir + "/"))
             msg_box = QMessageBox()
             msg_box.setText(self.tr("Successfully written into:") + f"\n{path}")
             msg_box.setStandardButtons(
@@ -207,7 +210,7 @@ class AzurLaneTachieHelper(QMainWindow):
         last = self.settings.value("File/Path", "")
         dir = QFileDialog.getExistingDirectory(self, dir=os.path.dirname(last))
         if dir:
-            path = self.encoder.exec(dir + "/")
+            path = "\n".join([QDir.toNativeSeparators(_) for _ in self.encoder.exec(dir + "/")])
             msg_box = QMessageBox()
             msg_box.setText(self.tr("Successfully written into:") + f"\n{path}")
             msg_box.setStandardButtons(
