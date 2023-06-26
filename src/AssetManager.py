@@ -1,11 +1,11 @@
 import os
 import re
+import threading
 
-import numpy as np
 import UnityPy
 from PIL import Image
 from UnityPy import Environment
-from UnityPy.classes import AssetBundle, GameObject, Mesh, RectTransform, Texture2D
+from UnityPy.classes import AssetBundle, GameObject, RectTransform, Texture2D
 
 from .Layer import Layer
 from .utility import filter_env, read_img
@@ -72,20 +72,34 @@ class AssetManager:
 
         [print(_) for _ in self.layers.values()]
 
-    def load_painting(self, name: str, path: str):
-        x, y = self.layers[name].offset
-        w, h = self.layers[name].sizeDelta
-        sub = Image.new("RGBA", (w, h))
-        sub.paste(read_img(path).crop((x, y, min(x + w, self.size[0]), min(y + h, self.size[1]))))
-        self.repls |= {name: sub.resize(self.layers[name].rawSpriteSize, Image.Resampling.LANCZOS)}
+    def load_paintings(self, workload: dict[str, str]):
+        def load(name: str, path: str):
+            print("      ", path)
+            x, y = self.layers[name].offset
+            w, h = self.layers[name].sizeDelta
+            x_, y_ = self.size
+            sub = Image.new("RGBA", (w, h))
+            sub.paste(read_img(path).crop((x, y, min(x + w, x_), min(y + h, y_))))
+            self.repls[name] = sub.resize(self.layers[name].rawSpriteSize, Image.Resampling.LANCZOS)
 
-    def load_face(self, dir: str):
+        tasks = [threading.Thread(target=load, args=(k, v)) for k, v in workload.items()]
+        [_.start() for _ in tasks]
+        [_.join() for _ in tasks]
+
+    def load_faces(self, dir: str):
         x, y = self.layers["face"].offset
         w, h = self.layers["face"].sizeDelta
+
+        def load(name: int, path: str):
+            print("      ", path)
+            self.repls |= {name: read_img(path).crop((x, y, x + w, y + h))}
+
         for path, _, files in os.walk(dir):
-            for img in [_ for _ in files if _.endswith(".png")]:
-                name = eval(os.path.splitext(img)[0])
-                if name in self.faces:
-                    print("      ", os.path.join(path + "/", img))
-                    full = read_img(os.path.join(path, img))
-                    self.repls |= {name: full.crop((x, y, x + w, y + h))}
+            imgs = {os.path.splitext(_)[0]: os.path.join(path, _) for _ in files}
+            tasks = [
+                threading.Thread(target=load, args=(eval(k), v))
+                for k, v in imgs.items()
+                if re.match(r"[1-9][0-9]*", k)
+            ]
+            [_.start() for _ in tasks]
+            [_.join() for _ in tasks]

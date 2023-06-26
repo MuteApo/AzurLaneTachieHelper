@@ -27,7 +27,8 @@ class Layer:
             if sprite.get_obj() is not None:
                 self._tex: Texture2D = sprite.read().m_RD.texture.read()
             if hasattr(mb, "mMesh"):
-                self._mesh: Optional[Mesh] = mb.mMesh.get_obj()
+                obj = mb.mMesh.get_obj()
+                self._mesh: Optional[Mesh] = obj.read() if obj is not None else None
             if hasattr(mb, "mRawSpriteSize"):
                 self._raw_sprite_size = vec2array(mb.mRawSpriteSize)
         if parent is None:
@@ -36,14 +37,18 @@ class Layer:
             self._offset = parent._offset + self._local_position
 
     def __repr__(self) -> str:
-        items = [f"SizeDelta={self.sizeDelta}", f"Offset={self.offset}"]
-        if hasattr(self, "_tex"):
-            items += [f"Texture={self._tex}"]
-        if hasattr(self, "_mesh"):
-            items += [f"Mesh={self._mesh}"]
+        items = [f"SizeDelta={self.sizeDelta}"]
         if hasattr(self, "_raw_sprite_size"):
             items += [f"RawSpriteSize={self.rawSpriteSize}"]
-        return f"<Layer: {self.name}> " + ", ".join(items)
+        if hasattr(self, "_tex"):
+            items += [f"Texture={self._tex.name}@{self._tex.path_id}"]
+        if hasattr(self, "_mesh"):
+            items += [
+                f"Mesh={self._mesh.name}@{self._mesh.path_id}"
+                if self._mesh is not None
+                else "Mesh=None"
+            ]
+        return f"<Layer {self.name}@{self.offset}> " + ", ".join(items)
 
     def _parse_mesh(self, mesh: Mesh) -> dict[str, np.ndarray]:
         return {

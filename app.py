@@ -2,7 +2,7 @@ import locale
 import os
 import sys
 
-from PySide6.QtCore import QSettings, QTranslator, QDir
+from PySide6.QtCore import QDir, QSettings, QTranslator
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -167,16 +167,17 @@ class AzurLaneTachieHelper(QMainWindow):
         )
         if files:
             print("[INFO] Paintings:")
-            [print("      ", _) for _ in files]
 
+            workload = {}
             for i in range(self.num_deps - 1):
                 name = raw_name(self.tReplacer.item(i, 0).text()).lower()
                 for file in files:
                     if os.path.splitext(os.path.basename(file))[0] == name:
                         path = QDir.toNativeSeparators(file)
                         self.tReplacer.setItem(i, 1, QTableWidgetItem(path))
-                        self.asset_manager.load_painting(name, path)
+                        workload |= {name: path}
                         break
+            self.asset_manager.load_paintings(workload)
 
             self.mEditEncode.setEnabled(True)
 
@@ -189,7 +190,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
             path = QDir.toNativeSeparators(dir)
             self.tReplacer.setItem(self.num_deps - 1, 1, QTableWidgetItem(path))
-            self.asset_manager.load_face(path)
+            self.asset_manager.load_faces(path)
 
             self.mEditEncode.setEnabled(True)
 

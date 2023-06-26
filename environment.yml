@@ -14,5 +14,4 @@ dependencies:
     - pyside6
     - pytoshop
     - six
-    - type_extensions
     - unitypy
