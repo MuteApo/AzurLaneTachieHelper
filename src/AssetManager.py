@@ -16,9 +16,10 @@ class AssetManager:
         self.init()
 
     def init(self):
-        self.name = None
-        self.size = None
-        self.deps = {}
+        self.meta: str = None
+        self.name: str = None
+        self.size: str = None
+        self.deps: dict[str, str] = {}
         self.layers: dict[str, Layer] = {}
         self.faces: dict[int, Image.Image] = {}
         self.repls: dict[str | int, Image.Image] = {}
@@ -33,6 +34,8 @@ class AssetManager:
     def analyze(self, file: str):
         self.init()
 
+        self.meta = file
+
         env: Environment = UnityPy.load(file)
         abs: list[AssetBundle] = filter_env(env, AssetBundle)
         for dep in abs[0].m_Dependencies:
@@ -44,7 +47,7 @@ class AssetManager:
         base_go: GameObject = [_.read() for _ in env.container.values()][0]
         base_rt: RectTransform = base_go.m_Transform.read()
         base_layer = Layer(base_rt)
-        self.layers |= {base_layer.name: base_layer}
+        self.layers[base_layer.name] = base_layer
 
         self.name = base_layer.name
         self.size = base_layer.sizeDelta
@@ -53,7 +56,7 @@ class AssetManager:
             layers_layer = Layer(layers_rt, base_layer)
             for child_rt in [_.read() for _ in layers_rt.m_Children]:
                 child_layer = Layer(child_rt, layers_layer)
-                self.layers |= {child_layer.name: child_layer}
+                self.layers[child_layer.name] = child_layer
 
         face = "paintingface/" + os.path.basename(file).strip("_n")
         path = os.path.join(os.path.dirname(file) + "/", face)
@@ -61,7 +64,7 @@ class AssetManager:
             self.deps[face] = path
             env = UnityPy.load(path)
             for face_rt in self._filter_child(base_rt, "face"):
-                self.layers |= {"face": Layer(face_rt, base_layer)}
+                self.layers["face"] = Layer(face_rt, base_layer)
                 self.faces |= {
                     eval(_.name): _.image.transpose(Image.FLIP_TOP_BOTTOM)
                     for _ in filter_env(env, Texture2D)
@@ -92,7 +95,10 @@ class AssetManager:
 
         def load(name: int, path: str):
             print("      ", path)
-            self.repls |= {name: read_img(path).crop((x, y, x + w, y + h))}
+            sub = read_img(path)
+            if sub.size != (w, h):
+                sub = sub.crop((x, y, x + w, y + h))
+            self.repls[name] = sub
 
         for path, _, files in os.walk(dir):
             imgs = {os.path.splitext(_)[0]: os.path.join(path, _) for _ in files}

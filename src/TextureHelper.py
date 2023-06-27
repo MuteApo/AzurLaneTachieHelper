@@ -7,12 +7,8 @@ class TextureHelper:
         self.asset_manager = asset_manager
 
     @property
-    def metas(self):
-        return self.asset_manager.metas
-
-    @property
-    def deps(self):
-        return self.asset_manager.deps
+    def meta(self):
+        return self.asset_manager.meta
 
     @property
     def name(self):
@@ -21,6 +17,10 @@ class TextureHelper:
     @property
     def size(self):
         return self.asset_manager.size
+
+    @property
+    def deps(self):
+        return self.asset_manager.deps
 
     @property
     def layers(self):

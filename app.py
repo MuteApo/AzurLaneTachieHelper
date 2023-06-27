@@ -198,7 +198,7 @@ class AzurLaneTachieHelper(QMainWindow):
         last = os.path.dirname(self.settings.value("File/Path", ""))
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Output Folder"), last)
         if dir:
-            path = QDir.toNativeSeparators(self.decoder.exec(dir + "/"))
+            path = QDir.toNativeSeparators(self.decoder.exec(dir))
             msg_box = QMessageBox()
             msg_box.setText(self.tr("Successfully written into:") + f"\n{path}")
             msg_box.setStandardButtons(
@@ -208,10 +208,10 @@ class AzurLaneTachieHelper(QMainWindow):
                 os.startfile(dir)
 
     def onClickEditEncode(self):
-        last = self.settings.value("File/Path", "")
-        dir = QFileDialog.getExistingDirectory(self, dir=os.path.dirname(last))
+        last = os.path.dirname(self.settings.value("File/Path", ""))
+        dir = QFileDialog.getExistingDirectory(self, dir=last)
         if dir:
-            path = "\n".join([QDir.toNativeSeparators(_) for _ in self.encoder.exec(dir + "/")])
+            path = "\n".join([QDir.toNativeSeparators(_) for _ in self.encoder.exec(dir)])
             msg_box = QMessageBox()
             msg_box.setText(self.tr("Successfully written into:") + f"\n{path}")
             msg_box.setStandardButtons(

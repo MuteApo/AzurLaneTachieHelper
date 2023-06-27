@@ -87,7 +87,7 @@ class Layer:
     @property
     def offset(self) -> tuple[int, int]:
         x, y = self._offset - self._pivot * self._size_delta
-        return int(x), int(y)
+        return round(x), round(y)
 
     @property
     def mesh(self) -> dict[str, np.ndarray]:

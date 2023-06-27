@@ -21,7 +21,8 @@ class EncodeHelper(TextureHelper):
         return painting + face
 
     def _replace_painting(self, dir, asset, img_dict):
-        env = UnityPy.load(os.path.join(dir, "painting", asset))
+        path = os.path.join(os.path.dirname(self.meta), "painting", asset)
+        env = UnityPy.load(path)
 
         for _ in filter_env(env, Texture2D):
             tex2d: Texture2D = _.read()
@@ -56,11 +57,12 @@ class EncodeHelper(TextureHelper):
 
         return output
 
-    def _replace_face(self, dir):
+    def _replace_face(self, dir: str):
         if 1 not in self.repls:
             return []
 
-        env = UnityPy.load(os.path.join(dir, "paintingface", self.name.strip("_n")))
+        path = os.path.join(os.path.dirname(self.meta), "paintingface", self.name.strip("_n"))
+        env = UnityPy.load(path)
 
         for _ in filter_env(env, Texture2D):
             tex2d: Texture2D = _.read()
