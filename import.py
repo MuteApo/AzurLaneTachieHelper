@@ -1,4 +1,5 @@
 import os
+import threading
 
 import UnityPy
 from PIL import Image
@@ -8,27 +9,39 @@ from UnityPy.enums import TextureFormat
 
 from src.utility import check_dir
 
-# for file in os.listdir("loadingbg_img"):
-#     name, ext = file.split(".")
-#     os.system(f"cd loadingbg_img && rename {file} {name[:-1]}.{ext}")
+suffix = {
+    "assets/artresource/atlas/loadingbg": "_hx",
+    "assets/rescategories/jp/artresource/atlas/loadingbg": "_jp",
+    "assets/rescategories/fanhx/artresource/atlas/loadingbg": "",
+}
 
-outdir = "loadingbg_out"
-check_dir(outdir)
-for file in os.listdir("loadingbg"):
-    env: Environment = UnityPy.load(os.path.join("loadingbg", file))
+
+def exec(ab: str):
+    env: Environment = UnityPy.load(os.path.join("loadingbg", ab))
     mod = False
     for k, v in env.container.items():
         sprite: Sprite = v.read()
-        tex2d: Texture2D = sprite.m_RD.texture.read()
-        name = sprite.name
-        img: Image.Image = sprite.image
-        src = os.path.join("loadingbg_img", f"{name}.png")
+        src = os.path.join("loadingbg_img", f"{sprite.name}{suffix[os.path.dirname(k)]}.png")
         if os.path.exists(src):
             img = Image.open(src)
-            tex2d.set_image(img, target_format=TextureFormat.RGBA32, in_cab=True)
+            tex2d: Texture2D = sprite.m_RD.texture.read()
+            tex2d.m_Width, tex2d.m_Height = img.size
+            tex2d.set_image(img, target_format=TextureFormat.RGBA32)
+            tex2d.save()
             mod = True
-        tex2d.save()
+
     if mod:
-        print(f"[INFO] Packing: {os.path.join(outdir, file)}")
-        with open(os.path.join(outdir, file), "wb") as f:
+        path = os.path.join(outdir, ab)
+        print(f"[INFO] Packing: {path}")
+        with open(path, "wb") as f:
             f.write(env.file.save("lz4"))
+
+
+outdir = "loadingbg_out"
+check_dir(outdir)
+
+tasks = [threading.Thread(target=exec, args=(_,)) for _ in os.listdir("loadingbg")]
+[_.start() for _ in tasks]
+[_.join() for _ in tasks]
+
+os.system("pause")

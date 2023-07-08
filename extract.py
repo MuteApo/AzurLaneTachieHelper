@@ -1,25 +1,33 @@
 import os
+import threading
 
 import UnityPy
-from PIL import Image
 from UnityPy import Environment
 from UnityPy.classes import Sprite
 
 from src.utility import check_dir
 
-outdir = "loadingbg_img"
-check_dir(outdir)
-for file in os.listdir("loadingbg"):
-    env: Environment = UnityPy.load(os.path.join("loadingbg", file))
+suffix = {
+    "assets/artresource/atlas/loadingbg": "_hx",
+    "assets/rescategories/jp/artresource/atlas/loadingbg": "_jp",
+    "assets/rescategories/fanhx/artresource/atlas/loadingbg": "",
+}
+
+
+def exec(ab: str):
+    env: Environment = UnityPy.load(os.path.join("loadingbg", ab))
     for k, v in env.container.items():
         sprite: Sprite = v.read()
-        name = sprite.name
-        img: Image.Image = sprite.image
-        if k.startswith("assets/artresource/atlas/loadingbg/"):
-            target = os.path.join(outdir, f"{name}_hx.png")
-        elif k.startswith("assets/rescategories/fanhx/artresource/atlas/loadingbg/"):
-            target = os.path.join(outdir, f"{name}.png")
-        else:
-            raise ValueError(k)
-        print("[INFO] Dumping:", target)
-        img.save(target)
+        dst = os.path.join(outdir, f"{sprite.name}{suffix[os.path.dirname(k)]}.png")
+        print("[INFO] Dumping:", dst)
+        sprite.image.save(dst)
+
+
+outdir = "loadingbg_img"
+check_dir(outdir)
+
+tasks = [threading.Thread(target=exec, args=(_,)) for _ in os.listdir("loadingbg")]
+[_.start() for _ in tasks]
+[_.join() for _ in tasks]
+
+os.system("pause")
