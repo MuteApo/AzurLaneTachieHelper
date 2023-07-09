@@ -3,14 +3,9 @@ build
 char
 dist
 out
-script32
-sharecfgdata
-spine
 test
+*.bat
 *.ini
-*.json
 *.spec
 *.txt
 char.py
-gametip.py
-ship_skin_words.py

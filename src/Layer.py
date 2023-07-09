@@ -35,6 +35,8 @@ class Layer:
             self._offset = self._pivot * self._size_delta
         else:
             self._offset = parent._offset + self._local_position
+        self._parent = parent
+        self._path_id = rt.path_id
 
     def __repr__(self) -> str:
         items = [f"SizeDelta={self.sizeDelta}"]
@@ -48,7 +50,7 @@ class Layer:
                 if self._mesh is not None
                 else "Mesh=None"
             ]
-        return f"<Layer {self.name}@{self.offset}> " + ", ".join(items)
+        return f"Layer@{self.offset}: <{self.name} {', '.join(items)}>"
 
     def _parse_mesh(self, mesh: Mesh) -> dict[str, np.ndarray]:
         return {
@@ -65,8 +67,16 @@ class Layer:
         }
 
     @property
+    def pathId(self) -> int:
+        return self._path_id
+
+    @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def parent(self) -> Optional[Self]:
+        return self._parent
 
     @property
     def localPosition(self) -> tuple[float, float]:
@@ -85,8 +95,13 @@ class Layer:
         return int(self._raw_sprite_size[0]), int(self._raw_sprite_size[1])
 
     @property
+    def sizedPivot(self) -> tuple[float, float]:
+        x, y = self._pivot * self._size_delta
+        return x, y
+
+    @property
     def offset(self) -> tuple[int, int]:
-        x, y = self._offset - self._pivot * self._size_delta
+        x, y = self._offset - self.sizedPivot
         return round(x), round(y)
 
     @property
