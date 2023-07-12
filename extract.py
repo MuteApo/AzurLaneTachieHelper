@@ -3,7 +3,8 @@ import threading
 
 import UnityPy
 from UnityPy import Environment
-from UnityPy.classes import Sprite
+from UnityPy.classes import Sprite, Texture2D
+from UnityPy.enums import ClassIDType
 
 from src.utility import check_dir
 
@@ -17,10 +18,18 @@ suffix = {
 def exec(ab: str):
     env: Environment = UnityPy.load(os.path.join("loadingbg", ab))
     for k, v in env.container.items():
-        sprite: Sprite = v.read()
-        dst = os.path.join(outdir, f"{sprite.name}{suffix[os.path.dirname(k)]}.png")
+        if v.type == ClassIDType.Sprite:
+            sprite: Sprite = v.read()
+            tex2d: Texture2D = sprite.m_RD.texture.read()
+        elif v.type == ClassIDType.Texture2D:
+            tex2d: Texture2D = v.read()
+        else:
+            raise ValueError(v.type)
+        file = tex2d.name + suffix[os.path.dirname(k)]
+
+        dst = os.path.join(outdir, f"{file}.png")
         print("[INFO] Dumping:", dst)
-        sprite.image.save(dst)
+        tex2d.image.save(dst)
 
 
 outdir = "loadingbg_img"
