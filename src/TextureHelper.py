@@ -19,6 +19,10 @@ class TextureHelper:
         return self.asset_manager.size
 
     @property
+    def bias(self):
+        return self.asset_manager.bias
+
+    @property
     def deps(self):
         return self.asset_manager.deps
 

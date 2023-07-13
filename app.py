@@ -30,7 +30,7 @@ class AzurLaneTachieHelper(QMainWindow):
         super().__init__()
         self.setWindowTitle(self.tr("AzurLane Tachie Helper"))
         self.setWindowIcon(QPixmap("ico/cheshire.ico"))
-        self.resize(720, 480)
+        self.resize(720, 560)
 
         self.settings = QSettings("config.ini", QSettings.Format.IniFormat)
 
@@ -54,7 +54,7 @@ class AzurLaneTachieHelper(QMainWindow):
         )
         self.tDependency.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.tDependency.setSizePolicy(
-            QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed
+            QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding
         )
 
         layout = QVBoxLayout()
@@ -74,7 +74,9 @@ class AzurLaneTachieHelper(QMainWindow):
             0, QHeaderView.ResizeMode.ResizeToContents
         )
         self.tReplacer.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.tReplacer.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
+        self.tReplacer.setSizePolicy(
+            QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding
+        )
 
         layout = QVBoxLayout()
         layout.addWidget(label)
@@ -86,7 +88,6 @@ class AzurLaneTachieHelper(QMainWindow):
         layout = QVBoxLayout()
         layout.addLayout(self._layout_abd())
         layout.addLayout(self._layout_ir())
-        layout.addItem(QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding))
 
         central_widget = QWidget()
         central_widget.setLayout(layout)
@@ -146,7 +147,6 @@ class AzurLaneTachieHelper(QMainWindow):
 
             self.asset_manager.analyze(file)
 
-            print("[INFO] Dependencies:", [*self.asset_manager.deps.keys()])
             self.num_deps = len(self.asset_manager.deps)
             self.tDependency.setRowCount(self.num_deps)
             self.tReplacer.setRowCount(self.num_deps)
@@ -185,7 +185,8 @@ class AzurLaneTachieHelper(QMainWindow):
         last = os.path.dirname(self.settings.value("File/Path", ""))
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Paintingface Folder"), last)
         if dir:
-            print("[INFO] Paintingface folder:", dir)
+            print("[INFO] Paintingface folder:")
+            print("      ", dir)
             print("[INFO] Paintingfaces:")
 
             path = QDir.toNativeSeparators(dir)

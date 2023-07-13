@@ -94,17 +94,16 @@ class EncodeHelper(TextureHelper):
         base_rt: RectTransform = base_go.m_Transform.read()
         path_id = self.layers["face"].pathId
         for _ in [__ for __ in base_rt.m_Children if __.path_id == path_id]:
-            face_rt: RectTransform = _.read()
-            face = face_rt.read_typetree()
-            # print(face)
+            face = _.read_typetree()
+
             w, h = mod_wh
             pivot = self.layers["face"].pivot * mod_wh
-            x1, y1 = pivot - self.layers["face"].parent.sizedPivot
-            x2, y2 = pivot - self.layers["face"].parent._size_delta * 0.5
+            x1, y1 = pivot - self.layers["face"].parent.posPivot
+            x2, y2 = pivot - self.layers["face"].posAnchor
             face["m_SizeDelta"] = {"x": w, "y": h}
             face["m_LocalPosition"] = {"x": x1, "y": y1, "z": 0.0}
             face["m_AnchoredPosition"] = {"x": x2, "y": y2}
-            # print(face)
+
             _.save_typetree(face)
 
         check_dir(dir, "output", "painting")

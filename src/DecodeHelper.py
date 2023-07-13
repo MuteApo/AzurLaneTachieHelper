@@ -15,13 +15,15 @@ class DecodeHelper(TextureHelper):
             if k != "face":
                 sub = self.decode(v.mesh, v.tex, v.rawSpriteSize)
                 full = Image.new("RGBA", self.size)
-                full.paste(sub.resize(v.sizeDelta, Image.Resampling.LANCZOS), v.offset)
+                x, y = np.add(v.posMin, self.bias)
+                full.paste(sub.resize(v.sizeDelta), (x, y))
                 painting += [self.ps_layer(full, k)]
 
         face = []
         for k, v in sorted(self.faces.items()):
             full = Image.new("RGBA", self.size)
-            full.paste(v, self.face_layer.offset)
+            x, y = np.add(self.face_layer.posMin, self.bias)
+            full.paste(v, (x, y))
             face += [self.ps_layer(full, str(k), False)]
 
         layers = [
@@ -35,7 +37,7 @@ class DecodeHelper(TextureHelper):
 
         return path
 
-    def decode(self, mesh: dict, enc: Image.Image, rss: tuple) -> Image.Image:
+    def decode(self, mesh: dict, enc: Image.Image, rss: tuple[int, int]) -> Image.Image:
         dec = Image.new("RGBA", rss)
 
         v, vt, f = mesh.values()

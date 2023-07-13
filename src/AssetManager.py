@@ -2,6 +2,7 @@ import os
 import re
 import threading
 
+import numpy as np
 import UnityPy
 from PIL import Image
 from UnityPy import Environment
@@ -28,6 +29,7 @@ class AssetManager:
         self.meta: str = None
         self.name: str = None
         self.size: str = None
+        self.bias: tuple[int, int] = None
         self.deps: dict[str, str] = {}
         self.layers: dict[str, Layer] = {}
         self.faces: dict[int, Image.Image] = {}
@@ -46,13 +48,19 @@ class AssetManager:
             self.deps[dep] = path
             env.load_file(path)
 
+        face = "paintingface/" + os.path.basename(file).strip("_n")
+        path = os.path.join(os.path.dirname(file) + "/", face)
+        self.deps[face] = path if os.path.exists(path) else None
+
+        print("[INFO] Dependencies:")
+        [print("      ", _) for _ in self.deps.keys()]
+
         base_go: GameObject = list(env.container.values())[0].read()
         base_rt: RectTransform = base_go.m_Transform.read()
         base_layer = Layer(base_rt)
         self.layers[base_layer.name] = base_layer
 
         self.name = base_layer.name
-        self.size = base_layer.sizeDelta
 
         for layers_rt in rt_filter_child(base_rt, "layers"):
             layers_layer = Layer(layers_rt, base_layer)
@@ -60,10 +68,7 @@ class AssetManager:
                 child_layer = Layer(child_rt, layers_layer)
                 self.layers[child_layer.name] = child_layer
 
-        face = "paintingface/" + os.path.basename(file).strip("_n")
-        path = os.path.join(os.path.dirname(file) + "/", face)
-        if os.path.exists(path):
-            self.deps[face] = path
+        if self.deps[face] is not None:
             env = UnityPy.load(path)
             for face_rt in rt_filter_child(base_rt, "face"):
                 self.layers["face"] = Layer(face_rt, base_layer)
@@ -72,15 +77,18 @@ class AssetManager:
                     for _ in filter_env(env, Texture2D)
                     if re.match(r"^0|([1-9][0-9]*)", _.name)
                 }
-        else:
-            self.deps[face] = None
+
+        x_min, y_min = np.min([_.posMin for _ in self.layers.values()], 0)
+        x_max, y_max = np.max([_.posMax for _ in self.layers.values()], 0)
+        self.size = (x_max - x_min, y_max - y_min)
+        self.bias = (-x_min, -y_min)
 
         [print(_) for _ in self.layers.values()]
 
     def load_paintings(self, workload: dict[str, str]):
         def load(name: str, path: str):
             print("      ", path)
-            x, y = self.layers[name].offset
+            x, y = np.add(self.layers[name].posMin, self.bias)
             w, h = self.layers[name].sizeDelta
             box = min(x + w, self.size[0]), min(y + h, self.size[1])
             sub = Image.new("RGBA", (w, h))
@@ -94,7 +102,7 @@ class AssetManager:
     def load_faces(self, dir: str):
         def load(name: str, path: str):
             print("      ", path)
-            x, y = self.layers["face"].offset
+            x, y = np.add(self.layers["face"].posMin, self.bias)
             w, h = self.layers["face"].sizeDelta
             img = read_img(path)
             if "+" in name:
