@@ -9,11 +9,13 @@ from .TextureHelper import TextureHelper
 
 
 class DecodeHelper(TextureHelper):
-    def exec(self, dir: str) -> str:
+    def exec(self, dir: str, dump: bool = False) -> str:
         painting = []
         for k, v in self.layers.items():
             if k != "face":
                 sub = self.decode(v.mesh, v.tex, v.rawSpriteSize)
+                if dump:
+                    sub.transpose(Image.FLIP_TOP_BOTTOM).save(f"{os.path.join(dir, k)}.png")
                 full = Image.new("RGBA", self.size)
                 x, y = np.add(v.posMin, self.bias)
                 full.paste(sub.resize(v.sizeDelta), (x, y))

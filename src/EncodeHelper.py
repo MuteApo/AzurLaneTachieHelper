@@ -13,13 +13,13 @@ from .utility import check_dir, filter_env
 
 
 class EncodeHelper(TextureHelper):
-    def exec(self, dir: str) -> list[str]:
+    def exec(self, dir: str, clip: list[bool]) -> list[str]:
         painting = [
             self._replace_painting(dir, x + "_tex", self.repls)
             for x in self.layers.keys()
             if x in self.repls
         ]
-        face = self._replace_face(dir)
+        face = self._replace_face(dir, clip)
         return painting + face
 
     def _replace_painting(self, dir: str, asset: str, img_dict: dict[str, Image.Image]) -> str:
@@ -54,29 +54,49 @@ class EncodeHelper(TextureHelper):
 
         return output
 
-    def _replace_face(self, dir: str) -> list[str]:
+    def _replace_face(self, dir: str, clip: list[bool]) -> list[str]:
         if 1 not in self.repls:
             return []
 
         path = os.path.join(os.path.dirname(self.meta), "paintingface", self.name.strip("_n"))
         env = UnityPy.load(path)
 
-        mod_wh = None
+        mod_wh = not all(clip)
+        if mod_wh:
+            wh = np.array(self.size).astype(np.float32)
+
+        repls = {}
+        x, y = np.add(self.layers["face"].posMin, self.bias)
+        w, h = self.layers["face"].sizeDelta
+        for i, v in enumerate(clip):
+            img = self.repls[i + 1]
+            if not mod_wh:
+                repls[i + 1] = img.crop((x, y, x + w, y + h))
+            elif not v:
+                repls[i + 1] = img
+            else:
+                rgb = Image.new("RGBA", img.size)
+                rgb.paste(img.crop((x, y, x + w + 1, y + h + 1)), (x, y))
+                r, g, b, _ = rgb.split()
+
+                alpha = Image.new("RGBA", img.size)
+                alpha.paste(img.crop((x + 1, y + 1, x + w, y + h)), (x + 1, y + 1))
+                _, _, _, a = alpha.split()
+
+                repls[i + 1] = Image.merge("RGBA", [r, g, b, a])
+
         for _ in filter_env(env, Texture2D, False):
             tex2d: Texture2D = _.read()
-            if re.match(r"^0|([1-9][0-9]*)", tex2d.m_Name):
-                img = self.repls[eval(tex2d.m_Name)]
-                w0, h0 = self.layers["face"].sizeDelta
-                if w0 != img.size[0] or h0 != img.size[1]:
-                    mod_wh = np.array(img.size).astype(np.float32)
+            if re.match(r"^0|([1-9][0-9]*)$", tex2d.name):
+                img = repls[eval(tex2d.name)]
                 tex2d.m_Width, tex2d.m_Height = img.size
                 tex2d.set_image(img.transpose(Image.FLIP_TOP_BOTTOM), TextureFormat.RGBA32)
                 tex2d.save()
 
         for _ in filter_env(env, Sprite, False):
             sprite: Sprite = _.read()
-            if re.match(r"^0|([1-9][0-9]*)", sprite.name):
-                size = self.repls[eval(sprite.name)].size
+            if re.match(r"^0|([1-9][0-9]*)$", sprite.name):
+                size = repls[eval(sprite.name)].size
                 sprite.m_Rect.width, sprite.m_Rect.height = size
                 sprite.m_RD.textureRect.width, sprite.m_RD.textureRect.height = size
                 sprite.save()
@@ -86,7 +106,7 @@ class EncodeHelper(TextureHelper):
         with open(output, "wb") as f:
             f.write(env.file.save("original"))
 
-        if mod_wh is None:
+        if not mod_wh:
             return [output]
 
         env = UnityPy.load(self.meta)
@@ -96,11 +116,10 @@ class EncodeHelper(TextureHelper):
         for _ in [__ for __ in base_rt.m_Children if __.path_id == path_id]:
             face = _.read_typetree()
 
-            w, h = mod_wh
-            pivot = self.layers["face"].pivot * mod_wh
+            pivot = self.layers["face"].pivot * wh
             x1, y1 = pivot - self.layers["face"].parent.posPivot
             x2, y2 = pivot - self.layers["face"].posAnchor
-            face["m_SizeDelta"] = {"x": w, "y": h}
+            face["m_SizeDelta"] = {"x": wh[0], "y": wh[1]}
             face["m_LocalPosition"] = {"x": x1, "y": y1, "z": 0.0}
             face["m_AnchoredPosition"] = {"x": x2, "y": y2}
 
