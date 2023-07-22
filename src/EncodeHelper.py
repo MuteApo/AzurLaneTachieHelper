@@ -5,6 +5,7 @@ import struct
 import numpy as np
 import UnityPy
 from PIL import Image
+from tqdm import tqdm
 from UnityPy.classes import GameObject, Mesh, RectTransform, Sprite, Texture2D
 from UnityPy.enums import TextureFormat
 
@@ -14,12 +15,14 @@ from .utility import check_dir, filter_env
 
 class EncodeHelper(TextureHelper):
     def exec(self, dir: str, clip: list[bool]) -> list[str]:
-        painting = [
-            self._replace_painting(dir, x + "_tex", self.repls)
-            for x in self.layers.keys()
-            if x in self.repls
-        ]
+        print("[INFO] Encoding painting")
+        painting = []
+        for x in tqdm([x + "_tex" for x in self.layers.keys() if x in self.repls]):
+            painting += [self._replace_painting(dir, x, self.repls)]
+
+        print("[INFO] Encoding paintingface")
         face = self._replace_face(dir, clip)
+
         return painting + face
 
     def _replace_painting(self, dir: str, asset: str, img_dict: dict[str, Image.Image]) -> str:
@@ -68,7 +71,7 @@ class EncodeHelper(TextureHelper):
         repls = {}
         x, y = np.add(self.layers["face"].posMin, self.bias)
         w, h = self.layers["face"].sizeDelta
-        for i, v in enumerate(clip):
+        for i, v in enumerate(tqdm(clip)):
             img = self.repls[i + 1]
             if not mod_wh:
                 repls[i + 1] = img.crop((x, y, x + w, y + h))
@@ -76,11 +79,11 @@ class EncodeHelper(TextureHelper):
                 repls[i + 1] = img
             else:
                 rgb = Image.new("RGBA", img.size)
-                rgb.paste(img.crop((x, y, x + w + 1, y + h + 1)), (x, y))
+                rgb.paste(img.crop((x, y, x + w + 1, y + h + 1)), (round(x), round(y)))
                 r, g, b, _ = rgb.split()
 
                 alpha = Image.new("RGBA", img.size)
-                alpha.paste(img.crop((x + 1, y + 1, x + w, y + h)), (x + 1, y + 1))
+                alpha.paste(img.crop((x + 1, y + 1, x + w, y + h)), (round(x + 1), round(y + 1)))
                 _, _, _, a = alpha.split()
 
                 repls[i + 1] = Image.merge("RGBA", [r, g, b, a])
@@ -130,4 +133,4 @@ class EncodeHelper(TextureHelper):
         with open(meta, "wb") as f:
             f.write(env.file.save("original"))
 
-        return [output, meta]
+        return [meta, output]

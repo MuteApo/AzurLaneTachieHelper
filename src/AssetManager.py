@@ -29,7 +29,7 @@ class AssetManager:
         self.meta: str = None
         self.name: str = None
         self.size: tuple[int, int] = None
-        self.bias: tuple[int, int] = None
+        self.bias: tuple[float, float] = None
         self.deps: dict[str, str] = {}
         self.layers: dict[str, Layer] = {}
         self.faces: dict[int, Image.Image] = {}
@@ -80,7 +80,7 @@ class AssetManager:
 
         x_min, y_min = np.min([_.posMin for _ in self.layers.values()], 0)
         x_max, y_max = np.max([_.posMax for _ in self.layers.values()], 0)
-        self.size = (x_max - x_min + 1, y_max - y_min + 1)
+        self.size = (round(x_max - x_min + 1), round(y_max - y_min + 1))
         self.bias = (-x_min, -y_min)
 
         [print(_) for _ in self.layers.values()]

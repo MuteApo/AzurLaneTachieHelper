@@ -72,17 +72,17 @@ class Layer:
     def __str__(self) -> str:
         return f"[INFO] {self.__repr__()}"
 
-    def _parse_mesh(self, mesh: Mesh) -> dict[str, np.ndarray]:
+    def _parse_mesh(self, mesh: Mesh, size: tuple[int, int]) -> dict[str, np.ndarray]:
         return {
             "v": np.array(mesh.m_Vertices).reshape((-1, 3))[:, :2],
-            "vt": np.array(mesh.m_UV0).reshape((-1, 2)),
+            "vt": np.array(mesh.m_UV0).reshape((-1, 2)) * size,
             "f": np.array(mesh.m_Indices).reshape((-1, 6))[:, (0, 1, 3, 4)],
         }
 
     def _quad_mesh(self, w: float, h: float) -> dict[str, np.ndarray]:
         return {
             "v": np.array([[0, 0], [0, h], [w, h], [w, 0]]),
-            "vt": np.array([[0, 0], [0, 1], [1, 1], [1, 0]]),
+            "vt": np.array([[0, 0], [0, h], [w, h], [w, 0]]),
             "f": np.array([[0, 1, 2, 3]]),
         }
 
@@ -131,12 +131,12 @@ class Layer:
     @property
     def sizeDelta(self) -> tuple[int, int]:
         x, y = self._size_delta
-        return int(x), int(y)
+        return round(x), round(y)
 
     @property
     def scaledSizeDelta(self) -> tuple[int, int]:
         x, y = self._size_delta * self._local_scale
-        return int(x), int(y)
+        return round(x), round(y)
 
     @property
     def pivot(self) -> tuple[float, float]:
@@ -159,20 +159,21 @@ class Layer:
         return x, y
 
     @property
-    def posMin(self) -> tuple[int, int]:
+    def posMin(self) -> tuple[float, float]:
         x, y = self._pos_pivot - self._size_delta * self._pivot
-        return round(x), round(y)
+        return x, y
 
     @property
-    def posMax(self) -> tuple[int, int]:
+    def posMax(self) -> tuple[float, float]:
         x, y = self._pos_pivot + self._size_delta * (1 - self._pivot)
-        return round(x), round(y)
+        return x, y
 
     @property
     def mesh(self) -> dict[str, np.ndarray]:
+        w, h = self._tex.image.size
         if self._mesh is None:
-            return self._quad_mesh(*self._tex.image.size)
-        return self._parse_mesh(self._mesh.read())
+            return self._quad_mesh(w, h)
+        return self._parse_mesh(self._mesh.read(), (w, h))
 
     @property
     def tex(self) -> Image.Image:
