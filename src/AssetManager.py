@@ -50,7 +50,16 @@ class AssetManager:
 
         face = "paintingface/" + os.path.basename(file).strip("_n")
         path = os.path.join(os.path.dirname(file) + "/", face)
-        self.deps[face] = path if os.path.exists(path) else None
+        if os.path.exists(path):
+            self.deps[face] = path
+            env.load_file(path)
+            self.faces |= {
+                eval(_.name): _.image.transpose(Image.FLIP_TOP_BOTTOM)
+                for _ in filter_env(env, Texture2D)
+                if re.match(r"^0|([1-9][0-9]*)$", _.name)
+            }
+        else:
+            self.deps[face] = None
 
         print("[INFO] Dependencies:")
         [print("      ", _) for _ in self.deps.keys()]
@@ -58,25 +67,10 @@ class AssetManager:
         base_go: GameObject = list(env.container.values())[0].read()
         base_rt: RectTransform = base_go.m_Transform.read()
         base_layer = Layer(base_rt)
-        self.layers[base_layer.name] = base_layer
 
         self.name = base_layer.name
 
-        for layers_rt in rt_filter_child(base_rt, "layers"):
-            layers_layer = Layer(layers_rt, base_layer)
-            for child_rt in [_.read() for _ in layers_rt.m_Children]:
-                child_layer = Layer(child_rt, layers_layer)
-                self.layers[child_layer.name] = child_layer
-
-        if self.deps[face] is not None:
-            env = UnityPy.load(path)
-            for face_rt in rt_filter_child(base_rt, "face"):
-                self.layers["face"] = Layer(face_rt, base_layer)
-                self.faces |= {
-                    eval(_.name): _.image.transpose(Image.FLIP_TOP_BOTTOM)
-                    for _ in filter_env(env, Texture2D)
-                    if re.match(r"^0|([1-9][0-9]*)$", _.name)
-                }
+        self.layers = base_layer.flatten() | {"face": base_layer.get_child("face")}
 
         x_min, y_min = np.min([_.posMin for _ in self.layers.values()], 0)
         x_max, y_max = np.max([_.posMax for _ in self.layers.values()], 0)

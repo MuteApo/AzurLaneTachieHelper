@@ -5,37 +5,7 @@
 - Unpack & pack painting
 - Merge & split paintingface 
 - Support multi-layers
-- Dump into photoshop document (i.e. psd)
-
-#### File Organization (exemplified by `xinnong_2`)
-
-- Before:
-  ```
-  main_folder/
-  |--painting/
-  |  |--xinnong_2_front_tex
-  |  L--xinnong_2_tex
-  |--paintingface/
-  |  L--xinnong_2
-  L--xinnong_2
-  ```
-- After:
-  ```
-  main_folder/
-  |--output/
-  |  |--painting/
-  |  |  |--xinnong_2_front_tex
-  |  |  L--xinnong_2_tex
-  |  L--paintingface/
-  |     L--xinnong_2
-  |--painting/
-  |  |--xinnong_2_front_tex
-  |  L--xinnong_2_tex
-  L--paintingface/
-  |  L--xinnong_2
-  |--xinnong_2
-  L--xinnong_2.psd
-  ```
+- Dump as photoshop document (i.e. psd)
 
 #### Building Dependencies
 

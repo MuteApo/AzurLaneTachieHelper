@@ -12,7 +12,6 @@ from .TextureHelper import TextureHelper
 
 class DecodeHelper(TextureHelper):
     def exec(self, dir: str, dump: bool | Literal["true", "false"]) -> str:
-        print(dump)
         print("[INFO] Decoding painting")
         painting = []
         for k, v in tqdm(self.layers.items()):
@@ -60,8 +59,8 @@ class DecodeHelper(TextureHelper):
         r, t = data.max(-1)
 
         w = round(r - l)
-        if w > round(w / 4) * 4:
-            l += 1
+        # if w > round(w / 4) * 4:
+        #     l += 1
         if w < round(w / 4) * 4:
             r += 1
 
