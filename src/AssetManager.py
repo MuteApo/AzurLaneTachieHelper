@@ -7,6 +7,7 @@ import UnityPy
 from PIL import Image
 from UnityPy import Environment
 from UnityPy.classes import AssetBundle, GameObject, RectTransform, Texture2D
+from UnityPy.enums import ClassIDType
 
 from .Layer import Layer
 from .utility import filter_env, read_img
@@ -31,6 +32,7 @@ class AssetManager:
         self.size: tuple[int, int] = None
         self.bias: tuple[float, float] = None
         self.deps: dict[str, str] = {}
+        self.maps: dict[str, str] = {}
         self.layers: dict[str, Layer] = {}
         self.faces: dict[int, Image.Image] = {}
         self.repls: dict[str | int, Image.Image] = {}
@@ -47,6 +49,10 @@ class AssetManager:
             assert os.path.exists(path), f"Dependency not found: {dep}"
             self.deps[dep] = path
             env.load_file(path)
+
+            for x in env.files[path].container.values():
+                if x.type == ClassIDType.Sprite:
+                    self.maps[dep] = x.read().name
 
         face = "paintingface/" + os.path.basename(file).strip("_n")
         path = os.path.join(os.path.dirname(file) + "/", face)

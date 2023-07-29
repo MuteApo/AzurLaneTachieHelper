@@ -167,6 +167,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
             self.tDep.clearContents()
             self.tPaintRepl.clearContents()
+            self.tFaceRepl.clearContents()
 
             self.asset_manager.analyze(file)
 
@@ -205,7 +206,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
             workload = {}
             for i in range(self.num_deps - 1):
-                name = raw_name(self.tPaintRepl.item(i, 0).text()).lower()
+                name = self.asset_manager.maps[self.tPaintRepl.item(i, 0).text()]
                 for file in files:
                     if os.path.splitext(os.path.basename(file))[0] == name:
                         path = QDir.toNativeSeparators(file)

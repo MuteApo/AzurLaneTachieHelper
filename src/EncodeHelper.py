@@ -16,9 +16,8 @@ from .utility import check_dir, filter_env
 class EncodeHelper(TextureHelper):
     def exec(self, dir: str, clip: list[bool]) -> list[str]:
         print("[INFO] Encoding painting")
-        painting = []
-        for x in tqdm([x + "_tex" for x in self.layers.keys() if x in self.repls]):
-            painting += [self._replace_painting(dir, x, self.repls)]
+        valid = [os.path.basename(k) for k, v in self.maps.items() if v in self.repls]
+        painting = [self._replace_painting(dir, x, self.repls) for x in tqdm(valid)]
 
         print("[INFO] Encoding paintingface")
         face = self._replace_face(dir, clip)

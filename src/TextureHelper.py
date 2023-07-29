@@ -27,6 +27,10 @@ class TextureHelper:
         return self.asset_manager.deps
 
     @property
+    def maps(self):
+        return self.asset_manager.maps
+
+    @property
     def layers(self):
         return self.asset_manager.layers
 
