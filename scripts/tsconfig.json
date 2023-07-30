@@ -1,0 +1,8 @@
+{
+    "compilerOptions": {
+        "outFile": "AzurLaneTachieHelper.jsx",
+        "removeComments": true,
+        "module": "None",
+        "noLib": true
+    }
+}
