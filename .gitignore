@@ -2,10 +2,10 @@ __pycache__
 build
 char
 dist
+node_modules
 out
 test
 *.bat
 *.ini
 *.spec
 *.txt
-char.py

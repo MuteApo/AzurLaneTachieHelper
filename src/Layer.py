@@ -138,12 +138,12 @@ class Layer:
         return getattr(self, "m_Mesh")
 
     @property
-    def rawSpriteSize(self) -> Optional[tuple[int, int]]:
+    def rawSpriteSize(self) -> Optional[Vector2]:
         if not hasattr(self, "m_RawSpriteSize"):
             if self.monoBehaviour is not None:
                 if hasattr(self.monoBehaviour, "mRawSpriteSize"):
                     x = getattr(self.monoBehaviour, "mRawSpriteSize")
-                    setattr(self, "m_RawSpriteSize", (int(x.x), int(x.y)))
+                    setattr(self, "m_RawSpriteSize", Vector2(x.x, x.y))
                     return getattr(self, "m_RawSpriteSize")
             setattr(self, "m_RawSpriteSize", None)
         return getattr(self, "m_RawSpriteSize")
@@ -233,5 +233,5 @@ class Layer:
         return self.texture2D.image.transpose(Image.FLIP_TOP_BOTTOM)
 
     @property
-    def whs(self) -> tuple[int, int]:
-        return self.texture2D.image.size
+    def rss(self) -> tuple[int, int]:
+        return int(self.rawSpriteSize.X), int(self.rawSpriteSize.Y)
