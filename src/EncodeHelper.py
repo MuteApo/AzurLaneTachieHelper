@@ -89,32 +89,34 @@ class EncodeHelper(TextureHelper):
         if 1 not in self.repls:
             return []
 
+        mod_wh = not all(is_clip)
+        expands = [
+            v for k, v in self.layers.items() if k != "face" if v.contain(*self.face_layer.box)
+        ]
+        prefered = sorted(expands, key=lambda v: v.sizeDelta[0] * v.sizeDelta[1])[0]
+
         path = os.path.join(os.path.dirname(self.meta), "paintingface", self.name.strip("_n"))
         env = UnityPy.load(path)
 
-        mod_wh = not all(is_clip)
-        if mod_wh:
-            wh = np.array(self.size).astype(np.float32)
-
-        repls = {}
-        x, y = np.add(self.layers["face"].posMin, self.bias)
-        w, h = self.layers["face"].sizeDelta
+        x, y = np.add(self.face_layer.posMin, self.bias)
+        w, h = self.face_layer.sizeDelta
+        repls: dict[int, Image.Image] = {}
         for i, v in enumerate(tqdm(is_clip)):
             img = self.repls[i + 1]
             if not mod_wh:
                 repls[i + 1] = img.crop((x, y, x + w, y + h))
-            elif not v:
-                repls[i + 1] = img
             else:
-                rgb = Image.new("RGBA", img.size)
-                rgb.paste(img.crop((x, y, x + w + 1, y + h + 1)), (round(x), round(y)))
-                r, g, b, _ = rgb.split()
+                if v:
+                    rgb = Image.new("RGBA", img.size)
+                    rgb.paste(img.crop((x, y, x + w + 1, y + h + 1)), (round(x), round(y)))
 
-                alpha = Image.new("RGBA", img.size)
-                alpha.paste(img.crop((x + 1, y + 1, x + w, y + h)), (round(x + 1), round(y + 1)))
-                _, _, _, a = alpha.split()
+                    a = Image.new("RGBA", img.size)
+                    a.paste(img.crop((x + 1, y + 1, x + w, y + h)), (round(x + 1), round(y + 1)))
 
-                repls[i + 1] = Image.merge("RGBA", [r, g, b, a])
+                    img = Image.merge("RGBA", [*rgb.split()[:3], a.split()[-1]])
+
+                l, b, r, t = np.add(prefered.box, self.bias * 2)
+                repls[i + 1] = img.crop((l, b, r, t))
 
         for _ in filter_env(env, Texture2D, False):
             tex2d: Texture2D = _.read()
@@ -143,14 +145,16 @@ class EncodeHelper(TextureHelper):
         env = UnityPy.load(self.meta)
         base_go: GameObject = list(env.container.values())[0].read()
         base_rt: RectTransform = base_go.m_Transform.read()
-        path_id = self.layers["face"].pathId
+        path_id = self.face_layer.pathId
         for _ in [__ for __ in base_rt.m_Children if __.path_id == path_id]:
             face = _.read_typetree()
 
-            pivot = self.layers["face"].pivot * wh
-            x1, y1 = pivot - self.layers["face"].parent.posPivot
-            x2, y2 = pivot - self.layers["face"].posAnchor
-            face["m_SizeDelta"] = {"x": wh[0], "y": wh[1]}
+            w, h = prefered.sizeDelta
+            px, py = prefered.pivot
+            x1, y1 = np.subtract(prefered.posPivot, self.face_layer.parent.posPivot)
+            x2, y2 = np.subtract(np.add(prefered.posPivot, self.bias), self.face_layer.posAnchor)
+            face["m_SizeDelta"] = {"x": w, "y": h}
+            face["m_Pivot"] = {"x": px, "y": py}
             face["m_LocalPosition"] = {"x": x1, "y": y1, "z": 0.0}
             face["m_AnchoredPosition"] = {"x": x2, "y": y2}
 

@@ -64,6 +64,13 @@ class Layer:
             res |= x.flatten()
         return res
 
+    def contain(self, l: float, b: float, r: float, t: float) -> bool:
+        if l < self.posMin[0] or b < self.posMin[1]:
+            return False
+        if r > self.posMax[0] or t > self.posMax[1]:
+            return False
+        return True
+
     def fetch(attr: str):
         attrs = ["m_AnchorMin", "m_AnchorMax", "m_AnchoredPosition", "m_SizeDelta", "m_Pivot"]
 
@@ -88,9 +95,8 @@ class Layer:
         return self.gameObject.name if self.gameObject else ""
 
     @property
-    @fetch("m_PathID")
-    def pathId(self, val: int) -> int:
-        return val
+    def pathId(self) -> int:
+        return self.rt.path_id
 
     @property
     @fetch("m_GameObject")
@@ -220,6 +226,10 @@ class Layer:
         sizedPivot = np.multiply(self.sizeDelta, 1 - np.array(self.pivot))
         x, y = np.add(self.posPivot, sizedPivot)
         return x, y
+
+    @property
+    def box(self) -> tuple[float, float, float, float]:
+        return *self.posMin, *self.posMax
 
     @property
     def mesh(self) -> dict[str, np.ndarray]:
