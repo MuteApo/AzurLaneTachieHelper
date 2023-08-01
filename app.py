@@ -1,6 +1,7 @@
 import locale
 import os
 import re
+import shutil
 import sys
 
 from PySide6.QtCore import QDir, QSettings, Qt, QTranslator
@@ -23,7 +24,6 @@ from PySide6.QtWidgets import (
 from src.AssetManager import AssetManager
 from src.DecodeHelper import DecodeHelper
 from src.EncodeHelper import EncodeHelper
-from src.utility import raw_name
 
 
 class AzurLaneTachieHelper(QMainWindow):
@@ -42,6 +42,9 @@ class AzurLaneTachieHelper(QMainWindow):
         self.asset_manager = AssetManager()
         self.decoder = DecodeHelper(self.asset_manager)
         self.encoder = EncodeHelper(self.asset_manager)
+
+    def _read_bool_from_ini(self, key: str) -> bool:
+        return eval(str(self.settings.value(key, "false")).capitalize())
 
     def _layout_ab_dep(self):  # Layout for Assetbundle Dependencies
         label = QLabel(self.tr("Assetbundle Dependencies"))
@@ -158,10 +161,10 @@ class AzurLaneTachieHelper(QMainWindow):
         self.mEditEncode.setShortcut("Ctrl+E")
 
     def onClickFileOpenMetadata(self):
-        last = self.settings.value("File/Path", "")
+        last = self.settings.value("File/RecentPath", "")
         file, _ = QFileDialog.getOpenFileName(self, self.tr("Select Metadata"), last)
         if file:
-            self.settings.setValue("File/Path", file)
+            self.settings.setValue("File/RecentPath", file)
             self.message.setText(f"({os.path.basename(file)})  {QDir.toNativeSeparators(file)}")
             print("[INFO] Metadata:", file)
 
@@ -197,7 +200,7 @@ class AzurLaneTachieHelper(QMainWindow):
             self.mEditDecode.setEnabled(True)
 
     def onClickFileImportPainting(self):
-        last = os.path.dirname(self.settings.value("File/Path", ""))
+        last = os.path.dirname(self.settings.value("File/RecentPath", ""))
         files, _ = QFileDialog.getOpenFileNames(
             self, self.tr("Select Paintings"), last, "Image (*.png)"
         )
@@ -218,7 +221,7 @@ class AzurLaneTachieHelper(QMainWindow):
             self.mEditEncode.setEnabled(True)
 
     def onClickFileImportPaintingface(self):
-        last = os.path.dirname(self.settings.value("File/Path", ""))
+        last = os.path.dirname(self.settings.value("File/RecentPath", ""))
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Paintingface Folder"), last)
         if dir:
             print("[INFO] Paintingface folder:")
@@ -232,21 +235,25 @@ class AzurLaneTachieHelper(QMainWindow):
                     id = int(name)
                     path = QDir.toNativeSeparators(os.path.join(dir, file))
                     self.tFaceRepl.setItem(id - 1, 1, QTableWidgetItem(path))
-                    self.tFaceRepl.item(id - 1, 0).setFlags(
-                        Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable
-                    )
-                    self.tFaceRepl.item(id - 1, 0).setCheckState(Qt.CheckState.Checked)
+
+                    adv_mode = self._read_bool_from_ini("Edit/AdvancedMode")
+                    self.settings.setValue("Edit/AdvancedMode", adv_mode)
+                    if adv_mode:
+                        self.tFaceRepl.item(id - 1, 0).setFlags(
+                            Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable
+                        )
+                        self.tFaceRepl.item(id - 1, 0).setCheckState(Qt.CheckState.Checked)
                     workload |= {id: path}
             self.asset_manager.load_faces(workload)
 
             self.mEditEncode.setEnabled(True)
 
     def onClickEditDecode(self):
-        last = os.path.dirname(self.settings.value("File/Path", ""))
+        last = os.path.dirname(self.settings.value("File/RecentPath", ""))
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Output Folder"), last)
         if dir:
-            dump = self.settings.value("Edit/Dump", False)
-            self.settings.setValue("Edit/Dump", dump)
+            dump = self._read_bool_from_ini("Edit/DumpLayer")
+            self.settings.setValue("Edit/DumpLayer", dump)
             path = QDir.toNativeSeparators(self.decoder.exec(dir, dump))
             msg_box = QMessageBox()
             msg_box.setText(self.tr("Successfully written into:") + f"\n{path}")
@@ -257,9 +264,13 @@ class AzurLaneTachieHelper(QMainWindow):
                 os.startfile(dir)
 
     def onClickEditEncode(self):
-        last = os.path.dirname(self.settings.value("File/Path", ""))
+        last = os.path.dirname(self.settings.value("File/RecentPath", ""))
         dir = QFileDialog.getExistingDirectory(self, dir=last)
         if dir:
+            remove_old = self._read_bool_from_ini("Edit/RemoveOld")
+            self.settings.setValue("Edit/RemoveOld", remove_old)
+            if remove_old:
+                shutil.rmtree(os.path.join(dir, "output"), True)
             clip = [_.checkState() == Qt.CheckState.Checked for _ in self.check_box]
             path = "\n".join([QDir.toNativeSeparators(_) for _ in self.encoder.exec(dir, clip)])
             msg_box = QMessageBox()

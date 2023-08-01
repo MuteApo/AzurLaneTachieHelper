@@ -3,7 +3,15 @@ from typing import Callable, Optional
 import numpy as np
 from PIL import Image
 from typing_extensions import Self
-from UnityPy.classes import GameObject, Mesh, MonoBehaviour, RectTransform, Texture2D, PPtr, Sprite
+from UnityPy.classes import (
+    GameObject,
+    Mesh,
+    MonoBehaviour,
+    PPtr,
+    RectTransform,
+    Sprite,
+    Texture2D,
+)
 from UnityPy.enums import ClassIDType
 from UnityPy.math import Quaternion, Vector2, Vector3
 
@@ -138,12 +146,12 @@ class Layer:
         return getattr(self, "m_Mesh")
 
     @property
-    def rawSpriteSize(self) -> Optional[Vector2]:
+    def rawSpriteSize(self) -> Optional[tuple[int, int]]:
         if not hasattr(self, "m_RawSpriteSize"):
             if self.monoBehaviour is not None:
                 if hasattr(self.monoBehaviour, "mRawSpriteSize"):
                     x = getattr(self.monoBehaviour, "mRawSpriteSize")
-                    setattr(self, "m_RawSpriteSize", Vector2(x.x, x.y))
+                    setattr(self, "m_RawSpriteSize", (int(x.x), int(x.y)))
                     return getattr(self, "m_RawSpriteSize")
             setattr(self, "m_RawSpriteSize", None)
         return getattr(self, "m_RawSpriteSize")
@@ -231,7 +239,3 @@ class Layer:
     @property
     def tex(self) -> Image.Image:
         return self.texture2D.image.transpose(Image.FLIP_TOP_BOTTOM)
-
-    @property
-    def rss(self) -> tuple[int, int]:
-        return int(self.rawSpriteSize.X), int(self.rawSpriteSize.Y)

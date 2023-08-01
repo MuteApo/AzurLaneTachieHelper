@@ -1,5 +1,4 @@
 import os
-from typing import Literal
 
 import numpy as np
 from PIL import Image
@@ -11,13 +10,13 @@ from .TextureHelper import TextureHelper
 
 
 class DecodeHelper(TextureHelper):
-    def exec(self, dir: str, dump: bool | Literal["true", "false"]) -> str:
+    def exec(self, dir: str, dump: bool) -> str:
         print("[INFO] Decoding painting")
         painting = []
         for k, v in tqdm(self.layers.items()):
             if k != "face":
-                sub = self.decode(v.mesh, v.tex, v.rss).transpose(Image.FLIP_TOP_BOTTOM)
-                if dump in [True, "true"]:
+                sub = self.decode(v.mesh, v.tex, v.rawSpriteSize)
+                if dump:
                     sub.save(f"{os.path.join(dir, k)}.png")
                 x, y = np.add(v.posMin, self.bias)
                 painting += [self.ps_layer(sub.resize(v.sizeDelta), k, x, y, True)]
@@ -48,7 +47,7 @@ class DecodeHelper(TextureHelper):
             box = self._measure(np.stack(ts[f], -1))
             dec.paste(enc.crop(box), (round(l), round(b)))
 
-        return dec
+        return dec.transpose(Image.FLIP_TOP_BOTTOM)
 
     def _measure(self, data: np.ndarray) -> tuple[int, int, int, int]:
         l, b = data.min(-1)
