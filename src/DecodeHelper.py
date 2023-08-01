@@ -6,6 +6,7 @@ from pytoshop.enums import ColorMode
 from pytoshop.user import nested_layers
 from tqdm import tqdm
 
+from .Layer import Layer
 from .TextureHelper import TextureHelper
 
 
@@ -13,9 +14,9 @@ class DecodeHelper(TextureHelper):
     def exec(self, dir: str, dump: bool) -> str:
         print("[INFO] Decoding painting")
         painting = []
-        for k, v in tqdm(self.layers.items()):
+        for k, v in tqdm(sorted(self.layers.items(), key=lambda x: x[1].depth)):
             if k != "face":
-                sub = self.decode(v.mesh, v.tex, v.rawSpriteSize)
+                sub = v.tex if v.rawMesh is None else self.decode(v.mesh, v.tex, v.rawSpriteSize)
                 if dump:
                     sub.save(f"{os.path.join(dir, k)}.png")
                 x, y = np.add(v.posMin, self.bias)

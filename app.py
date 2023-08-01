@@ -198,7 +198,7 @@ class AzurLaneTachieHelper(QMainWindow):
             self.mFileImportPainting.setEnabled(True)
             self.mFileImportPaintingface.setEnabled(True)
             self.mEditDecode.setEnabled(True)
-            self.mEditEncode.setEnabled(False)
+            self.mEditEncode.setEnabled(self._read_bool_from_ini("Edit/ReplaceIcon"))
 
     def onClickFileImportPainting(self):
         last = os.path.dirname(self.settings.value("File/RecentPath", ""))

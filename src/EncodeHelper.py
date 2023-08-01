@@ -174,17 +174,12 @@ class EncodeHelper(TextureHelper):
 
         env = UnityPy.load(ab)
         mod = False
-        for k, v in env.container.items():
-            if v.type == ClassIDType.Sprite:
-                sprite: Sprite = v.read()
-                tex2d: Texture2D = sprite.m_RD.texture.read()
-            elif v.type == ClassIDType.Texture2D:
-                tex2d: Texture2D = v.read()
-            else:
-                raise ValueError(v.type)
+        for v in env.container.values():
+            sprite: Sprite = v.read()
+            tex2d: Texture2D = sprite.m_RD.texture.read()
 
             for x in ["png", "jpg", "jpeg"]:
-                src = os.path.join(dir, f"{kind}.{x}")
+                src = os.path.join(os.path.dirname(self.meta), f"{kind}.{x}")
                 if os.path.exists(src):
                     # print(f"       {src}")
                     img = Image.open(src)
@@ -201,8 +196,8 @@ class EncodeHelper(TextureHelper):
                     break
 
         if mod:
+            check_dir(dir, "output", kind)
             outdir = os.path.join(dir, "output", kind)
-            check_dir(outdir)
             path = os.path.join(outdir, self.name)
             with open(path, "wb") as f:
                 f.write(env.file.save("original"))

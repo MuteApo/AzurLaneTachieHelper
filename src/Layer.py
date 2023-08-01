@@ -20,6 +20,7 @@ class Layer:
     def __init__(self, rt: RectTransform, parent: Self = None):
         self.rt = rt
         self.parent = parent
+        self.depth = 0 if parent is None else parent.depth + 1
         self.child: list[Self] = [Layer(x.read(), self) for x in rt.m_Children]
 
     def __repr__(self) -> str:
@@ -46,8 +47,7 @@ class Layer:
                     items += [f"{x[0].capitalize()}{x[1:]}: {y}"]
 
         txt = "\n       ".join(items)
-        name = self.sprite.name if self.sprite is not None else self.name
-        return f"Layer@{self.posPivot} {name} {txt}"
+        return f"Layer@{self.depth} {self.name} {txt}"
 
     def __str__(self) -> str:
         return f"[INFO] {self.__repr__()}"

@@ -91,7 +91,9 @@ class AssetManager:
             x, y = np.add(self.layers[name].posMin, self.bias)
             w, h = self.layers[name].sizeDelta
             sub = read_img(path).crop((x, y, x + w, y + h))
-            self.repls[name] = sub.resize(self.layers[name].rawSpriteSize)
+            if self.layers[name].rawMesh is not None:
+                sub = sub.resize(self.layers[name].rawSpriteSize)
+            self.repls[name] = sub
 
         tasks = [threading.Thread(target=load, args=(k, v)) for k, v in workload.items()]
         [_.start() for _ in tasks]
