@@ -7,22 +7,51 @@ import UnityPy
 from PIL import Image
 from tqdm import tqdm
 from UnityPy.classes import GameObject, Mesh, RectTransform, Sprite, Texture2D
-from UnityPy.enums import TextureFormat
+from UnityPy.enums import ClassIDType, TextureFormat
 
 from .TextureHelper import TextureHelper
 from .utility import check_dir, filter_env
 
+icons = ["shipyardicon", "squareicon", "herohrzicon"]
+metas = {
+    "sprite": {
+        "herohrzicon": (272, 80),
+        "shipyardicon": (192, 256),
+        "squareicon": (116, 116),
+    },
+    "tex2d": {
+        "herohrzicon": (360, 80),
+        "shipyardicon": (192, 256),
+        "squareicon": (116, 116),
+    },
+}
+
+
+def aspect_ratio(kind: str, w: int, h: int, clip: bool):
+    std = metas["tex2d"][kind]
+    if round(std[0] / w * h) != std[1]:
+        print(f"[WARNING] Bad aspect ratio {(w, h)}, expected {std}")
+    if clip:
+        w = round(w / std[0] * metas["sprite"][kind][0])
+    return w, h
+
 
 class EncodeHelper(TextureHelper):
-    def exec(self, dir: str, clip: list[bool]) -> list[str]:
+    def exec(self, dir: str, is_clip: list[bool], replace_icon: bool) -> list[str]:
         print("[INFO] Encoding painting")
         valid = [os.path.basename(k) for k, v in self.maps.items() if v in self.repls]
         painting = [self._replace_painting(dir, x, self.repls) for x in tqdm(valid)]
 
         print("[INFO] Encoding paintingface")
-        face = self._replace_face(dir, clip)
+        face = self._replace_face(dir, is_clip)
 
-        return painting + face
+        icon = []
+        if replace_icon:
+            print("[INFO] Encoding icons")
+            tmp = [self._replace_icon(dir, x) for x in icons]
+            icon += [x for x in tmp if x is not None]
+
+        return painting + face + icon
 
     def _replace_painting(self, dir: str, asset: str, img_dict: dict[str, Image.Image]) -> str:
         path = os.path.join(os.path.dirname(self.meta), "painting", asset)
@@ -56,21 +85,21 @@ class EncodeHelper(TextureHelper):
 
         return output
 
-    def _replace_face(self, dir: str, clip: list[bool]) -> list[str]:
+    def _replace_face(self, dir: str, is_clip: list[bool]) -> list[str]:
         if 1 not in self.repls:
             return []
 
         path = os.path.join(os.path.dirname(self.meta), "paintingface", self.name.strip("_n"))
         env = UnityPy.load(path)
 
-        mod_wh = not all(clip)
+        mod_wh = not all(is_clip)
         if mod_wh:
             wh = np.array(self.size).astype(np.float32)
 
         repls = {}
         x, y = np.add(self.layers["face"].posMin, self.bias)
         w, h = self.layers["face"].sizeDelta
-        for i, v in enumerate(tqdm(clip)):
+        for i, v in enumerate(tqdm(is_clip)):
             img = self.repls[i + 1]
             if not mod_wh:
                 repls[i + 1] = img.crop((x, y, x + w, y + h))
@@ -133,3 +162,44 @@ class EncodeHelper(TextureHelper):
             f.write(env.file.save("original"))
 
         return [meta, output]
+
+    def _replace_icon(self, dir: str, kind: str):
+        ab = os.path.join(os.path.dirname(self.meta), kind, self.name)
+        if not os.path.exists(ab):
+            return
+
+        env = UnityPy.load(ab)
+        mod = False
+        for k, v in env.container.items():
+            if v.type == ClassIDType.Sprite:
+                sprite: Sprite = v.read()
+                tex2d: Texture2D = sprite.m_RD.texture.read()
+            elif v.type == ClassIDType.Texture2D:
+                tex2d: Texture2D = v.read()
+            else:
+                raise ValueError(v.type)
+
+            for x in ["png", "jpg", "jpeg"]:
+                src = os.path.join(dir, f"{kind}.{x}")
+                if os.path.exists(src):
+                    # print(f"       {src}")
+                    img = Image.open(src)
+                    tex2d_size = aspect_ratio(kind, *img.size, False)
+                    sprite_size = aspect_ratio(kind, *img.size, True)
+                    if sprite is not None:
+                        sprite.m_Rect.width, sprite.m_Rect.height = tex2d_size
+                        sprite.m_RD.textureRect.width, sprite.m_RD.textureRect.height = sprite_size
+                        sprite.save()
+                    tex2d.m_Width, tex2d.m_Height = tex2d_size
+                    tex2d.set_image(img, target_format=TextureFormat.RGBA32)
+                    tex2d.save()
+                    mod = True
+                    break
+
+        if mod:
+            outdir = os.path.join(dir, "output", kind)
+            check_dir(outdir)
+            path = os.path.join(outdir, self.name)
+            with open(path, "wb") as f:
+                f.write(env.file.save("original"))
+            return path

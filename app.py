@@ -271,8 +271,13 @@ class AzurLaneTachieHelper(QMainWindow):
             self.settings.setValue("Edit/RemoveOld", remove_old)
             if remove_old:
                 shutil.rmtree(os.path.join(dir, "output"), True)
-            clip = [_.checkState() == Qt.CheckState.Checked for _ in self.check_box]
-            path = "\n".join([QDir.toNativeSeparators(_) for _ in self.encoder.exec(dir, clip)])
+
+            replace_icon = self._read_bool_from_ini("Edit/ReplaceIcon")
+            self.settings.setValue("Edit/ReplaceIcon", replace_icon)
+            is_clip = [_.checkState() != Qt.CheckState.Unchecked for _ in self.check_box]
+            path = "\n".join(
+                [QDir.toNativeSeparators(_) for _ in self.encoder.exec(dir, is_clip, replace_icon)]
+            )
             msg_box = QMessageBox()
             msg_box.setText(self.tr("Successfully written into:") + f"\n{path}")
             msg_box.layout().addItem(
