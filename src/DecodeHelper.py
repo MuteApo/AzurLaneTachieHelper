@@ -14,13 +14,15 @@ class DecodeHelper(TextureHelper):
     def exec(self, dir: str, dump: bool) -> str:
         print("[INFO] Decoding painting")
         painting = []
-        for k, v in tqdm(sorted(self.layers.items(), key=lambda x: x[1].depth)):
-            if k != "face":
-                sub = v.tex if v.rawMesh is None else self.decode(v.mesh, v.tex, v.rawSpriteSize)
-                if dump:
-                    sub.save(f"{os.path.join(dir, k)}.png")
-                x, y = np.add(v.posMin, self.bias)
-                painting += [self.ps_layer(sub.resize(v.sizeDelta), k, x, y, True)]
+        filtered = {k: v for k, v in self.layers.items() if k != "face"}
+        for k, v in tqdm(sorted(filtered.items(), key=lambda x: x[1].depth)):
+            sub = self.decode(v)
+            if dump:
+                sub.save(f"{os.path.join(dir, k)}.png")
+            if v.size[0] * v.size[1] < v.sizeDelta[0] * v.sizeDelta[1]:
+                sub = sub.resize(v.sizeDelta)
+            x, y = np.add(v.posMin, self.bias)
+            painting += [self.ps_layer(sub, k, x, y, True)]
 
         print("[INFO] Decoding paintingface")
         face = []
@@ -39,15 +41,13 @@ class DecodeHelper(TextureHelper):
 
         return path
 
-    def decode(self, mesh: dict, enc: Image.Image, rss: tuple[int, int]) -> Image.Image:
-        dec = Image.new("RGBA", rss)
-
-        vs, ts, fs = mesh.values()
+    def decode(self, v: Layer) -> Image.Image:
+        dec = Image.new("RGBA", v.size)
+        vs, ts, fs = v.mesh.values()
         for f in fs:
             l, b, r, t = self._measure(np.stack(vs[f], -1))
             box = self._measure(np.stack(ts[f], -1))
-            dec.paste(enc.crop(box), (round(l), round(b)))
-
+            dec.paste(v.tex.crop(box), (round(l), round(b)))
         return dec.transpose(Image.FLIP_TOP_BOTTOM)
 
     def _measure(self, data: np.ndarray) -> tuple[int, int, int, int]:
@@ -77,10 +77,10 @@ class DecodeHelper(TextureHelper):
         layer = nested_layers.Image(
             name=name,
             visible=visible,
-            top=round(self.size[1] - y - h),
-            left=round(x),
-            bottom=round(self.size[1] - y),
-            right=round(x + w),
+            top=int(self.size[1] - y - h),
+            left=int(x),
+            bottom=int(self.size[1] - y),
+            right=int(x + w),
             channels=channels,
         )
         return layer

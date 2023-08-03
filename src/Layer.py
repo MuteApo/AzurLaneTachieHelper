@@ -16,11 +16,15 @@ from UnityPy.enums import ClassIDType
 from UnityPy.math import Quaternion, Vector2, Vector3
 
 
+def lerp(a, b, k):
+    return np.array(a) * np.array(k) + np.array(b) * (1 - np.array(k))
+
+
 class Layer:
     def __init__(self, rt: RectTransform, parent: Self = None):
         self.rt = rt
         self.parent = parent
-        self.depth = 0 if parent is None else parent.depth + 1
+        self.depth = 1 if parent is None else parent.depth + 1
         self.child: list[Self] = [Layer(x.read(), self) for x in rt.m_Children]
 
     def __repr__(self) -> str:
@@ -35,9 +39,10 @@ class Layer:
             # "pivot",
             # "posMin",
             # "posMax",
+            "meshSize",
             "rawSpriteSize",
             "texture2D",
-            "rawMesh",
+            "spriteMesh",
         ]
         items = [""]
         for x in attrs:
@@ -59,7 +64,9 @@ class Layer:
         return None
 
     def flatten(self):
-        res = {} if self.sprite is None else {self.sprite.name: self}
+        res = {}
+        if self.sprite is not None:
+            res |= {self.sprite.name: self}
         for x in self.child:
             res |= x.flatten()
         return res
@@ -76,15 +83,13 @@ class Layer:
 
         def decor(func: Callable):
             def inner(self: Self):
-                if not hasattr(self, attr):
-                    if hasattr(self.rt, attr):
-                        val = getattr(self.rt, attr)
-                        if attr in attrs:
-                            val = Vector2(val.x, val.y)
-                    else:
-                        val = None
-                    setattr(self, attr, val)
-                return func(self, getattr(self, attr))
+                if hasattr(self.rt, attr):
+                    val = getattr(self.rt, attr)
+                    if attr in attrs:
+                        val = Vector2(val.x, val.y)
+                else:
+                    val = None
+                return func(self, val)
 
             return inner
 
@@ -140,7 +145,7 @@ class Layer:
         return getattr(self, "m_Texture2D")
 
     @property
-    def rawMesh(self) -> Optional[Mesh]:
+    def spriteMesh(self) -> Optional[Mesh]:
         if not hasattr(self, "m_Mesh"):
             if self.monoBehaviour is not None:
                 if hasattr(self.monoBehaviour, "mMesh"):
@@ -203,9 +208,11 @@ class Layer:
         return val.X, val.Y
 
     @property
-    def posAnchor(self) -> tuple[float, float]:
+    def posAnchorCenter(self) -> tuple[float, float]:
+        if self.parent is None:
+            return 0.0, 0.0
         anchorCenter = np.mean([self.anchorMin, self.anchorMax], 0)
-        x, y = np.multiply(self.parent.sizeDelta, anchorCenter)
+        x, y = lerp(self.parent.posMin, self.parent.posMax, anchorCenter)
         return x, y
 
     @property
@@ -213,6 +220,7 @@ class Layer:
         if self.parent is None:
             return 0.0, 0.0
         x, y = np.add(self.parent.posPivot, self.localPosition)
+        # x, y = np.add(self.posAnchorCenter, self.anchoredPosition)
         return x, y
 
     @property
@@ -233,19 +241,44 @@ class Layer:
 
     @property
     def mesh(self) -> dict[str, np.ndarray]:
-        w, h = self.texture2D.image.size
-        if self.rawMesh is None:
-            return {
-                "v": np.array([[0, 0], [0, h], [w, h], [w, 0]]),
-                "vt": np.array([[0, 0], [0, h], [w, h], [w, 0]]),
-                "f": np.array([[0, 1, 2, 3]]),
-            }
-        return {
-            "v": np.array(self.rawMesh.m_Vertices).reshape((-1, 3))[:, :2],
-            "vt": np.array(self.rawMesh.m_UV0).reshape((-1, 2)) * (w, h),
-            "f": np.array(self.rawMesh.m_Indices).reshape((-1, 6))[:, (0, 1, 3, 4)],
-        }
+        if not hasattr(self, "_mesh"):
+            w, h = self.texture2D.image.size
+            if self.spriteMesh is None:
+                v = np.array([[0, 0], [0, h], [w, h], [w, 0]])
+                vt = np.array([[0, 0], [0, h], [w, h], [w, 0]])
+                f = np.array([[0, 1, 2, 3]])
+            else:
+                v = np.array(self.spriteMesh.m_Vertices).reshape((-1, 3))[:, :2]
+                vt = np.array(self.spriteMesh.m_UV0).reshape((-1, 2)) * (w, h)
+                f = np.array(self.spriteMesh.m_Indices).reshape((-1, 6))[:, (0, 1, 3, 4)]
+            setattr(self, "_mesh", {"v": v, "vt": vt, "f": f})
+        return getattr(self, "_mesh")
 
     @property
     def tex(self) -> Image.Image:
-        return self.texture2D.image.transpose(Image.FLIP_TOP_BOTTOM)
+        if not hasattr(self, "_tex"):
+            img = self.texture2D.image.transpose(Image.FLIP_TOP_BOTTOM)
+            setattr(self, "_tex", img)
+        return getattr(self, "_tex")
+
+    @property
+    def meshSize(self) -> tuple[int, int]:
+        if not hasattr(self, "_mesh_size"):
+            v, _, _ = self.mesh.values()
+            w, h = np.max(v, 0) + 1
+            setattr(self, "_mesh_size", (round(w), round(h)))
+        return getattr(self, "_mesh_size")
+
+    @property
+    def size(self) -> tuple[int, int]:
+        def prod(x):
+            return x[0] * x[1]
+
+        if self.rawSpriteSize is None:
+            return self.meshSize
+        elif prod(self.meshSize) > prod(self.rawSpriteSize):
+            w, h = self.rawSpriteSize
+            r = min(self.meshSize[0] / w, self.meshSize[1] / h)
+            return round(w * r), round(h * r)
+        else:
+            return self.rawSpriteSize

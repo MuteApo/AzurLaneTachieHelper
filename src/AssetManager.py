@@ -77,23 +77,24 @@ class AssetManager:
         self.name = base_layer.name
 
         self.layers = base_layer.flatten() | {"face": base_layer.get_child("face")}
+        [print(_) for _ in self.layers.values()]
 
         x_min, y_min = np.min([_.posMin for _ in self.layers.values()], 0)
         x_max, y_max = np.max([_.posMax for _ in self.layers.values()], 0)
         self.size = (round(x_max - x_min + 1), round(y_max - y_min + 1))
         self.bias = (-x_min, -y_min)
 
-        [print(_) for _ in self.layers.values()]
-
     def load_paintings(self, workload: dict[str, str]):
         def load(name: str, path: str):
             print("      ", path)
-            x, y = np.add(self.layers[name].posMin, self.bias)
-            w, h = self.layers[name].sizeDelta
+            layer = self.layers[name]
+            x, y = np.add(layer.posMin, self.bias)
+            if layer.sizeDelta[0] * layer.sizeDelta[1] < layer.size[0] * layer.size[1]:
+                w, h = layer.size
+            else:
+                w, h = layer.sizeDelta
             sub = read_img(path).crop((x, y, x + w, y + h))
-            if self.layers[name].rawMesh is not None:
-                sub = sub.resize(self.layers[name].rawSpriteSize)
-            self.repls[name] = sub
+            self.repls[name] = sub.resize(layer.size)
 
         tasks = [threading.Thread(target=load, args=(k, v)) for k, v in workload.items()]
         [_.start() for _ in tasks]

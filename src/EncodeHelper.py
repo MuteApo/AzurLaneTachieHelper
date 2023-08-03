@@ -6,8 +6,8 @@ import numpy as np
 import UnityPy
 from PIL import Image
 from tqdm import tqdm
-from UnityPy.classes import GameObject, Mesh, RectTransform, Sprite, Texture2D
-from UnityPy.enums import ClassIDType, TextureFormat
+from UnityPy.classes import Mesh, Sprite, Texture2D
+from UnityPy.enums import TextureFormat
 
 from .TextureHelper import TextureHelper
 from .utility import check_dir, filter_env
@@ -59,7 +59,7 @@ class EncodeHelper(TextureHelper):
 
         for _ in filter_env(env, Texture2D):
             tex2d: Texture2D = _.read()
-            img = img_dict[tex2d.name.lower()]
+            img = img_dict[tex2d.name]
             tex2d.m_Width, tex2d.m_Height = img.size
             tex2d.set_image(img.transpose(Image.FLIP_TOP_BOTTOM), TextureFormat.RGBA32)
             tex2d.save()
@@ -71,7 +71,7 @@ class EncodeHelper(TextureHelper):
             mesh["m_SubMeshes"][0]["vertexCount"] = 4
             mesh["m_IndexBuffer"] = [0, 0, 1, 0, 2, 0, 2, 0, 3, 0, 0, 0]
             mesh["m_VertexData"]["m_VertexCount"] = 4
-            w, h = img_dict[mesh["m_Name"].lower().split("-mesh")[0]].size
+            w, h = img_dict[mesh["m_Name"].split("-mesh")[0]].size
             buf = [0, 0, 0, 0, 0, 0, h, 0, 0, 1, w, h, 0, 1, 1, w, 0, 0, 1, 0]
             data_size = struct.pack(_.reader.endian + "f" * 20, *buf)
             mesh["m_VertexData"]["m_DataSize"] = memoryview(data_size)
@@ -89,17 +89,16 @@ class EncodeHelper(TextureHelper):
         if 1 not in self.repls:
             return []
 
-        mod_wh = not all(is_clip)
-        expands = [
-            v for k, v in self.layers.items() if k != "face" if v.contain(*self.face_layer.box)
-        ]
+        layer = self.face_layer
+        expands = [v for k, v in self.layers.items() if k != "face" if v.contain(*layer.box)]
         prefered = sorted(expands, key=lambda v: v.sizeDelta[0] * v.sizeDelta[1])[0]
 
         path = os.path.join(os.path.dirname(self.meta), "paintingface", self.name.strip("_n"))
         env = UnityPy.load(path)
 
-        x, y = np.add(self.face_layer.posMin, self.bias)
-        w, h = self.face_layer.sizeDelta
+        mod_wh = not all(is_clip)
+        x, y = np.add(layer.posMin, self.bias)
+        w, h = layer.sizeDelta
         repls: dict[int, Image.Image] = {}
         for i, v in enumerate(tqdm(is_clip)):
             img = self.repls[i + 1]
@@ -143,22 +142,18 @@ class EncodeHelper(TextureHelper):
             return [output]
 
         env = UnityPy.load(self.meta)
-        base_go: GameObject = list(env.container.values())[0].read()
-        base_rt: RectTransform = base_go.m_Transform.read()
-        path_id = self.face_layer.pathId
-        for _ in [__ for __ in base_rt.m_Children if __.path_id == path_id]:
-            face = _.read_typetree()
-
-            w, h = prefered.sizeDelta
-            px, py = prefered.pivot
-            x1, y1 = np.subtract(prefered.posPivot, self.face_layer.parent.posPivot)
-            x2, y2 = np.subtract(np.add(prefered.posPivot, self.bias), self.face_layer.posAnchor)
-            face["m_SizeDelta"] = {"x": w, "y": h}
-            face["m_Pivot"] = {"x": px, "y": py}
-            face["m_LocalPosition"] = {"x": x1, "y": y1, "z": 0.0}
-            face["m_AnchoredPosition"] = {"x": x2, "y": y2}
-
-            _.save_typetree(face)
+        cab = list(env.cabs.values())[0]
+        face_rt = cab.objects[layer.pathId]
+        face = face_rt.read_typetree()
+        w, h = prefered.sizeDelta
+        px, py = prefered.pivot
+        x1, y1 = np.subtract(prefered.posPivot, layer.parent.posPivot)
+        x2, y2 = np.subtract(np.add(prefered.posPivot, self.bias), layer.posAnchor)
+        face["m_SizeDelta"] = {"x": w, "y": h}
+        face["m_Pivot"] = {"x": px, "y": py}
+        face["m_LocalPosition"] = {"x": x1, "y": y1, "z": 0.0}
+        face["m_AnchoredPosition"] = {"x": x2, "y": y2}
+        face_rt.save_typetree(face)
 
         check_dir(dir, "output", "painting")
         meta = os.path.join(dir, "output", "painting", os.path.basename(self.meta))
