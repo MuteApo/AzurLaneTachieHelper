@@ -19,8 +19,7 @@ class DecodeHelper(TextureHelper):
             sub = self.decode(v)
             if dump:
                 sub.save(f"{os.path.join(dir, k)}.png")
-            if v.size[0] * v.size[1] < v.sizeDelta[0] * v.sizeDelta[1]:
-                sub = sub.resize(v.sizeDelta)
+            sub = sub.resize(v.canvasSize)
             x, y = np.add(v.posMin, self.bias)
             painting += [self.ps_layer(sub, k, x, y, True)]
 
@@ -42,7 +41,7 @@ class DecodeHelper(TextureHelper):
         return path
 
     def decode(self, v: Layer) -> Image.Image:
-        dec = Image.new("RGBA", v.size)
+        dec = Image.new("RGBA", v.spriteSize)
         vs, ts, fs = v.mesh.values()
         for f in fs:
             l, b, r, t = self._measure(np.stack(vs[f], -1))
@@ -54,17 +53,17 @@ class DecodeHelper(TextureHelper):
         l, b = data.min(-1)
         r, t = data.max(-1)
 
-        w = round(r - l)
-        # if w > round(w / 4) * 4:
-        #     l += 1
-        if w < round(w / 4) * 4:
-            r += 1
+        # w = round(r - l)
+        # # if w > round(w / 4) * 4:
+        # #     l += 1
+        # if w < round(w / 4) * 4:
+        #     r += 1
 
-        h = round(t - b)
-        if h > round(h / 4) * 4:
-            b += 1
-        if h < round(h / 4) * 4:
-            t += 1
+        # h = round(t - b)
+        # if h > round(h / 4) * 4:
+        #     b += 1
+        # if h < round(h / 4) * 4:
+        #     t += 1
 
         return l, b, r, t
 
@@ -77,10 +76,10 @@ class DecodeHelper(TextureHelper):
         layer = nested_layers.Image(
             name=name,
             visible=visible,
-            top=int(self.size[1] - y - h),
-            left=int(x),
-            bottom=int(self.size[1] - y),
-            right=int(x + w),
+            top=round(self.size[1] - y - h),
+            left=round(x),
+            bottom=round(self.size[1] - y),
+            right=round(x + w),
             channels=channels,
         )
         return layer

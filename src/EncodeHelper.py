@@ -10,7 +10,7 @@ from UnityPy.classes import Mesh, Sprite, Texture2D
 from UnityPy.enums import TextureFormat
 
 from .TextureHelper import TextureHelper
-from .utility import check_dir, filter_env
+from .utility import check_dir, filter_env, prod
 
 icons = ["shipyardicon", "squareicon", "herohrzicon"]
 metas = {
@@ -37,13 +37,13 @@ def aspect_ratio(kind: str, w: int, h: int, clip: bool):
 
 
 class EncodeHelper(TextureHelper):
-    def exec(self, dir: str, is_clip: list[bool], replace_icon: bool) -> list[str]:
+    def exec(self, dir: str, replace_icon: bool, adv_mode: bool, is_clip: list[bool]) -> list[str]:
         print("[INFO] Encoding painting")
         valid = [os.path.basename(k) for k, v in self.maps.items() if v in self.repls]
         painting = [self._replace_painting(dir, x, self.repls) for x in tqdm(valid)]
 
         print("[INFO] Encoding paintingface")
-        face = self._replace_face(dir, is_clip)
+        face = self._replace_face(dir, adv_mode, is_clip)
 
         icon = []
         if replace_icon:
@@ -85,24 +85,26 @@ class EncodeHelper(TextureHelper):
 
         return output
 
-    def _replace_face(self, dir: str, is_clip: list[bool]) -> list[str]:
+    def _replace_face(self, dir: str, adv_mode: bool, is_clip: list[bool]) -> list[str]:
         if 1 not in self.repls:
             return []
 
         layer = self.face_layer
         expands = [v for k, v in self.layers.items() if k != "face" if v.contain(*layer.box)]
-        prefered = sorted(expands, key=lambda v: v.sizeDelta[0] * v.sizeDelta[1])[0]
+        prefered = sorted(expands, key=lambda v: prod(v.canvasSize))[0]
 
-        path = os.path.join(os.path.dirname(self.meta), "paintingface", self.name.strip("_n"))
+        path = os.path.join(
+            os.path.dirname(self.meta), "paintingface", self.name.removesuffix("_n")
+        )
         env = UnityPy.load(path)
 
-        mod_wh = not all(is_clip)
+        layer = self.face_layer
         x, y = np.add(layer.posMin, self.bias)
         w, h = layer.sizeDelta
         repls: dict[int, Image.Image] = {}
         for i, v in enumerate(tqdm(is_clip)):
             img = self.repls[i + 1]
-            if not mod_wh:
+            if not adv_mode:
                 repls[i + 1] = img.crop((x, y, x + w, y + h))
             else:
                 if v:
@@ -114,8 +116,9 @@ class EncodeHelper(TextureHelper):
 
                     img = Image.merge("RGBA", [*rgb.split()[:3], a.split()[-1]])
 
-                l, b, r, t = np.add(prefered.box, self.bias * 2)
-                repls[i + 1] = img.crop((l, b, r, t))
+                x, y = np.add(prefered.posMin, self.bias)
+                w, h = prefered.canvasSize
+                repls[i + 1] = img.crop((x, y, x + w, y + h))
 
         for _ in filter_env(env, Texture2D, False):
             tex2d: Texture2D = _.read()
@@ -134,21 +137,22 @@ class EncodeHelper(TextureHelper):
                 sprite.save()
 
         check_dir(dir, "output", "paintingface")
-        output = os.path.join(dir, "output", "paintingface", self.name.strip("_n"))
+        output = os.path.join(dir, "output", "paintingface", self.name.removesuffix("_n"))
         with open(output, "wb") as f:
             f.write(env.file.save("original"))
 
-        if not mod_wh:
+        if not adv_mode:
             return [output]
 
         env = UnityPy.load(self.meta)
         cab = list(env.cabs.values())[0]
         face_rt = cab.objects[layer.pathId]
         face = face_rt.read_typetree()
-        w, h = prefered.sizeDelta
+        w, h = prefered.canvasSize
         px, py = prefered.pivot
-        x1, y1 = np.subtract(prefered.posPivot, layer.parent.posPivot)
-        x2, y2 = np.subtract(np.add(prefered.posPivot, self.bias), layer.posAnchor)
+        fix = np.subtract(prefered.canvasSize, prefered.sizeDelta) * prefered.pivot
+        x1, y1 = np.subtract(prefered.posPivot, layer.parent.posPivot) + fix
+        x2, y2 = np.subtract(prefered.posPivot, layer.posAnchor) + fix + self.bias
         face["m_SizeDelta"] = {"x": w, "y": h}
         face["m_Pivot"] = {"x": px, "y": py}
         face["m_LocalPosition"] = {"x": x1, "y": y1, "z": 0.0}

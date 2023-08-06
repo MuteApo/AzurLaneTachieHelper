@@ -54,7 +54,7 @@ class AssetManager:
                 if x.type == ClassIDType.Sprite:
                     self.maps[dep] = x.read().name
 
-        face = "paintingface/" + os.path.basename(file).strip("_n")
+        face = "paintingface/" + os.path.basename(file).removesuffix("_n")
         path = os.path.join(os.path.dirname(file) + "/", face)
         if os.path.exists(path):
             self.deps[face] = path
@@ -89,12 +89,9 @@ class AssetManager:
             print("      ", path)
             layer = self.layers[name]
             x, y = np.add(layer.posMin, self.bias)
-            if layer.sizeDelta[0] * layer.sizeDelta[1] < layer.size[0] * layer.size[1]:
-                w, h = layer.size
-            else:
-                w, h = layer.sizeDelta
+            w, h = layer.canvasSize
             sub = read_img(path).crop((x, y, x + w, y + h))
-            self.repls[name] = sub.resize(layer.size)
+            self.repls[name] = sub.resize(layer.spriteSize)
 
         tasks = [threading.Thread(target=load, args=(k, v)) for k, v in workload.items()]
         [_.start() for _ in tasks]

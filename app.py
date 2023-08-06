@@ -34,6 +34,7 @@ class AzurLaneTachieHelper(QMainWindow):
         self.resize(720, 560)
 
         self.settings = QSettings("config.ini", QSettings.Format.IniFormat)
+        self._read_ini()
 
         self._init_ui()
         self._init_statusbar()
@@ -45,6 +46,19 @@ class AzurLaneTachieHelper(QMainWindow):
 
     def _read_bool_from_ini(self, key: str) -> bool:
         return eval(str(self.settings.value(key, "false")).capitalize())
+
+    def _read_ini(self):
+        self.adv_mode = self._read_bool_from_ini("Edit/AdvancedMode")
+        self.settings.setValue("Edit/AdvancedMode", self.adv_mode)
+
+        self.dump_layer = self._read_bool_from_ini("Edit/DumpLayer")
+        self.settings.setValue("Edit/DumpLayer", self.dump_layer)
+
+        self.remove_old = self._read_bool_from_ini("Edit/RemoveOld")
+        self.settings.setValue("Edit/RemoveOld", self.remove_old)
+
+        self.replace_icon = self._read_bool_from_ini("Edit/ReplaceIcon")
+        self.settings.setValue("Edit/ReplaceIcon", self.replace_icon)
 
     def _layout_ab_dep(self):  # Layout for Assetbundle Dependencies
         label = QLabel(self.tr("Assetbundle Dependencies"))
@@ -236,10 +250,7 @@ class AzurLaneTachieHelper(QMainWindow):
                     id = int(name)
                     path = QDir.toNativeSeparators(os.path.join(dir, file))
                     self.tFaceRepl.setItem(id - 1, 1, QTableWidgetItem(path))
-
-                    adv_mode = self._read_bool_from_ini("Edit/AdvancedMode")
-                    self.settings.setValue("Edit/AdvancedMode", adv_mode)
-                    if adv_mode:
+                    if self.adv_mode:
                         self.tFaceRepl.item(id - 1, 0).setFlags(
                             Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable
                         )
@@ -253,9 +264,7 @@ class AzurLaneTachieHelper(QMainWindow):
         last = os.path.dirname(self.settings.value("File/RecentPath", ""))
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Output Folder"), last)
         if dir:
-            dump = self._read_bool_from_ini("Edit/DumpLayer")
-            self.settings.setValue("Edit/DumpLayer", dump)
-            path = QDir.toNativeSeparators(self.decoder.exec(dir, dump))
+            path = QDir.toNativeSeparators(self.decoder.exec(dir, self.dump_layer))
             msg_box = QMessageBox()
             msg_box.setText(self.tr("Successfully written into:") + f"\n{path}")
             msg_box.setStandardButtons(
@@ -268,17 +277,12 @@ class AzurLaneTachieHelper(QMainWindow):
         last = os.path.dirname(self.settings.value("File/RecentPath", ""))
         dir = QFileDialog.getExistingDirectory(self, dir=last)
         if dir:
-            remove_old = self._read_bool_from_ini("Edit/RemoveOld")
-            self.settings.setValue("Edit/RemoveOld", remove_old)
-            if remove_old:
+            if self.remove_old:
                 shutil.rmtree(os.path.join(dir, "output"), True)
 
-            replace_icon = self._read_bool_from_ini("Edit/ReplaceIcon")
-            self.settings.setValue("Edit/ReplaceIcon", replace_icon)
             is_clip = [_.checkState() != Qt.CheckState.Unchecked for _ in self.check_box]
-            path = "\n".join(
-                [QDir.toNativeSeparators(_) for _ in self.encoder.exec(dir, is_clip, replace_icon)]
-            )
+            res = self.encoder.exec(dir, self.replace_icon, self.adv_mode, is_clip)
+            path = "\n".join([QDir.toNativeSeparators(_) for _ in res])
             msg_box = QMessageBox()
             msg_box.setText(self.tr("Successfully written into:") + f"\n{path}")
             msg_box.layout().addItem(

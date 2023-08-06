@@ -1,8 +1,13 @@
+import functools
 import os
 import re
 
 from PIL import Image
 from UnityPy import Environment
+
+
+def prod(x):
+    return functools.reduce(lambda a, b: a * b, x, 1)
 
 
 def raw_name(path: str) -> str:

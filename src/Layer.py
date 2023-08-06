@@ -15,9 +15,11 @@ from UnityPy.classes import (
 from UnityPy.enums import ClassIDType
 from UnityPy.math import Quaternion, Vector2, Vector3
 
+from .utility import prod
+
 
 def lerp(a, b, k):
-    return np.array(a) * np.array(k) + np.array(b) * (1 - np.array(k))
+    return np.multiply(a, k) + np.multiply(b, 1 - np.array(k))
 
 
 class Layer:
@@ -42,7 +44,7 @@ class Layer:
             "meshSize",
             "rawSpriteSize",
             "texture2D",
-            "spriteMesh",
+            "rawMesh",
         ]
         items = [""]
         for x in attrs:
@@ -145,7 +147,7 @@ class Layer:
         return getattr(self, "m_Texture2D")
 
     @property
-    def spriteMesh(self) -> Optional[Mesh]:
+    def rawMesh(self) -> Optional[Mesh]:
         if not hasattr(self, "m_Mesh"):
             if self.monoBehaviour is not None:
                 if hasattr(self.monoBehaviour, "mMesh"):
@@ -157,12 +159,12 @@ class Layer:
         return getattr(self, "m_Mesh")
 
     @property
-    def rawSpriteSize(self) -> Optional[tuple[int, int]]:
+    def rawSpriteSize(self) -> Optional[tuple[float, float]]:
         if not hasattr(self, "m_RawSpriteSize"):
             if self.monoBehaviour is not None:
                 if hasattr(self.monoBehaviour, "mRawSpriteSize"):
                     x = getattr(self.monoBehaviour, "mRawSpriteSize")
-                    setattr(self, "m_RawSpriteSize", (int(x.x), int(x.y)))
+                    setattr(self, "m_RawSpriteSize", (round(x.x), round(x.y)))
                     return getattr(self, "m_RawSpriteSize")
             setattr(self, "m_RawSpriteSize", None)
         return getattr(self, "m_RawSpriteSize")
@@ -208,11 +210,14 @@ class Layer:
         return val.X, val.Y
 
     @property
-    def posAnchorCenter(self) -> tuple[float, float]:
-        if self.parent is None:
-            return 0.0, 0.0
+    def posAnchor(self) -> tuple[float, float]:
         anchorCenter = np.mean([self.anchorMin, self.anchorMax], 0)
-        x, y = lerp(self.parent.posMin, self.parent.posMax, anchorCenter)
+        x, y = np.multiply(self.parent.sizeDelta, anchorCenter)
+        # if self.parent is None:
+        #     return 0.0, 0.0
+        # anchorCenter = np.mean([self.anchorMin, self.anchorMax], 0)
+        # x, y = lerp(self.parent.posMin, self.parent.posMax, anchorCenter)
+        # x, y = np.subtract(self.posPivot, self.anchoredPosition)
         return x, y
 
     @property
@@ -243,14 +248,14 @@ class Layer:
     def mesh(self) -> dict[str, np.ndarray]:
         if not hasattr(self, "_mesh"):
             w, h = self.texture2D.image.size
-            if self.spriteMesh is None:
+            if self.rawMesh is None:
                 v = np.array([[0, 0], [0, h], [w, h], [w, 0]])
                 vt = np.array([[0, 0], [0, h], [w, h], [w, 0]])
                 f = np.array([[0, 1, 2, 3]])
             else:
-                v = np.array(self.spriteMesh.m_Vertices).reshape((-1, 3))[:, :2]
-                vt = np.array(self.spriteMesh.m_UV0).reshape((-1, 2)) * (w, h)
-                f = np.array(self.spriteMesh.m_Indices).reshape((-1, 6))[:, (0, 1, 3, 4)]
+                v = np.array(self.rawMesh.m_Vertices).reshape((-1, 3))[:, :2]
+                vt = np.array(self.rawMesh.m_UV0).reshape((-1, 2)) * (w, h)
+                f = np.array(self.rawMesh.m_Indices).reshape((-1, 6))[:, (0, 1, 3, 4)]
             setattr(self, "_mesh", {"v": v, "vt": vt, "f": f})
         return getattr(self, "_mesh")
 
@@ -265,20 +270,25 @@ class Layer:
     def meshSize(self) -> tuple[int, int]:
         if not hasattr(self, "_mesh_size"):
             v, _, _ = self.mesh.values()
-            w, h = np.max(v, 0) + 1
+            w, h = np.max(v, 0)
             setattr(self, "_mesh_size", (round(w), round(h)))
         return getattr(self, "_mesh_size")
 
     @property
-    def size(self) -> tuple[int, int]:
-        def prod(x):
-            return x[0] * x[1]
-
+    def spriteSize(self) -> tuple[int, int]:
         if self.rawSpriteSize is None:
             return self.meshSize
         elif prod(self.meshSize) > prod(self.rawSpriteSize):
-            w, h = self.rawSpriteSize
-            r = min(self.meshSize[0] / w, self.meshSize[1] / h)
-            return round(w * r), round(h * r)
+            return self.meshSize
+            # w, h = self.rawSpriteSize
+            # r = min(self.meshSize[0] / w, self.meshSize[1] / h)
+            # return round(w * r), round(h * r)
         else:
             return self.rawSpriteSize
+
+    @property
+    def canvasSize(self) -> tuple[int, int]:
+        if prod(self.spriteSize) > prod(self.sizeDelta):
+            return self.spriteSize
+        else:
+            return self.sizeDelta
