@@ -39,8 +39,8 @@ class Layer:
             # "anchoredPosition",
             "sizeDelta",
             # "pivot",
-            # "posMin",
-            # "posMax",
+            "posMin",
+            "posMax",
             "meshSize",
             "rawSpriteSize",
             "texture2D",
@@ -270,7 +270,7 @@ class Layer:
     def meshSize(self) -> tuple[int, int]:
         if not hasattr(self, "_mesh_size"):
             v, _, _ = self.mesh.values()
-            w, h = np.max(v, 0)
+            w, h = np.max(v, 0) - np.min(v, 0) + 1
             setattr(self, "_mesh_size", (round(w), round(h)))
         return getattr(self, "_mesh_size")
 

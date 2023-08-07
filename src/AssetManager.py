@@ -10,7 +10,37 @@ from UnityPy.classes import AssetBundle, GameObject, RectTransform, Texture2D
 from UnityPy.enums import ClassIDType
 
 from .Layer import Layer
-from .utility import filter_env, read_img
+from .utility import filter_env, prod, read_img
+
+metas = {
+    "herohrzicon": {
+        "sprite": (272, 80),
+        "tex2d": (360, 80),
+        "pivot": (0.25, 0.6),
+        "scale": 0.5,
+    },
+    "shipyardicon": {
+        "sprite": (192, 256),
+        "tex2d": (192, 256),
+        "pivot": (0.5, 0.75),
+        "scale": 0.5,
+    },
+    "squareicon": {
+        "sprite": (116, 116),
+        "tex2d": (116, 116),
+        "pivot": (0.5, 0.65),
+        "scale": 0.5,
+    },
+}
+
+
+def aspect_ratio(kind: str, w: int, h: int, clip: bool):
+    std = metas[kind]["tex2d"]
+    if round(std[0] / w * h) != std[1]:
+        print(f"[WARNING] Bad aspect ratio {(w, h)}, expected {std}")
+    if clip:
+        w = round(w / std[0] * metas[kind]["sprite"][0])
+    return w, h
 
 
 def rt_get_name(rt: RectTransform) -> str:
@@ -36,6 +66,7 @@ class AssetManager:
         self.layers: dict[str, Layer] = {}
         self.faces: dict[int, Image.Image] = {}
         self.repls: dict[str | int, Image.Image] = {}
+        self.icons: dict[str, Image.Image] = {}
 
     def analyze(self, file: str):
         self.init()
@@ -105,3 +136,33 @@ class AssetManager:
         tasks = [threading.Thread(target=load, args=(k, v)) for k, v in workload.items()]
         [_.start() for _ in tasks]
         [_.join() for _ in tasks]
+
+    def clip_icons(self, workload: str):
+        def clip(kind: str):
+            x, y = np.subtract(layer.posMin, prefered.posMin) + np.multiply(layer.sizeDelta, 0.5)
+            w, h = np.divide(metas[kind]["tex2d"], metas[kind]["scale"])
+            px, py = metas[kind]["pivot"]
+            # print(kind, prefered.name, x, y, w, h)
+            img = full.crop((x - w * px, y - h * py, x + w * (1 - px), y + h * (1 - py)))
+            tex2d_size = aspect_ratio(kind, *img.size, False)
+            sprite_size = aspect_ratio(kind, *img.size, True)
+            # print(kind, tex2d_size, sprite_size)
+            sub = Image.new("RGBA", tex2d_size)
+            sub.paste(img.crop((0, 0, *sprite_size)))
+            path = os.path.join(os.path.dirname(self.meta), f"{kind}.png")
+            sub.transpose(Image.FLIP_TOP_BOTTOM).save(path)
+            output.append(path)
+
+        layer = self.layers["face"]
+        expands = [v for k, v in self.layers.items() if k != "face" if v.contain(*layer.box)]
+        prefered = sorted(expands, key=lambda v: prod(v.canvasSize))[0]
+        x, y = np.add(prefered.posMin, self.bias)
+        w, h = prefered.canvasSize
+        full = read_img(workload).crop((x, y, x + w, y + h)).resize(prefered.spriteSize)
+        output = []
+
+        tasks = [threading.Thread(target=clip, args=(k,)) for k in metas.keys()]
+        [_.start() for _ in tasks]
+        [_.join() for _ in tasks]
+
+        return output

@@ -45,3 +45,7 @@ class TextureHelper:
     @property
     def repls(self):
         return self.asset_manager.repls
+
+    @property
+    def icons(self):
+        return self.asset_manager.icons

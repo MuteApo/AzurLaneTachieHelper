@@ -49,7 +49,7 @@ class DecodeHelper(TextureHelper):
             dec.paste(v.tex.crop(box), (round(l), round(b)))
         return dec.transpose(Image.FLIP_TOP_BOTTOM)
 
-    def _measure(self, data: np.ndarray) -> tuple[int, int, int, int]:
+    def _measure(self, data: np.ndarray) -> tuple[float, float, float, float]:
         l, b = data.min(-1)
         r, t = data.max(-1)
 
