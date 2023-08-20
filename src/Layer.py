@@ -13,9 +13,10 @@ from UnityPy.classes import (
     Texture2D,
 )
 from UnityPy.enums import ClassIDType
-from UnityPy.math import Quaternion, Vector2, Vector3
+from UnityPy.math import Quaternion, Vector3
 
 from .utility import prod
+from .Vector import Vector2
 
 
 def lerp(a, b, k):
@@ -171,74 +172,61 @@ class Layer:
 
     @property
     @fetch("m_LocalRotation")
-    def localRotation(self, val: Quaternion) -> tuple[float, float]:
-        return val.X, val.Y
+    def localRotation(self, val: Quaternion) -> Vector2:
+        return Vector2(val.X, val.Y)
 
     @property
     @fetch("m_LocalPosition")
-    def localPosition(self, val: Vector3) -> tuple[float, float]:
-        return val.X, val.Y
+    def localPosition(self, val: Vector3) -> Vector2:
+        return Vector2(val.X, val.Y)
 
     @property
     @fetch("m_LocalScale")
-    def localScale(self, val: Vector3) -> tuple[float, float]:
-        return val.X, val.Y
+    def localScale(self, val: Vector3) -> Vector2:
+        return val
 
     @property
     @fetch("m_AnchorMin")
-    def anchorMin(self, val: Vector2) -> tuple[float, float]:
-        return val.X, val.Y
+    def anchorMin(self, val: Vector2) -> Vector2:
+        return val
 
     @property
     @fetch("m_AnchorMax")
-    def anchorMax(self, val: Vector2) -> tuple[float, float]:
-        return val.X, val.Y
+    def anchorMax(self, val: Vector2) -> Vector2:
+        return val
 
     @property
     @fetch("m_AnchoredPosition")
-    def anchoredPosition(self, val: Vector2) -> tuple[float, float]:
-        return val.X, val.Y
+    def anchoredPosition(self, val: Vector2) -> Vector2:
+        return val
 
     @property
     @fetch("m_SizeDelta")
-    def sizeDelta(self, val: Vector2) -> tuple[int, int]:
-        return round(val.X), round(val.Y)
+    def sizeDelta(self, val: Vector2) -> Vector2:
+        return val
 
     @property
     @fetch("m_Pivot")
-    def pivot(self, val: Vector2) -> tuple[float, float]:
-        return val.X, val.Y
+    def pivot(self, val: Vector2) -> Vector2:
+        return val
 
     @property
-    def posAnchor(self) -> tuple[float, float]:
-        anchorCenter = np.mean([self.anchorMin, self.anchorMax], 0)
-        x, y = np.multiply(self.parent.sizeDelta, anchorCenter)
-        # if self.parent is None:
-        #     return 0.0, 0.0
-        # anchorCenter = np.mean([self.anchorMin, self.anchorMax], 0)
-        # x, y = lerp(self.parent.posMin, self.parent.posMax, anchorCenter)
-        # x, y = np.subtract(self.posPivot, self.anchoredPosition)
-        return x, y
+    def posAnchor(self) -> Vector2:
+        return self.parent.sizeDelta * (self.anchorMin + self.anchorMax) / 2
 
     @property
-    def posPivot(self) -> tuple[float, float]:
+    def posPivot(self) -> Vector2:
         if self.parent is None:
-            return 0.0, 0.0
-        x, y = np.add(self.parent.posPivot, self.localPosition)
-        # x, y = np.add(self.posAnchorCenter, self.anchoredPosition)
-        return x, y
+            return Vector2.zero()
+        return self.parent.posPivot + self.localPosition
 
     @property
-    def posMin(self) -> tuple[float, float]:
-        sizedPivot = np.multiply(self.sizeDelta, self.pivot)
-        x, y = np.subtract(self.posPivot, sizedPivot)
-        return x, y
+    def posMin(self) -> Vector2:
+        return self.posPivot - self.sizeDelta * self.pivot
 
     @property
-    def posMax(self) -> tuple[float, float]:
-        sizedPivot = np.multiply(self.sizeDelta, 1 - np.array(self.pivot))
-        x, y = np.add(self.posPivot, sizedPivot)
-        return x, y
+    def posMax(self) -> Vector2:
+        return self.posPivot + self.sizeDelta * (Vector2.one() - self.pivot)
 
     @property
     def box(self) -> tuple[float, float, float, float]:
@@ -267,15 +255,15 @@ class Layer:
         return getattr(self, "_tex")
 
     @property
-    def meshSize(self) -> tuple[int, int]:
+    def meshSize(self) -> Vector2:
         if not hasattr(self, "_mesh_size"):
             v, _, _ = self.mesh.values()
             w, h = np.max(v, 0) - np.min(v, 0) + 1
-            setattr(self, "_mesh_size", (round(w), round(h)))
+            setattr(self, "_mesh_size", Vector2(w, h))
         return getattr(self, "_mesh_size")
 
     @property
-    def spriteSize(self) -> tuple[int, int]:
+    def spriteSize(self) -> Vector2:
         if self.rawSpriteSize is None:
             return self.meshSize
         elif prod(self.meshSize) > prod(self.rawSpriteSize):
@@ -287,7 +275,7 @@ class Layer:
             return self.rawSpriteSize
 
     @property
-    def canvasSize(self) -> tuple[int, int]:
+    def canvasSize(self) -> Vector2:
         if prod(self.spriteSize) > prod(self.sizeDelta):
             return self.spriteSize
         else:

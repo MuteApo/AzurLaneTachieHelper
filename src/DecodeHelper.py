@@ -14,19 +14,19 @@ class DecodeHelper(TextureHelper):
     def exec(self, dir: str, dump: bool) -> str:
         print("[INFO] Decoding painting")
         painting = []
-        filtered = {k: v for k, v in self.layers.items() if k != "face"}
+        filtered: dict[str, Layer] = {k: v for k, v in self.layers.items() if k != "face"}
         for k, v in tqdm(sorted(filtered.items(), key=lambda x: x[1].depth)):
             sub = self.decode(v)
             if dump:
                 sub.save(f"{os.path.join(dir, k)}.png")
-            sub = sub.resize(v.canvasSize)
-            x, y = np.add(v.posMin, self.bias)
+            sub = sub.resize(v.canvasSize.round())
+            x, y = v.posMin + self.bias
             painting += [self.ps_layer(sub, k, x, y, True)]
 
         print("[INFO] Decoding paintingface")
         face = []
         for k, v in tqdm(sorted(self.faces.items())):
-            x, y = np.add(self.face_layer.posMin, self.bias)
+            x, y = self.face_layer.posMin + self.bias
             face += [self.ps_layer(v, str(k), x, y, False)]
 
         layers = [
@@ -44,14 +44,14 @@ class DecodeHelper(TextureHelper):
         dec = Image.new("RGBA", v.spriteSize)
         vs, ts, fs = v.mesh.values()
         for f in fs:
-            l, b, r, t = self._measure(np.stack(vs[f], -1))
-            box = self._measure(np.stack(ts[f], -1))
+            l, b, r, t = self._measure(vs[f])
+            box = self._measure(ts[f])
             dec.paste(v.tex.crop(box), (round(l), round(b)))
         return dec.transpose(Image.FLIP_TOP_BOTTOM)
 
     def _measure(self, data: np.ndarray) -> tuple[float, float, float, float]:
-        l, b = data.min(-1)
-        r, t = data.max(-1)
+        l, b = data.min(0)
+        r, t = data.max(0)
 
         # w = round(r - l)
         # # if w > round(w / 4) * 4:

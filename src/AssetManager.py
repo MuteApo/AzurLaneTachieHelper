@@ -2,34 +2,33 @@ import os
 import re
 import threading
 
-import numpy as np
 import UnityPy
 from PIL import Image
-from UnityPy import Environment
 from UnityPy.classes import AssetBundle, GameObject, RectTransform, Texture2D
 from UnityPy.enums import ClassIDType
 
 from .Layer import Layer
 from .utility import filter_env, prod, read_img
+from .Vector import Vector2
 
 metas = {
     "herohrzicon": {
-        "sprite": (272, 80),
-        "tex2d": (360, 80),
-        "pivot": (0.25, 0.6),
-        "scale": 0.5,
+        "sprite": Vector2(272, 80),
+        "tex2d": Vector2(360, 80),
+        "pivot": Vector2(0.35, 0.5),
+        "scale": 0.6,
     },
     "shipyardicon": {
-        "sprite": (192, 256),
-        "tex2d": (192, 256),
-        "pivot": (0.5, 0.75),
-        "scale": 0.5,
+        "sprite": Vector2(192, 256),
+        "tex2d": Vector2(192, 256),
+        "pivot": Vector2(0.5, 0.7),
+        "scale": 0.7,
     },
     "squareicon": {
-        "sprite": (116, 116),
-        "tex2d": (116, 116),
-        "pivot": (0.5, 0.65),
-        "scale": 0.5,
+        "sprite": Vector2(116, 116),
+        "tex2d": Vector2(116, 116),
+        "pivot": Vector2(0.5, 0.55),
+        "scale": 0.6,
     },
 }
 
@@ -59,8 +58,8 @@ class AssetManager:
     def init(self):
         self.meta: str = None
         self.name: str = None
-        self.size: tuple[int, int] = None
-        self.bias: tuple[float, float] = None
+        self.size: Vector2 = None
+        self.bias: Vector2 = None
         self.deps: dict[str, str] = {}
         self.maps: dict[str, str] = {}
         self.layers: dict[str, Layer] = {}
@@ -73,7 +72,7 @@ class AssetManager:
 
         self.meta = file
 
-        env: Environment = UnityPy.load(file)
+        env = UnityPy.load(file)
         abs: list[AssetBundle] = filter_env(env, AssetBundle)
         for dep in abs[0].m_Dependencies:
             path = os.path.join(os.path.dirname(file) + "/", dep)
@@ -110,16 +109,18 @@ class AssetManager:
         self.layers = base_layer.flatten() | {"face": base_layer.get_child("face")}
         [print(_) for _ in self.layers.values()]
 
-        x_min, y_min = np.min([_.posMin for _ in self.layers.values()], 0)
-        x_max, y_max = np.max([_.posMax for _ in self.layers.values()], 0)
-        self.size = (round(x_max - x_min + 1), round(y_max - y_min + 1))
-        self.bias = (-x_min, -y_min)
+        x_min = min([_.posMin.X for _ in self.layers.values()])
+        x_max = max([_.posMax.X for _ in self.layers.values()])
+        y_min = min([_.posMin.Y for _ in self.layers.values()])
+        y_max = max([_.posMax.Y for _ in self.layers.values()])
+        self.size = Vector2(x_max - x_min + 1, y_max - y_min + 1)
+        self.bias = Vector2(-x_min, -y_min)
 
     def load_paintings(self, workload: dict[str, str]):
         def load(name: str, path: str):
             print("      ", path)
             layer = self.layers[name]
-            x, y = np.add(layer.posMin, self.bias)
+            x, y = layer.posMin + self.bias
             w, h = layer.canvasSize
             sub = read_img(path).crop((x, y, x + w, y + h))
             self.repls[name] = sub.resize(layer.spriteSize)
@@ -139,11 +140,13 @@ class AssetManager:
 
     def clip_icons(self, workload: str):
         def clip(kind: str):
-            x, y = np.subtract(layer.posMin, prefered.posMin) + np.multiply(layer.sizeDelta, 0.5)
-            w, h = np.divide(metas[kind]["tex2d"], metas[kind]["scale"])
-            px, py = metas[kind]["pivot"]
+            center = layer.posMin - prefered.posMin + layer.sizeDelta / 2
+            size = metas[kind]["tex2d"] / metas[kind]["scale"]
+            pivot = metas[kind]["pivot"]
+            x0, y0 = center - size * pivot
+            x1, y1 = center + size * (Vector2.one() - pivot)
             # print(kind, prefered.name, x, y, w, h)
-            img = full.crop((x - w * px, y - h * py, x + w * (1 - px), y + h * (1 - py)))
+            img = full.crop((x0, y0, x1, y1))
             tex2d_size = aspect_ratio(kind, *img.size, False)
             sprite_size = aspect_ratio(kind, *img.size, True)
             # print(kind, tex2d_size, sprite_size)
@@ -156,7 +159,7 @@ class AssetManager:
         layer = self.layers["face"]
         expands = [v for k, v in self.layers.items() if k != "face" if v.contain(*layer.box)]
         prefered = sorted(expands, key=lambda v: prod(v.canvasSize))[0]
-        x, y = np.add(prefered.posMin, self.bias)
+        x, y = prefered.posMin + self.bias
         w, h = prefered.canvasSize
         full = read_img(workload).crop((x, y, x + w, y + h)).resize(prefered.spriteSize)
         output = []

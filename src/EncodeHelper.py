@@ -2,7 +2,6 @@ import os
 import re
 import struct
 
-import numpy as np
 import UnityPy
 from PIL import Image
 from tqdm import tqdm
@@ -77,10 +76,10 @@ class EncodeHelper(TextureHelper):
         env = UnityPy.load(path)
 
         layer = self.face_layer
-        x, y = np.add(layer.posMin, self.bias)
-        w, h = layer.sizeDelta
         repls: dict[int, Image.Image] = {}
         for i, v in enumerate(tqdm(is_clip)):
+            x, y = layer.posMin + self.bias
+            w, h = layer.sizeDelta
             img = self.repls[i + 1]
             if not adv_mode:
                 repls[i + 1] = img.crop((x, y, x + w, y + h))
@@ -94,7 +93,7 @@ class EncodeHelper(TextureHelper):
 
                     img = Image.merge("RGBA", [*rgb.split()[:3], a.split()[-1]])
 
-                x, y = np.add(prefered.posMin, self.bias)
+                x, y = prefered.posMin + self.bias
                 w, h = prefered.canvasSize
                 repls[i + 1] = img.crop((x, y, x + w, y + h))
 
@@ -128,9 +127,9 @@ class EncodeHelper(TextureHelper):
         face = face_rt.read_typetree()
         w, h = prefered.canvasSize
         px, py = prefered.pivot
-        fix = np.subtract(prefered.canvasSize, prefered.sizeDelta) * prefered.pivot
-        x1, y1 = np.subtract(prefered.posPivot, layer.parent.posPivot) + fix
-        x2, y2 = np.subtract(prefered.posPivot, layer.posAnchor) + fix + self.bias
+        fix = (prefered.canvasSize - prefered.sizeDelta) * prefered.pivot
+        x1, y1 = (prefered.posPivot - layer.parent.posPivot) + fix
+        x2, y2 = (prefered.posPivot - layer.posAnchor) + fix + self.bias
         face["m_SizeDelta"] = {"x": w, "y": h}
         face["m_Pivot"] = {"x": px, "y": py}
         face["m_LocalPosition"] = {"x": x1, "y": y1, "z": 0.0}
@@ -160,12 +159,12 @@ class EncodeHelper(TextureHelper):
                 img = self.icons[kind]
                 tex2d_size = aspect_ratio(kind, *img.size, False)
                 sprite_size = aspect_ratio(kind, *img.size, True)
-                if sprite is not None:
-                    sprite.m_Rect.width, sprite.m_Rect.height = tex2d_size
-                    sprite.m_RD.textureRect.width, sprite.m_RD.textureRect.height = sprite_size
-                    sprite.save()
-                tex2d.m_Width, tex2d.m_Height = tex2d_size
-                tex2d.set_image(img, target_format=TextureFormat.RGBA32)
+                # if sprite is not None:
+                #     sprite.m_Rect.width, sprite.m_Rect.height = tex2d_size
+                #     sprite.m_RD.textureRect.width, sprite.m_RD.textureRect.height = sprite_size
+                #     sprite.save()
+                # tex2d.m_Width, tex2d.m_Height = tex2d_size
+                tex2d.set_image(img.resize(tex2d.image.size), target_format=TextureFormat.RGBA32)
                 tex2d.save()
                 mod = True
                 break
