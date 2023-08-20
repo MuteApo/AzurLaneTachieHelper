@@ -36,7 +36,7 @@ class TextureHelper:
 
     @property
     def face_layer(self):
-        return self.asset_manager.layers["face"]
+        return self.asset_manager.face_layer
 
     @property
     def faces(self):

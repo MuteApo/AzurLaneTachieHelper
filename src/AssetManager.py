@@ -7,38 +7,18 @@ from PIL import Image
 from UnityPy.classes import AssetBundle, GameObject, RectTransform, Texture2D
 from UnityPy.enums import ClassIDType
 
+from .IconViewer import IconPreset
 from .Layer import Layer
 from .utility import filter_env, prod, read_img
 from .Vector import Vector2
 
-metas = {
-    "herohrzicon": {
-        "sprite": Vector2(272, 80),
-        "tex2d": Vector2(360, 80),
-        "pivot": Vector2(0.35, 0.5),
-        "scale": 0.6,
-    },
-    "shipyardicon": {
-        "sprite": Vector2(192, 256),
-        "tex2d": Vector2(192, 256),
-        "pivot": Vector2(0.5, 0.7),
-        "scale": 0.7,
-    },
-    "squareicon": {
-        "sprite": Vector2(116, 116),
-        "tex2d": Vector2(116, 116),
-        "pivot": Vector2(0.5, 0.55),
-        "scale": 0.6,
-    },
-}
 
-
-def aspect_ratio(kind: str, w: int, h: int, clip: bool):
-    std = metas[kind]["tex2d"]
-    if round(std[0] / w * h) != std[1]:
-        print(f"[WARNING] Bad aspect ratio {(w, h)}, expected {std}")
+def aspect_ratio(preset: IconPreset, w: int, h: int, clip: bool):
+    std = preset.tex2d
+    # if round(std.X / w * h) != std.Y:
+    #     print(f"[WARNING] Bad aspect ratio {(w, h)}, expect {std}")
     if clip:
-        w = round(w / std[0] * metas[kind]["sprite"][0])
+        w = round(w / std.X * preset.sprite.X)
     return w, h
 
 
@@ -66,6 +46,10 @@ class AssetManager:
         self.faces: dict[int, Image.Image] = {}
         self.repls: dict[str | int, Image.Image] = {}
         self.icons: dict[str, Image.Image] = {}
+
+    @property
+    def face_layer(self):
+        return self.layers["face"]
 
     def analyze(self, file: str):
         self.init()
@@ -138,17 +122,16 @@ class AssetManager:
         [_.start() for _ in tasks]
         [_.join() for _ in tasks]
 
-    def clip_icons(self, workload: str):
-        def clip(kind: str):
-            center = layer.posMin - prefered.posMin + layer.sizeDelta / 2
-            size = metas[kind]["tex2d"] / metas[kind]["scale"]
-            pivot = metas[kind]["pivot"]
+    def clip_icons(self, workload: str, presets: dict[str, IconPreset]):
+        def clip(kind: str, preset: IconPreset):
+            size = preset.tex2d / preset.scale
+            pivot = preset.pivot
             x0, y0 = center - size * pivot
             x1, y1 = center + size * (Vector2.one() - pivot)
             # print(kind, prefered.name, x, y, w, h)
             img = full.crop((x0, y0, x1, y1))
-            tex2d_size = aspect_ratio(kind, *img.size, False)
-            sprite_size = aspect_ratio(kind, *img.size, True)
+            tex2d_size = aspect_ratio(preset, *img.size, False)
+            sprite_size = aspect_ratio(preset, *img.size, True)
             # print(kind, tex2d_size, sprite_size)
             sub = Image.new("RGBA", tex2d_size)
             sub.paste(img.crop((0, 0, *sprite_size)))
@@ -156,16 +139,23 @@ class AssetManager:
             sub.transpose(Image.FLIP_TOP_BOTTOM).save(path)
             output.append(path)
 
-        layer = self.layers["face"]
-        expands = [v for k, v in self.layers.items() if k != "face" if v.contain(*layer.box)]
-        prefered = sorted(expands, key=lambda v: prod(v.canvasSize))[0]
-        x, y = prefered.posMin + self.bias
-        w, h = prefered.canvasSize
-        full = read_img(workload).crop((x, y, x + w, y + h)).resize(prefered.spriteSize)
+        full, center = self.prepare_icon(workload)
         output = []
 
-        tasks = [threading.Thread(target=clip, args=(k,)) for k in metas.keys()]
+        tasks = [threading.Thread(target=clip, args=(k, v)) for k, v in presets.items()]
         [_.start() for _ in tasks]
         [_.join() for _ in tasks]
 
         return output
+
+    def prefered(self, layer: Layer) -> Layer:
+        expands = [v for k, v in self.layers.items() if k != "face" if v.contain(*layer.box)]
+        return sorted(expands, key=lambda v: prod(v.canvasSize))[0]
+
+    def prepare_icon(self, file: str) -> tuple[Image.Image, Vector2]:
+        prefered = self.prefered(self.face_layer)
+        x, y = prefered.posMin + self.bias
+        w, h = prefered.canvasSize
+        full = read_img(file).crop((x, y, x + w, y + h)).resize(prefered.spriteSize)
+        center = self.face_layer.posMin - prefered.posMin + self.face_layer.sizeDelta / 2
+        return full, center

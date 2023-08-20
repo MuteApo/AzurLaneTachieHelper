@@ -8,9 +8,8 @@ from tqdm import tqdm
 from UnityPy.classes import Mesh, Sprite, Texture2D
 from UnityPy.enums import TextureFormat
 
-from .AssetManager import aspect_ratio
 from .TextureHelper import TextureHelper
-from .utility import check_dir, filter_env, prod
+from .utility import check_dir, filter_env
 
 
 class EncodeHelper(TextureHelper):
@@ -67,8 +66,7 @@ class EncodeHelper(TextureHelper):
 
     def _replace_face(self, dir: str, adv_mode: bool, is_clip: list[bool]) -> list[str]:
         layer = self.face_layer
-        expands = [v for k, v in self.layers.items() if k != "face" if v.contain(*layer.box)]
-        prefered = sorted(expands, key=lambda v: prod(v.canvasSize))[0]
+        prefered = self.asset_manager.prefered(layer)
 
         path = os.path.join(
             os.path.dirname(self.meta), "paintingface", self.name.removesuffix("_n")
@@ -144,6 +142,9 @@ class EncodeHelper(TextureHelper):
         return [meta, output]
 
     def _replace_icon(self, dir: str, kind: str):
+        if kind not in self.icons:
+            return
+
         ab = os.path.join(os.path.dirname(self.meta), kind, self.name)
         if not os.path.exists(ab):
             return
@@ -151,23 +152,13 @@ class EncodeHelper(TextureHelper):
         env = UnityPy.load(ab)
         mod = False
         for v in env.container.values():
+            img = self.icons[kind]
             sprite: Sprite = v.read()
             tex2d: Texture2D = sprite.m_RD.texture.read()
-
-            if kind in self.icons:
-                # print(f"       {src}")
-                img = self.icons[kind]
-                tex2d_size = aspect_ratio(kind, *img.size, False)
-                sprite_size = aspect_ratio(kind, *img.size, True)
-                # if sprite is not None:
-                #     sprite.m_Rect.width, sprite.m_Rect.height = tex2d_size
-                #     sprite.m_RD.textureRect.width, sprite.m_RD.textureRect.height = sprite_size
-                #     sprite.save()
-                # tex2d.m_Width, tex2d.m_Height = tex2d_size
-                tex2d.set_image(img.resize(tex2d.image.size), target_format=TextureFormat.RGBA32)
-                tex2d.save()
-                mod = True
-                break
+            tex2d.set_image(img.resize(tex2d.image.size), TextureFormat.RGBA32)
+            tex2d.save()
+            mod = True
+            break
 
         if mod:
             check_dir(dir, "output", kind)

@@ -1,3 +1,5 @@
+from math import ceil, floor
+
 from typing_extensions import Self
 
 
@@ -68,6 +70,12 @@ class Vector2:
 
     def round(self):
         return Vector2(round(self.X), round(self.Y))
+
+    def floor(self):
+        return Vector2(floor(self.X), floor(self.Y))
+
+    def ceil(self):
+        return Vector2(ceil(self.X), ceil(self.Y))
 
     @staticmethod
     def zero():

@@ -6,4 +6,6 @@ pyinstaller
 pyside6
 pytoshop
 six
+tqdm
+typing_extensions
 unitypy
