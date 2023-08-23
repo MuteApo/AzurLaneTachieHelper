@@ -14,8 +14,8 @@ class Vector2:
                 self.X, self.Y = args[0]
         elif len(args) == 2:
             self.X, self.Y = args
-            assert isinstance(self.X, (float, int))
-            assert isinstance(self.Y, (float, int))
+            # assert isinstance(self.X, (float, int)), f"{type(self.X)}: {self.X}"
+            # assert isinstance(self.Y, (float, int)), f"{type(self.Y)}: {self.Y}"
         else:
             raise ValueError(args)
 
@@ -67,6 +67,9 @@ class Vector2:
         if not isinstance(other, Vector2):
             other = Vector2(other)
         return Vector2(self.X / other.X, self.Y / other.Y)
+
+    def tuple(self):
+        return self.X, self.Y
 
     def round(self):
         return Vector2(round(self.X), round(self.Y))

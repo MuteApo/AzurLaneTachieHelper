@@ -1,4 +1,5 @@
 import os
+from math import floor
 
 import numpy as np
 from PIL import Image
@@ -21,12 +22,16 @@ class DecodeHelper(TextureHelper):
                 sub.save(f"{os.path.join(dir, k)}.png")
             sub = sub.resize(v.canvasSize.round())
             x, y = v.posMin + self.bias
+            xx, yy = np.add([x, y], sub.size)
+            print(x, y, sub.size, xx, yy)
             painting += [self.ps_layer(sub, k, x, y, True)]
 
         print("[INFO] Decoding paintingface")
         face = []
         for k, v in tqdm(sorted(self.faces.items())):
             x, y = self.face_layer.posMin + self.bias
+            xx, yy = np.add([x, y], v.size)
+            print(x, y, v.size, xx, yy)
             face += [self.ps_layer(v, str(k), x, y, False)]
 
         layers = [
@@ -41,7 +46,7 @@ class DecodeHelper(TextureHelper):
         return path
 
     def decode(self, v: Layer) -> Image.Image:
-        dec = Image.new("RGBA", v.spriteSize)
+        dec = Image.new("RGBA", v.spriteSize.round().tuple())
         vs, ts, fs = v.mesh.values()
         for f in fs:
             l, b, r, t = self._measure(vs[f])
@@ -68,7 +73,7 @@ class DecodeHelper(TextureHelper):
         return l, b, r, t
 
     def ps_layer(
-        self, img: Image.Image, name: str, x: float, y: float, visible: bool
+        self, img: Image.Image, name: str, x: int, y: int, visible: bool
     ) -> nested_layers.Layer:
         w, h = img.size
         r, g, b, a = img.split()

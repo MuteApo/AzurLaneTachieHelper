@@ -13,15 +13,6 @@ from .utility import filter_env, prod, read_img
 from .Vector import Vector2
 
 
-def aspect_ratio(preset: IconPreset, w: int, h: int, clip: bool):
-    std = preset.tex2d
-    # if round(std.X / w * h) != std.Y:
-    #     print(f"[WARNING] Bad aspect ratio {(w, h)}, expect {std}")
-    if clip:
-        w = round(w / std.X * preset.sprite.X)
-    return w, h
-
-
 def rt_get_name(rt: RectTransform) -> str:
     return rt.m_GameObject.read().m_Name.lower()
 
@@ -44,8 +35,8 @@ class AssetManager:
         self.maps: dict[str, str] = {}
         self.layers: dict[str, Layer] = {}
         self.faces: dict[int, Image.Image] = {}
-        self.repls: dict[str | int, Image.Image] = {}
         self.icons: dict[str, Image.Image] = {}
+        self.repls: dict[str | int, Image.Image] = {}
 
     @property
     def face_layer(self):
@@ -55,6 +46,7 @@ class AssetManager:
         self.init()
 
         self.meta = file
+        base = os.path.basename(file).removesuffix("_n")
 
         env = UnityPy.load(file)
         abs: list[AssetBundle] = filter_env(env, AssetBundle)
@@ -68,7 +60,7 @@ class AssetManager:
                 if x.type == ClassIDType.Sprite:
                     self.maps[dep] = x.read().name
 
-        face = "paintingface/" + os.path.basename(file).removesuffix("_n")
+        face = os.path.join("paintingface/", base)
         path = os.path.join(os.path.dirname(file) + "/", face)
         if os.path.exists(path):
             self.deps[face] = path
@@ -80,6 +72,20 @@ class AssetManager:
             }
         else:
             self.deps[face] = None
+
+        for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
+            icon = os.path.join(kind + "/", base)
+            path = os.path.join(os.path.dirname(file) + "/", icon)
+            if os.path.exists(path):
+                env.load_file(path)
+                self.icons |= {
+                    kind: _.image
+                    for _ in filter_env(env, Texture2D)
+                    if re.match(f"^{base}$", _.name)
+                }
+            else:
+                self.icons[kind] = None
+        print(self.icons)
 
         print("[INFO] Dependencies:")
         [print("      ", _) for _ in self.deps.keys()]
@@ -128,15 +134,9 @@ class AssetManager:
             pivot = preset.pivot
             x0, y0 = center - size * pivot
             x1, y1 = center + size * (Vector2.one() - pivot)
-            # print(kind, prefered.name, x, y, w, h)
-            img = full.crop((x0, y0, x1, y1))
-            tex2d_size = aspect_ratio(preset, *img.size, False)
-            sprite_size = aspect_ratio(preset, *img.size, True)
-            # print(kind, tex2d_size, sprite_size)
-            sub = Image.new("RGBA", tex2d_size)
-            sub.paste(img.crop((0, 0, *sprite_size)))
+
             path = os.path.join(os.path.dirname(self.meta), f"{kind}.png")
-            sub.transpose(Image.FLIP_TOP_BOTTOM).save(path)
+            full.crop((x0, y0, x1, y1)).transpose(Image.FLIP_TOP_BOTTOM).save(path)
             output.append(path)
 
         full, center = self.prepare_icon(workload)

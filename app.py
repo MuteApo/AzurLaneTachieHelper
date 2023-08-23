@@ -14,11 +14,11 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QSizePolicy,
-    QSpacerItem,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
+    QMenu,
 )
 
 from src import AssetManager, DecodeHelper, EncodeHelper, IconViewer
@@ -207,28 +207,32 @@ class AzurLaneTachieHelper(QMainWindow):
         )
 
     def _init_menu(self):
-        self.mFile = self.menuBar().addMenu(self.tr("File"))
+        self.mFile = QMenu(self.tr("File"), self)
         self.mFile.addAction(self.aFileOpenMetadata)
         self.mFile.addAction(self.aFileImportPainting)
         self.mFile.addAction(self.aFileImportPaintingface)
         self.mFile.addAction(self.aFileImportIcons)
 
-        self.mEdit = self.menuBar().addMenu(self.tr("Edit"))
+        self.mEdit = QMenu(self.tr("Edit"), self)
         self.mEdit.addAction(self.aEditClipIcons)
         self.mEdit.addAction(self.aEditDecodeTexture)
         self.mEdit.addAction(self.aEditEncodeTexture)
 
-        self.mOption = self.menuBar().addMenu(self.tr("Option"))
+        self.mOption = QMenu(self.tr("Option"), self)
         self.mOption.addAction(self.aOptionDumpLayer)
         self.mOption.addAction(self.aOptionAdvMode)
         self.mOption.addAction(self.aOptionReplaceIcons)
 
+        self.menuBar().addMenu(self.mFile)
+        self.menuBar().addMenu(self.mEdit)
+        self.menuBar().addMenu(self.mOption)
+
     def show_path(self, text: str):
         msg_box = QMessageBox()
         msg_box.setText(self.tr("Successfully written into:") + f"\n{text}")
-        msg_box.layout().addItem(
-            QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        )
+        # msg_box.layout().addItem(
+        #     QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        # )
         msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg_box.exec()
 
@@ -331,7 +335,7 @@ class AzurLaneTachieHelper(QMainWindow):
                 name, _ = os.path.splitext(os.path.basename(file))
                 if name in ["shipyardicon", "squareicon", "herohrzicon"]:
                     print("      ", QDir.toNativeSeparators(file))
-                    self.asset_manager.icons[name] = Image.open(file)
+                    self.asset_manager.repls[name] = Image.open(file)
 
             self.aEditEncodeTexture.setEnabled(True)
 
@@ -341,7 +345,7 @@ class AzurLaneTachieHelper(QMainWindow):
             self, self.tr("Select Reference"), last, "Image (*.png)"
         )
         if file:
-            viewer = IconViewer(*self.asset_manager.prepare_icon(file))
+            viewer = IconViewer(self.asset_manager.icons, *self.asset_manager.prepare_icon(file))
             if viewer.exec():
                 res = self.asset_manager.clip_icons(file, viewer.presets)
                 self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))

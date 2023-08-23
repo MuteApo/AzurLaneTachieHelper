@@ -1,8 +1,16 @@
 from dataclasses import dataclass
 
+import numpy as np
 from PIL import Image, ImageQt
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QMouseEvent, QPainter, QPaintEvent, QPixmap, QWheelEvent
+from PySide6.QtGui import (
+    QKeyEvent,
+    QMouseEvent,
+    QPainter,
+    QPaintEvent,
+    QPixmap,
+    QWheelEvent,
+)
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -51,13 +59,17 @@ class IconPreset:
 
 
 class Icon(QWidget):
-    def __init__(self, img: QPixmap, center: Vector2, preset: IconPreset):
+    def __init__(self, img: Image.Image, ref: Image.Image, preset: IconPreset, center: Vector2):
         super().__init__()
 
-        self.img = img
-        self.center = center
+        self.img = QPixmap.fromImage(ImageQt.ImageQt(img.transpose(Image.FLIP_TOP_BOTTOM)))
+        data = np.array(ref)
+        data[..., 3] //= 2
+        self.ref = QPixmap.fromImage(ImageQt.ImageQt(Image.fromarray(data)))
         self.preset = preset
+        self.center = center
         self.pressed = False
+        self.display = True
 
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.MinimumExpanding)
 
@@ -75,54 +87,83 @@ class Icon(QWidget):
             current_pos = event.globalPos()
             diff = current_pos - self.prev_pos
             self.prev_pos = current_pos
-            self.preset.pivot += Vector2(diff.x() / 100, diff.y() / -100)
-            self.update()
+            self.preset.pivot += Vector2(diff.x() / 300, diff.y() / -300)
+            if self.check(self.preset):
+                self.update()
+            else:
+                self.preset.pivot -= Vector2(diff.x() / 300, diff.y() / -300)
 
     def wheelEvent(self, event: QWheelEvent):
         diff = event.angleDelta()
-        self.preset.scale += diff.y() / 12000
-        self.update()
+        self.preset.scale += diff.y() / 18000
+        if self.check(self.preset):
+            self.update()
+        else:
+            self.preset.scale -= diff.y() / 18000
 
     def paintEvent(self, event: QPaintEvent):
         painter = QPainter(self)
-        rect = self.texrect()
-        size = self.preset.tex2d * 1.25
-        sub = self.img.copy(*rect)
-        painter.drawPixmap(0, 0, sub.scaled(*size, mode=Qt.TransformationMode.SmoothTransformation))
+        painter.drawPixmap(0, 0, self.ref)
+        rect = self.texrect(self.preset)
+        size = self.preset.tex2d
+        if self.display:
+            sub = self.img.copy(*rect).scaled(
+                *size, mode=Qt.TransformationMode.SmoothTransformation
+            )
+            painter.drawPixmap(0, 0, sub)
         painter.drawRect(1, 1, *(size - 1))
 
-    def texrect(self) -> tuple[float, float, float, float]:
-        w, h = self.preset.tex2d / self.preset.scale
-        x, y = self.center - Vector2(w, h) * self.preset.pivot
+    def texrect(self, preset: IconPreset) -> tuple[float, float, float, float]:
+        w, h = preset.tex2d / preset.scale
+        x, y = self.center - Vector2(w, h) * preset.pivot
         return x, self.img.height() - y - h, w, h
+
+    def check(self, preset: IconPreset) -> bool:
+        x, y, w, h = self.texrect(preset)
+        return x > 0 and y > 0 and x + w < self.img.width() and y + h < self.img.height()
 
 
 class IconViewer(QDialog):
-    def __init__(self, img: Image.Image, center: Vector2):
+    def __init__(self, refs: dict[str, Image.Image], img: Image.Image, center: Vector2):
         super().__init__()
         self.setWindowTitle(self.tr("AzurLane Tachie Helper"))
         self.setWindowIcon(QPixmap("ico/cheshire.ico"))
         self.resize(750, 350)
 
-        self.img = QPixmap.fromImage(ImageQt.ImageQt(img.transpose(Image.FLIP_TOP_BOTTOM)))
-        self.center = center
         self.presets = IconPreset.default()
+        self.shipyardicon = Icon(img, refs["squareicon"], self.presets["squareicon"], center)
+        self.squareicon = Icon(img, refs["shipyardicon"], self.presets["shipyardicon"], center)
+        self.herohrzicon = Icon(img, refs["herohrzicon"], self.presets["herohrzicon"], center)
 
         layout1 = QHBoxLayout()
         layout1.addSpacing(50)
-        layout1.addWidget(Icon(self.img, self.center, self.presets["squareicon"]))
+        layout1.addWidget(self.shipyardicon)
         layout1.addWidget(QPushButton(self.tr("Clip"), self, clicked=self.onClickClip))
         layout1.addSpacing(50)
 
         layout2 = QVBoxLayout()
-        layout2.addWidget(Icon(self.img, self.center, self.presets["herohrzicon"]))
+        layout2.addWidget(self.herohrzicon)
         layout2.addLayout(layout1)
 
         layout = QHBoxLayout()
-        layout.addWidget(Icon(self.img, self.center, self.presets["shipyardicon"]), 5)
+        layout.addWidget(self.squareicon, 5)
         layout.addLayout(layout2, 10)
 
         self.setLayout(layout)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if event.key() == Qt.Key.Key_Alt:
+            self.shipyardicon.display = False
+            self.squareicon.display = False
+            self.herohrzicon.display = False
+            self.update()
+
+    def keyReleaseEvent(self, event: QKeyEvent) -> None:
+        if event.key() == Qt.Key.Key_Alt:
+            self.shipyardicon.display = True
+            self.squareicon.display = True
+            self.herohrzicon.display = True
+            self.update()
 
     def onClickClip(self):
         for k, v in self.presets.items():

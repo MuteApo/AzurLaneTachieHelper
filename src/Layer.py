@@ -40,10 +40,10 @@ class Layer:
             # "anchoredPosition",
             "sizeDelta",
             # "pivot",
-            "posMin",
-            "posMax",
-            "meshSize",
-            "rawSpriteSize",
+            # "posMin",
+            # "posMax",
+            # "meshSize",
+            # "rawSpriteSize",
             "texture2D",
             "rawMesh",
         ]
@@ -160,12 +160,12 @@ class Layer:
         return getattr(self, "m_Mesh")
 
     @property
-    def rawSpriteSize(self) -> Optional[tuple[float, float]]:
+    def rawSpriteSize(self) -> Optional[Vector2]:
         if not hasattr(self, "m_RawSpriteSize"):
             if self.monoBehaviour is not None:
                 if hasattr(self.monoBehaviour, "mRawSpriteSize"):
                     x = getattr(self.monoBehaviour, "mRawSpriteSize")
-                    setattr(self, "m_RawSpriteSize", (round(x.x), round(x.y)))
+                    setattr(self, "m_RawSpriteSize", Vector2(x.x, x.y))
                     return getattr(self, "m_RawSpriteSize")
             setattr(self, "m_RawSpriteSize", None)
         return getattr(self, "m_RawSpriteSize")
