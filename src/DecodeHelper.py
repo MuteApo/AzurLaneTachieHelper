@@ -22,16 +22,12 @@ class DecodeHelper(TextureHelper):
                 sub.save(f"{os.path.join(dir, k)}.png")
             sub = sub.resize(v.canvasSize.round())
             x, y = v.posMin + self.bias
-            xx, yy = np.add([x, y], sub.size)
-            print(x, y, sub.size, xx, yy)
             painting += [self.ps_layer(sub, k, x, y, True)]
 
         print("[INFO] Decoding paintingface")
         face = []
         for k, v in tqdm(sorted(self.faces.items())):
             x, y = self.face_layer.posMin + self.bias
-            xx, yy = np.add([x, y], v.size)
-            print(x, y, v.size, xx, yy)
             face += [self.ps_layer(v, str(k), x, y, False)]
 
         layers = [

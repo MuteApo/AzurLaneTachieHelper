@@ -85,7 +85,6 @@ class AssetManager:
                 }
             else:
                 self.icons[kind] = None
-        print(self.icons)
 
         print("[INFO] Dependencies:")
         [print("      ", _) for _ in self.deps.keys()]
@@ -130,13 +129,12 @@ class AssetManager:
 
     def clip_icons(self, workload: str, presets: dict[str, IconPreset]):
         def clip(kind: str, preset: IconPreset):
-            size = preset.tex2d / preset.scale
-            pivot = preset.pivot
-            x0, y0 = center - size * pivot
-            x1, y1 = center + size * (Vector2.one() - pivot)
+            w, h = preset.tex2d / preset.scale
+            x, y = center - Vector2(w, h) * preset.pivot
 
             path = os.path.join(os.path.dirname(self.meta), f"{kind}.png")
-            full.crop((x0, y0, x1, y1)).transpose(Image.FLIP_TOP_BOTTOM).save(path)
+            img = full.rotate(preset.angle, center=(x + w / 2, y + h / 2))
+            img.crop((x, y, x + w, y + h)).transpose(Image.FLIP_TOP_BOTTOM).save(path)
             output.append(path)
 
         full, center = self.prepare_icon(workload)

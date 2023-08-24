@@ -1,4 +1,4 @@
-from math import ceil, floor
+import math
 
 from typing_extensions import Self
 
@@ -42,11 +42,14 @@ class Vector2:
         else:
             return False
 
-    def __ne__(lhs, rhs):
-        return not (lhs == rhs)
+    def __ne__(self, other):
+        return not self == other
 
     def __le__(self, other):
         return self.X < other.X or self.X == other.X and self.Y < other.Y
+
+    def __neg__(self) -> Self:
+        return Vector2(-self.X, -self.Y)
 
     def __add__(self, other) -> Self:
         if not isinstance(other, Vector2):
@@ -68,6 +71,23 @@ class Vector2:
             other = Vector2(other)
         return Vector2(self.X / other.X, self.Y / other.Y)
 
+    def __pow__(self, other):
+        if not isinstance(other, Vector2):
+            other = Vector2(other)
+        return Vector2(self.X**other.X, self.Y**other.Y)
+
+    def norm(self):
+        return math.sqrt((self**2).sum())
+
+    def sum(self):
+        return self.X + self.Y
+
+    def rotate(self, theta: float):
+        rad = math.radians(theta)
+        x = self.X * math.cos(rad) - self.Y * math.sin(rad)
+        y = self.X * math.sin(rad) + self.Y * math.cos(rad)
+        return Vector2(x, y)
+
     def tuple(self):
         return self.X, self.Y
 
@@ -75,10 +95,14 @@ class Vector2:
         return Vector2(round(self.X), round(self.Y))
 
     def floor(self):
-        return Vector2(floor(self.X), floor(self.Y))
+        return Vector2(math.floor(self.X), math.floor(self.Y))
 
     def ceil(self):
-        return Vector2(ceil(self.X), ceil(self.Y))
+        return Vector2(math.ceil(self.X), math.ceil(self.Y))
+
+    @staticmethod
+    def cross(a: Self, b: Self) -> float:
+        return a.X * b.Y - a.Y * b.X
 
     @staticmethod
     def zero():
