@@ -2,6 +2,7 @@ import os
 import re
 import threading
 
+import numpy as np
 import UnityPy
 from PIL import Image
 from UnityPy.classes import AssetBundle, GameObject, RectTransform, Texture2D
@@ -81,10 +82,8 @@ class AssetManager:
                 self.icons |= {
                     kind: _.image
                     for _ in filter_env(env, Texture2D)
-                    if re.match(f"^{base}$", _.name)
+                    if re.match(f"^(?i){base}$", _.name)
                 }
-            else:
-                self.icons[kind] = None
 
         print("[INFO] Dependencies:")
         [print("      ", _) for _ in self.deps.keys()]
@@ -134,6 +133,15 @@ class AssetManager:
 
             path = os.path.join(os.path.dirname(self.meta), f"{kind}.png")
             img = full.rotate(preset.angle, center=(x + w / 2, y + h / 2))
+            if kind == "shipyardicon":
+                sub = img.copy()
+                img = Image.new("RGBA", sub.size)
+                img.paste(sub, (round(-10 / preset.scale), 0))
+                data = np.array(img)
+                data[..., :3] = 0
+                data[..., 3] = np.where(data[..., 3] > 76, 76, data[..., 3])
+                img = Image.fromarray(data)
+                img.paste(sub, mask=sub)
             img.crop((x, y, x + w, y + h)).transpose(Image.FLIP_TOP_BOTTOM).save(path)
             output.append(path)
 

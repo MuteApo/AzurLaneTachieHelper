@@ -156,16 +156,9 @@ class Icon(QWidget):
         x, y = self.center - Vector2(w, h) * self.preset.pivot
         return x, y, w, h
 
-    def check(self) -> bool:
-        x, y, w, h = self.texrect()
-        return x > 0 and y > 0 and x + w < self.img.width and y + h < self.img.height
-
     def apply(self, pivot: Vector2 = Vector2.zero(), scale: float = 0, angle: float = 0):
         self.preset.apply(pivot, scale, angle)
-        if not self.check():
-            self.preset.apply(-pivot, -scale, -angle)
-        else:
-            self.update()
+        self.update()
 
 
 class IconViewer(QDialog):
@@ -178,7 +171,8 @@ class IconViewer(QDialog):
         self.presets = IconPreset.default()
         self.icons: dict[str, Icon] = {}
         for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
-            self.icons[kind] = Icon(img, refs[kind], self.presets[kind], center)
+            ref = refs.get(kind, Image.new("RGBA", self.presets[kind].tex2d.tuple()))
+            self.icons[kind] = Icon(img, ref, self.presets[kind], center)
 
         layout1 = QHBoxLayout()
         layout1.addWidget(self.icons["squareicon"])
