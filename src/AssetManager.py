@@ -35,9 +35,9 @@ class AssetManager:
         self.deps: dict[str, str] = {}
         self.maps: dict[str, str] = {}
         self.layers: dict[str, Layer] = {}
-        self.faces: dict[int, Image.Image] = {}
+        self.faces: dict[str, Image.Image] = {}
         self.icons: dict[str, Image.Image] = {}
-        self.repls: dict[str | int, Image.Image] = {}
+        self.repls: dict[str, Image.Image] = {}
 
     @property
     def face_layer(self):
@@ -67,7 +67,7 @@ class AssetManager:
             self.deps[face] = path
             env.load_file(path)
             self.faces |= {
-                eval(_.name): _.image
+                _.name: _.image
                 for _ in filter_env(env, Texture2D)
                 if re.match(r"^0|([1-9][0-9]*)$", _.name)
             }
@@ -101,7 +101,7 @@ class AssetManager:
         x_max = max([_.posMax.X for _ in self.layers.values()])
         y_min = min([_.posMin.Y for _ in self.layers.values()])
         y_max = max([_.posMax.Y for _ in self.layers.values()])
-        self.size = Vector2(x_max - x_min + 1, y_max - y_min + 1)
+        self.size = Vector2(x_max - x_min, y_max - y_min).round()
         self.bias = Vector2(-x_min, -y_min)
 
     def load_paintings(self, workload: dict[str, str]):
@@ -111,14 +111,14 @@ class AssetManager:
             x, y = layer.posMin + self.bias
             w, h = layer.canvasSize
             sub = read_img(path).crop((x, y, x + w, y + h))
-            self.repls[name] = sub.resize(layer.spriteSize)
+            self.repls[name] = sub.resize(layer.spriteSize.round().tuple())
 
         tasks = [threading.Thread(target=load, args=(k, v)) for k, v in workload.items()]
         [_.start() for _ in tasks]
         [_.join() for _ in tasks]
 
     def load_faces(self, workload: dict[int, str]):
-        def load(name: int, path: str):
+        def load(name: str, path: str):
             print("      ", path)
             self.repls[name] = read_img(path)
 

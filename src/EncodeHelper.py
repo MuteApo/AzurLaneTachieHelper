@@ -15,8 +15,6 @@ from .utility import check_dir, filter_env
 
 def aspect_ratio(preset: IconPreset, w: int, h: int, clip: bool):
     std = preset.tex2d
-    # if round(std.X / w * h) != std.Y:
-    #     print(f"[WARNING] Bad aspect ratio {(w, h)}, expect {std}")
     if clip:
         w = round(w / std.X * preset.sprite.X)
     return w, h
@@ -31,7 +29,7 @@ class EncodeHelper(TextureHelper):
             painting += [self._replace_painting(dir, x) for x in tqdm(valid)]
 
         face = []
-        if 1 in self.repls:
+        if "1" in self.repls:
             print("[INFO] Encoding paintingface")
             face += self._replace_face(dir, adv_mode, is_clip)
 
@@ -79,18 +77,19 @@ class EncodeHelper(TextureHelper):
         layer = self.face_layer
         prefered = self.asset_manager.prefered(layer)
 
-        base = self.name.removesuffix("_n")
+        base = self.name.removesuffix("_n").lower()
         path = os.path.join(os.path.dirname(self.meta), "paintingface", base)
         env = UnityPy.load(path)
 
         layer = self.face_layer
-        repls: dict[int, Image.Image] = {}
+        repls: dict[str, Image.Image] = {}
         for i, v in enumerate(tqdm(is_clip)):
             x, y = layer.posMin + self.bias
             w, h = layer.sizeDelta
-            img = self.repls[i + 1]
+            name = str(i + 1)
+            img = self.repls[name]
             if not adv_mode:
-                repls[i + 1] = img.crop((x, y, x + w, y + h))
+                repls[name] = img.crop((x, y, x + w, y + h))
             else:
                 if v:
                     rgb = Image.new("RGBA", img.size)
@@ -103,12 +102,12 @@ class EncodeHelper(TextureHelper):
 
                 x, y = prefered.posMin + self.bias
                 w, h = prefered.canvasSize
-                repls[i + 1] = img.crop((x, y, x + w, y + h))
+                repls[name] = img.crop((x, y, x + w, y + h))
 
         for _ in filter_env(env, Texture2D, False):
             tex2d: Texture2D = _.read()
             if re.match(r"^0|([1-9][0-9]*)$", tex2d.name):
-                img = repls[eval(tex2d.name)]
+                img = repls[tex2d.name]
                 tex2d.m_Width, tex2d.m_Height = img.size
                 tex2d.set_image(img.transpose(Image.FLIP_TOP_BOTTOM), TextureFormat.RGBA32)
                 tex2d.save()
@@ -116,7 +115,7 @@ class EncodeHelper(TextureHelper):
         for _ in filter_env(env, Sprite, False):
             sprite: Sprite = _.read()
             if re.match(r"^0|([1-9][0-9]*)$", sprite.name):
-                size = repls[eval(sprite.name)].size
+                size = repls[sprite.name].size
                 sprite.m_Rect.width, sprite.m_Rect.height = size
                 sprite.m_RD.textureRect.width, sprite.m_RD.textureRect.height = size
                 sprite.save()
@@ -152,7 +151,7 @@ class EncodeHelper(TextureHelper):
         return [meta, output]
 
     def _replace_icon(self, dir: str, kind: str):
-        base = self.name.removesuffix("_n")
+        base = self.name.removesuffix("_n").lower()
         path = os.path.join(os.path.dirname(self.meta), kind, base)
         if not os.path.exists(path):
             return

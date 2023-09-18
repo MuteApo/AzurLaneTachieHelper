@@ -17,18 +17,21 @@ class DecodeHelper(TextureHelper):
         painting = []
         filtered: dict[str, Layer] = {k: v for k, v in self.layers.items() if k != "face"}
         for k, v in tqdm(sorted(filtered.items(), key=lambda x: x[1].depth)):
-            sub = self.decode(v)
+            sub = v.tex.transform(v.spriteSize.round().tuple(), Image.MESH, v.mesh)
+            sub = sub.transpose(Image.FLIP_TOP_BOTTOM)
             if dump:
                 sub.save(f"{os.path.join(dir, k)}.png")
-            sub = sub.resize(v.canvasSize.round())
+            sub = sub.resize(v.canvasSize.round().tuple())
             x, y = v.posMin + self.bias
-            painting += [self.ps_layer(sub, k, x, y, True)]
+            sub = sub.transform(sub.size, Image.AFFINE, (1, 0, floor(x) - x, 0, 1, floor(y) - y))
+            painting += [self.ps_layer(sub, k, floor(x), floor(y), True)]
 
         print("[INFO] Decoding paintingface")
         face = []
-        for k, v in tqdm(sorted(self.faces.items())):
+        for k, v in tqdm(sorted(self.faces.items(), key=lambda x: int(x[0]))):
             x, y = self.face_layer.posMin + self.bias
-            face += [self.ps_layer(v, str(k), x, y, False)]
+            sub = v.transform(v.size, Image.AFFINE, (1, 0, floor(x) - x, 0, 1, floor(y) - y))
+            face += [self.ps_layer(sub, str(k), floor(x), floor(y), False)]
 
         layers = [
             nested_layers.Group(name="paintingface", layers=face, closed=False),
@@ -41,33 +44,6 @@ class DecodeHelper(TextureHelper):
 
         return path
 
-    def decode(self, v: Layer) -> Image.Image:
-        dec = Image.new("RGBA", v.spriteSize.round().tuple())
-        vs, ts, fs = v.mesh.values()
-        for f in fs:
-            l, b, r, t = self._measure(vs[f])
-            box = self._measure(ts[f])
-            dec.paste(v.tex.crop(box), (round(l), round(b)))
-        return dec.transpose(Image.FLIP_TOP_BOTTOM)
-
-    def _measure(self, data: np.ndarray) -> tuple[float, float, float, float]:
-        l, b = data.min(0)
-        r, t = data.max(0)
-
-        # w = round(r - l)
-        # # if w > round(w / 4) * 4:
-        # #     l += 1
-        # if w < round(w / 4) * 4:
-        #     r += 1
-
-        # h = round(t - b)
-        # if h > round(h / 4) * 4:
-        #     b += 1
-        # if h < round(h / 4) * 4:
-        #     t += 1
-
-        return l, b, r, t
-
     def ps_layer(
         self, img: Image.Image, name: str, x: int, y: int, visible: bool
     ) -> nested_layers.Layer:
@@ -77,10 +53,10 @@ class DecodeHelper(TextureHelper):
         layer = nested_layers.Image(
             name=name,
             visible=visible,
-            top=round(self.size[1] - y - h),
-            left=round(x),
-            bottom=round(self.size[1] - y),
-            right=round(x + w),
+            top=self.size[1] - y - h,
+            left=x,
+            bottom=self.size[1] - y,
+            right=x + w,
             channels=channels,
         )
         return layer

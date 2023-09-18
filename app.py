@@ -318,7 +318,7 @@ class AzurLaneTachieHelper(QMainWindow):
                             Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable
                         )
                         self.tFaceRepl.item(id - 1, 0).setCheckState(Qt.CheckState.Checked)
-                    workload |= {id: path}
+                    workload |= {name: path}
             self.asset_manager.load_faces(workload)
 
             self.aEditEncodeTexture.setEnabled(True)

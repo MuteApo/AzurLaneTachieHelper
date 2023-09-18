@@ -1,6 +1,5 @@
 from typing import Callable, Optional
 
-import numpy as np
 from PIL import Image
 from typing_extensions import Self
 from UnityPy.classes import (
@@ -17,10 +16,6 @@ from UnityPy.math import Quaternion, Vector3
 
 from .utility import prod
 from .Vector import Vector2
-
-
-def lerp(a, b, k):
-    return np.multiply(a, k) + np.multiply(b, 1 - np.array(k))
 
 
 class Layer:
@@ -40,10 +35,10 @@ class Layer:
             # "anchoredPosition",
             "sizeDelta",
             # "pivot",
-            # "posMin",
-            # "posMax",
-            # "meshSize",
-            # "rawSpriteSize",
+            "posMin",
+            "posMax",
+            "meshSize",
+            "rawSpriteSize",
             "texture2D",
             "rawMesh",
         ]
@@ -226,25 +221,36 @@ class Layer:
 
     @property
     def posMax(self) -> Vector2:
-        return self.posPivot + self.sizeDelta * (Vector2.one() - self.pivot)
+        return self.posMin + self.canvasSize
 
     @property
     def box(self) -> tuple[float, float, float, float]:
         return *self.posMin, *self.posMax
 
     @property
-    def mesh(self) -> dict[str, np.ndarray]:
+    def mesh(self) -> list[tuple]:
         if not hasattr(self, "_mesh"):
-            w, h = self.texture2D.image.size
-            if self.rawMesh is None:
-                v = np.array([[0, 0], [0, h], [w, h], [w, 0]])
-                vt = np.array([[0, 0], [0, h], [w, h], [w, 0]])
-                f = np.array([[0, 1, 2, 3]])
+            if self.texture2D is None:
+                setattr(self, "_mesh", None)
             else:
-                v = np.array(self.rawMesh.m_Vertices).reshape((-1, 3))[:, :2]
-                vt = np.array(self.rawMesh.m_UV0).reshape((-1, 2)) * (w, h)
-                f = np.array(self.rawMesh.m_Indices).reshape((-1, 6))[:, (0, 1, 3, 4)]
-            setattr(self, "_mesh", {"v": v, "vt": vt, "f": f})
+                w, h = self.texture2D.image.size
+                val = []
+                if self.rawMesh is None:
+                    val += [((0, 0, w, h), (0, 0, 0, h, w, h, w, 0))]
+                else:
+                    v = self.rawMesh.m_Vertices
+                    v = [(round(v[i]), round(v[i + 1])) for i in range(0, len(v), 3)]
+                    t = self.rawMesh.m_UV0
+                    t = [(round(t[i] * w), round(t[i + 1] * h)) for i in range(0, len(t), 2)]
+                    f = self.rawMesh.m_Indices
+                    for i in range(0, len(f), 6):
+                        val += [
+                            (
+                                (*v[f[i]], *v[f[i + 3]]),
+                                (*t[f[i]], *t[f[i + 1]], *t[f[i + 3]], *t[f[i + 4]]),
+                            )
+                        ]
+                setattr(self, "_mesh", val)
         return getattr(self, "_mesh")
 
     @property
@@ -257,9 +263,13 @@ class Layer:
     @property
     def meshSize(self) -> Vector2:
         if not hasattr(self, "_mesh_size"):
-            v, _, _ = self.mesh.values()
-            w, h = np.max(v, 0) - np.min(v, 0) + 1
-            setattr(self, "_mesh_size", Vector2(w, h))
+            if self.mesh is None:
+                setattr(self, "_mesh_size", None)
+            else:
+                v = [x[0] for x in self.mesh]
+                w = max([x[2] for x in v]) + 1
+                h = max([x[3] for x in v]) + 1
+                setattr(self, "_mesh_size", Vector2(w, h))
         return getattr(self, "_mesh_size")
 
     @property
@@ -268,15 +278,14 @@ class Layer:
             return self.meshSize
         elif prod(self.meshSize) > prod(self.rawSpriteSize):
             return self.meshSize
-            # w, h = self.rawSpriteSize
-            # r = min(self.meshSize[0] / w, self.meshSize[1] / h)
-            # return round(w * r), round(h * r)
         else:
             return self.rawSpriteSize
 
     @property
     def canvasSize(self) -> Vector2:
-        if prod(self.spriteSize) > prod(self.sizeDelta):
+        if self.spriteSize is None:
+            return self.sizeDelta
+        elif prod(self.spriteSize) > prod(self.sizeDelta):
             return self.spriteSize
         else:
             return self.sizeDelta

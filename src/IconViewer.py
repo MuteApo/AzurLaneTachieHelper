@@ -1,25 +1,10 @@
 import math
 from dataclasses import dataclass
 
-import numpy as np
-from PIL import Image, ImageQt
+from PIL import Image, ImageChops
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import (
-    QKeyEvent,
-    QMouseEvent,
-    QPainter,
-    QPaintEvent,
-    QPixmap,
-    QWheelEvent,
-)
-from PySide6.QtWidgets import (
-    QDialog,
-    QHBoxLayout,
-    QPushButton,
-    QSizePolicy,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtGui import QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QWheelEvent
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 from typing_extensions import Self
 
 from .Vector import Vector2
@@ -77,9 +62,8 @@ class Icon(QWidget):
         super().__init__()
 
         self.img = img
-        data = np.array(ref)
-        data[..., 3] //= 2
-        self.ref = QPixmap.fromImage(ImageQt.ImageQt(Image.fromarray(data)))
+        bg = Image.new("RGBA", ref.size, (255, 255, 255, 0))
+        self.ref = ImageChops.blend(ref, bg, 0.5).toqpixmap()
         self.preset = preset
         self.center = center
         self.pressed = False
@@ -142,8 +126,7 @@ class Icon(QWidget):
         theta = self.preset.angle
         if self.display:
             sub = self.img.rotate(theta, center=center).crop(box).resize(size)
-            sub = ImageQt.ImageQt(sub.transpose(Image.FLIP_TOP_BOTTOM))
-            painter.drawPixmap(0, 0, QPixmap.fromImage(sub))
+            painter.drawPixmap(0, 0, sub.transpose(Image.FLIP_TOP_BOTTOM).toqpixmap())
         painter.drawRect(1, 1, *(size - 1))
 
     def calc_angle(self, u: QPoint, v: QPoint) -> float:
