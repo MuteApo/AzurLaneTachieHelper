@@ -230,9 +230,6 @@ class AzurLaneTachieHelper(QMainWindow):
     def show_path(self, text: str):
         msg_box = QMessageBox()
         msg_box.setText(self.tr("Successfully written into:") + f"\n{text}")
-        # msg_box.layout().addItem(
-        #     QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        # )
         msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg_box.exec()
 
@@ -262,14 +259,13 @@ class AzurLaneTachieHelper(QMainWindow):
 
                 self.tPaintRepl.setItem(i, 0, QTableWidgetItem(k))
 
-            self.check_box: list[QTableWidgetItem] = []
-            for i in range(self.num_faces):
-                x = self.tDep.item(self.num_deps - 1, 0).text() + f"/{i+1}"
-                item = QTableWidgetItem(x)
+            self.check_box: dict[str, QTableWidgetItem] = {}
+            for i, x in enumerate(self.asset_manager.faces):
+                item = QTableWidgetItem(self.tDep.item(self.num_deps - 1, 0).text() + f"/{x}")
                 item.setCheckState(Qt.CheckState.Checked)
                 item.setFlags(~Qt.ItemFlag.ItemIsEnabled)
                 self.tFaceRepl.setItem(i, 0, item)
-                self.check_box += [item]
+                self.check_box[x] = item
 
             self.aFileImportPainting.setEnabled(True)
             self.aFileImportPaintingface.setEnabled(True)
@@ -306,19 +302,21 @@ class AzurLaneTachieHelper(QMainWindow):
             print("      ", QDir.toNativeSeparators(dir))
             print("[INFO] Paintingfaces:")
 
-            workload = {}
+            pics = {}
             for file in os.listdir(dir):
                 name, _ = os.path.splitext(file)
                 if re.match(r"^0|([1-9][0-9]*)$", name):
-                    id = int(name)
-                    path = QDir.toNativeSeparators(os.path.join(dir, file))
-                    self.tFaceRepl.setItem(id - 1, 1, QTableWidgetItem(path))
-                    if self.adv_mode:
-                        self.tFaceRepl.item(id - 1, 0).setFlags(
-                            Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable
-                        )
-                        self.tFaceRepl.item(id - 1, 0).setCheckState(Qt.CheckState.Checked)
-                    workload |= {name: path}
+                    pics[name] = file
+            workload = {}
+            for i in range(self.num_faces):
+                id = os.path.basename(self.tFaceRepl.item(i, 0).text())
+                path = QDir.toNativeSeparators(os.path.join(dir, pics[id]))
+                self.tFaceRepl.setItem(i, 1, QTableWidgetItem(path))
+                if self.adv_mode:
+                    item = self.tFaceRepl.item(i, 0)
+                    item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
+                    item.setCheckState(Qt.CheckState.Checked)
+                workload |= {id: path}
             self.asset_manager.load_faces(workload)
 
             self.aEditEncodeTexture.setEnabled(True)
@@ -361,7 +359,9 @@ class AzurLaneTachieHelper(QMainWindow):
         last = os.path.dirname(self.settings.value("File/RecentPath", ""))
         dir = QFileDialog.getExistingDirectory(self, dir=last)
         if dir:
-            is_clip = [_.checkState() != Qt.CheckState.Unchecked for _ in self.check_box]
+            is_clip = {
+                k: v.checkState() != Qt.CheckState.Unchecked for k, v in self.check_box.items()
+            }
             res = self.encoder.exec(dir, self.replace_icon, self.adv_mode, is_clip)
             self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
 

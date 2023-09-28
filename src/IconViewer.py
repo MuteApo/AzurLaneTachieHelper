@@ -3,8 +3,22 @@ from dataclasses import dataclass
 
 from PIL import Image, ImageChops
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QWheelEvent
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtGui import (
+    QKeyEvent,
+    QMouseEvent,
+    QPainter,
+    QPaintEvent,
+    QPixmap,
+    QWheelEvent,
+)
+from PySide6.QtWidgets import (
+    QDialog,
+    QHBoxLayout,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 from typing_extensions import Self
 
 from .Vector import Vector2
@@ -33,27 +47,9 @@ class IconPreset:
     @classmethod
     def default(cls) -> dict[str, Self]:
         return {
-            "shipyardicon": IconPreset(
-                Vector2(192, 256),
-                Vector2(192, 256),
-                Vector2(0.5, 0.7),
-                0.6,
-                0,
-            ),
-            "squareicon": IconPreset(
-                Vector2(116, 116),
-                Vector2(116, 116),
-                Vector2(0.5, 0.6),
-                0.6,
-                0,
-            ),
-            "herohrzicon": IconPreset(
-                Vector2(272, 80),
-                Vector2(360, 80),
-                Vector2(0.2, 0.6),
-                0.6,
-                0,
-            ),
+            "shipyardicon": IconPreset(Vector2(192, 256), Vector2(192, 256), Vector2(0.5, 0.7), 0.6, 0),
+            "squareicon": IconPreset(Vector2(116, 116), Vector2(116, 116), Vector2(0.5, 0.6), 0.6, 0),
+            "herohrzicon": IconPreset(Vector2(272, 80), Vector2(360, 80), Vector2(0.2, 0.6), 0.6, 0),
         }
 
 
@@ -120,14 +116,11 @@ class Icon(QWidget):
         painter = QPainter(self)
         painter.drawPixmap(0, 0, self.ref)
         x, y, w, h = self.texrect()
-        center = (x + w / 2, y + h / 2)
-        box = (x, y, x + w, y + h)
-        size = self.preset.tex2d
-        theta = self.preset.angle
         if self.display:
-            sub = self.img.rotate(theta, center=center).crop(box).resize(size)
+            sub = self.img.rotate(self.preset.angle, Image.Resampling.BICUBIC, False, (x + w / 2, y + h / 2))
+            sub = sub.crop((x, y, x + w, y + h)).resize(self.preset.tex2d, Image.Resampling.BICUBIC)
             painter.drawPixmap(0, 0, sub.transpose(Image.FLIP_TOP_BOTTOM).toqpixmap())
-        painter.drawRect(1, 1, *(size - 1))
+        painter.drawRect(1, 1, *(self.preset.tex2d - 1))
 
     def calc_angle(self, u: QPoint, v: QPoint) -> float:
         a = Vector2(u.x(), -u.y())

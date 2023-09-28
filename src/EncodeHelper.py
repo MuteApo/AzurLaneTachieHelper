@@ -21,7 +21,9 @@ def aspect_ratio(preset: IconPreset, w: int, h: int, clip: bool):
 
 
 class EncodeHelper(TextureHelper):
-    def exec(self, dir: str, replace_icon: bool, adv_mode: bool, is_clip: list[bool]) -> list[str]:
+    def exec(
+        self, dir: str, replace_icon: bool, adv_mode: bool, is_clip: dict[str, bool]
+    ) -> list[str]:
         painting = []
         valid = [os.path.basename(k) for k, v in self.maps.items() if v in self.repls]
         if valid != []:
@@ -73,7 +75,7 @@ class EncodeHelper(TextureHelper):
 
         return output
 
-    def _replace_face(self, dir: str, adv_mode: bool, is_clip: list[bool]) -> list[str]:
+    def _replace_face(self, dir: str, adv_mode: bool, is_clip: dict[str, bool]) -> list[str]:
         layer = self.face_layer
         prefered = self.asset_manager.prefered(layer)
 
@@ -83,13 +85,12 @@ class EncodeHelper(TextureHelper):
 
         layer = self.face_layer
         repls: dict[str, Image.Image] = {}
-        for i, v in enumerate(tqdm(is_clip)):
+        for k, v in tqdm(is_clip.items()):
             x, y = layer.posMin + self.bias
             w, h = layer.sizeDelta
-            name = str(i + 1)
-            img = self.repls[name]
+            img = self.repls[k]
             if not adv_mode:
-                repls[name] = img.crop((x, y, x + w, y + h))
+                repls[k] = img.crop((x, y, x + w, y + h))
             else:
                 if v:
                     rgb = Image.new("RGBA", img.size)
@@ -102,7 +103,7 @@ class EncodeHelper(TextureHelper):
 
                 x, y = prefered.posMin + self.bias
                 w, h = prefered.canvasSize
-                repls[name] = img.crop((x, y, x + w, y + h))
+                repls[k] = img.crop((x, y, x + w, y + h))
 
         for _ in filter_env(env, Texture2D, False):
             tex2d: Texture2D = _.read()

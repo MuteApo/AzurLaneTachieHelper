@@ -64,7 +64,8 @@ class Layer:
     def flatten(self):
         res = {}
         if self.sprite is not None:
-            res |= {self.sprite.name: self}
+            name = self.sprite.name if self.name in ["part"] else self.name
+            res[name] = self
         for x in self.child:
             res |= x.flatten()
         return res

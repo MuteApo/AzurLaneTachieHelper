@@ -14,15 +14,6 @@ from .utility import filter_env, prod, read_img
 from .Vector import Vector2
 
 
-def rt_get_name(rt: RectTransform) -> str:
-    return rt.m_GameObject.read().m_Name.lower()
-
-
-def rt_filter_child(rt: RectTransform, name: str) -> list[RectTransform]:
-    rts: list[RectTransform] = [_.read() for _ in rt.m_Children]
-    return [_ for _ in rts if rt_get_name(_) == name]
-
-
 class AssetManager:
     def __init__(self):
         self.init()
@@ -57,9 +48,10 @@ class AssetManager:
             self.deps[dep] = path
             env.load_file(path)
 
-            for x in env.files[path].container.values():
-                if x.type == ClassIDType.Sprite:
-                    self.maps[dep] = x.read().name
+            if not dep.startswith("paintingface"):
+                for x in env.files[path].container.values():
+                    if x.type == ClassIDType.Sprite:
+                        self.maps[dep] = x.read().name
 
         face = os.path.join("paintingface/", base)
         path = os.path.join(os.path.dirname(file) + "/", face)
@@ -94,7 +86,9 @@ class AssetManager:
 
         self.name = base_layer.name
 
-        self.layers = base_layer.flatten() | {"face": base_layer.get_child("face")}
+        self.layers: dict[str, Layer] = base_layer.flatten()
+        if "face" not in [x.name for x in self.layers.values()]:
+            self.layers["face"] = base_layer.get_child("face")
         [print(_) for _ in self.layers.values()]
 
         x_min = min([_.posMin.X for _ in self.layers.values()])
@@ -155,7 +149,7 @@ class AssetManager:
         return output
 
     def prefered(self, layer: Layer) -> Layer:
-        expands = [v for k, v in self.layers.items() if k != "face" if v.contain(*layer.box)]
+        expands = [x for x in self.layers.values() if x.name != "face" and x.contain(*layer.box)]
         return sorted(expands, key=lambda v: prod(v.canvasSize))[0]
 
     def prepare_icon(self, file: str) -> tuple[Image.Image, Vector2]:
