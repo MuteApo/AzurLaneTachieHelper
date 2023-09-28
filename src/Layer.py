@@ -1,17 +1,28 @@
 from typing import Callable, Optional
 
-import numpy as np
 from PIL import Image
 from typing_extensions import Self
-from UnityPy.classes import GameObject, Mesh, MonoBehaviour, RectTransform, Texture2D, PPtr, Sprite
+from UnityPy.classes import (
+    GameObject,
+    Mesh,
+    MonoBehaviour,
+    PPtr,
+    RectTransform,
+    Sprite,
+    Texture2D,
+)
 from UnityPy.enums import ClassIDType
-from UnityPy.math import Quaternion, Vector2, Vector3
+from UnityPy.math import Quaternion, Vector3
+
+from .utility import prod
+from .Vector import Vector2
 
 
 class Layer:
     def __init__(self, rt: RectTransform, parent: Self = None):
         self.rt = rt
         self.parent = parent
+        self.depth = 1 if parent is None else parent.depth + 1
         self.child: list[Self] = [Layer(x.read(), self) for x in rt.m_Children]
 
     def __repr__(self) -> str:
@@ -24,8 +35,9 @@ class Layer:
             # "anchoredPosition",
             "sizeDelta",
             # "pivot",
-            # "posMin",
-            # "posMax",
+            "posMin",
+            "posMax",
+            "meshSize",
             "rawSpriteSize",
             "texture2D",
             "rawMesh",
@@ -38,8 +50,7 @@ class Layer:
                     items += [f"{x[0].capitalize()}{x[1:]}: {y}"]
 
         txt = "\n       ".join(items)
-        name = self.sprite.name if self.sprite is not None else self.name
-        return f"Layer@{self.posPivot} {name} {txt}"
+        return f"Layer@{self.depth} {self.name} {txt}"
 
     def __str__(self) -> str:
         return f"[INFO] {self.__repr__()}"
@@ -51,25 +62,33 @@ class Layer:
         return None
 
     def flatten(self):
-        res = {} if self.sprite is None else {self.sprite.name: self}
+        res = {}
+        if self.sprite is not None:
+            name = self.sprite.name if self.name in ["part"] else self.name
+            res[name] = self
         for x in self.child:
             res |= x.flatten()
         return res
+
+    def contain(self, l: float, b: float, r: float, t: float) -> bool:
+        if l < self.posMin[0] or b < self.posMin[1]:
+            return False
+        if r > self.posMax[0] or t > self.posMax[1]:
+            return False
+        return True
 
     def fetch(attr: str):
         attrs = ["m_AnchorMin", "m_AnchorMax", "m_AnchoredPosition", "m_SizeDelta", "m_Pivot"]
 
         def decor(func: Callable):
             def inner(self: Self):
-                if not hasattr(self, attr):
-                    if hasattr(self.rt, attr):
-                        val = getattr(self.rt, attr)
-                        if attr in attrs:
-                            val = Vector2(val.x, val.y)
-                    else:
-                        val = None
-                    setattr(self, attr, val)
-                return func(self, getattr(self, attr))
+                if hasattr(self.rt, attr):
+                    val = getattr(self.rt, attr)
+                    if attr in attrs:
+                        val = Vector2(val.x, val.y)
+                else:
+                    val = None
+                return func(self, val)
 
             return inner
 
@@ -80,9 +99,8 @@ class Layer:
         return self.gameObject.name if self.gameObject else ""
 
     @property
-    @fetch("m_PathID")
-    def pathId(self, val: int) -> int:
-        return val
+    def pathId(self) -> int:
+        return self.rt.path_id
 
     @property
     @fetch("m_GameObject")
@@ -150,88 +168,125 @@ class Layer:
 
     @property
     @fetch("m_LocalRotation")
-    def localRotation(self, val: Quaternion) -> tuple[float, float]:
-        return val.X, val.Y
+    def localRotation(self, val: Quaternion) -> Vector2:
+        return Vector2(val.X, val.Y)
 
     @property
     @fetch("m_LocalPosition")
-    def localPosition(self, val: Vector3) -> tuple[float, float]:
-        return val.X, val.Y
+    def localPosition(self, val: Vector3) -> Vector2:
+        return Vector2(val.X, val.Y)
 
     @property
     @fetch("m_LocalScale")
-    def localScale(self, val: Vector3) -> tuple[float, float]:
-        return val.X, val.Y
+    def localScale(self, val: Vector3) -> Vector2:
+        return val
 
     @property
     @fetch("m_AnchorMin")
-    def anchorMin(self, val: Vector2) -> tuple[float, float]:
-        return val.X, val.Y
+    def anchorMin(self, val: Vector2) -> Vector2:
+        return val
 
     @property
     @fetch("m_AnchorMax")
-    def anchorMax(self, val: Vector2) -> tuple[float, float]:
-        return val.X, val.Y
+    def anchorMax(self, val: Vector2) -> Vector2:
+        return val
 
     @property
     @fetch("m_AnchoredPosition")
-    def anchoredPosition(self, val: Vector2) -> tuple[float, float]:
-        return val.X, val.Y
+    def anchoredPosition(self, val: Vector2) -> Vector2:
+        return val
 
     @property
     @fetch("m_SizeDelta")
-    def sizeDelta(self, val: Vector2) -> tuple[int, int]:
-        return round(val.X), round(val.Y)
+    def sizeDelta(self, val: Vector2) -> Vector2:
+        return val
 
     @property
     @fetch("m_Pivot")
-    def pivot(self, val: Vector2) -> tuple[float, float]:
-        return val.X, val.Y
+    def pivot(self, val: Vector2) -> Vector2:
+        return val
 
     @property
-    def posAnchor(self) -> tuple[float, float]:
-        anchorCenter = np.mean([self.anchorMin, self.anchorMax], 0)
-        x, y = np.multiply(self.parent.sizeDelta, anchorCenter)
-        return x, y
+    def posAnchor(self) -> Vector2:
+        return self.parent.sizeDelta * (self.anchorMin + self.anchorMax) / 2
 
     @property
-    def posPivot(self) -> tuple[float, float]:
+    def posPivot(self) -> Vector2:
         if self.parent is None:
-            return 0.0, 0.0
-        x, y = np.add(self.parent.posPivot, self.localPosition)
-        return x, y
+            return Vector2.zero()
+        return self.parent.posPivot + self.localPosition
 
     @property
-    def posMin(self) -> tuple[float, float]:
-        sizedPivot = np.multiply(self.sizeDelta, self.pivot)
-        x, y = np.subtract(self.posPivot, sizedPivot)
-        return x, y
+    def posMin(self) -> Vector2:
+        return self.posPivot - self.sizeDelta * self.pivot
 
     @property
-    def posMax(self) -> tuple[float, float]:
-        sizedPivot = np.multiply(self.sizeDelta, 1 - np.array(self.pivot))
-        x, y = np.add(self.posPivot, sizedPivot)
-        return x, y
+    def posMax(self) -> Vector2:
+        return self.posMin + self.canvasSize
 
     @property
-    def mesh(self) -> dict[str, np.ndarray]:
-        w, h = self.texture2D.image.size
-        if self.rawMesh is None:
-            return {
-                "v": np.array([[0, 0], [0, h], [w, h], [w, 0]]),
-                "vt": np.array([[0, 0], [0, h], [w, h], [w, 0]]),
-                "f": np.array([[0, 1, 2, 3]]),
-            }
-        return {
-            "v": np.array(self.rawMesh.m_Vertices).reshape((-1, 3))[:, :2],
-            "vt": np.array(self.rawMesh.m_UV0).reshape((-1, 2)) * (w, h),
-            "f": np.array(self.rawMesh.m_Indices).reshape((-1, 6))[:, (0, 1, 3, 4)],
-        }
+    def box(self) -> tuple[float, float, float, float]:
+        return *self.posMin, *self.posMax
+
+    @property
+    def mesh(self) -> list[tuple]:
+        if not hasattr(self, "_mesh"):
+            if self.texture2D is None:
+                setattr(self, "_mesh", None)
+            else:
+                w, h = self.texture2D.image.size
+                val = []
+                if self.rawMesh is None:
+                    val += [((0, 0, w, h), (0, 0, 0, h, w, h, w, 0))]
+                else:
+                    v = self.rawMesh.m_Vertices
+                    v = [(round(v[i]), round(v[i + 1])) for i in range(0, len(v), 3)]
+                    t = self.rawMesh.m_UV0
+                    t = [(round(t[i] * w), round(t[i + 1] * h)) for i in range(0, len(t), 2)]
+                    f = self.rawMesh.m_Indices
+                    for i in range(0, len(f), 6):
+                        val += [
+                            (
+                                (*v[f[i]], *v[f[i + 3]]),
+                                (*t[f[i]], *t[f[i + 1]], *t[f[i + 3]], *t[f[i + 4]]),
+                            )
+                        ]
+                setattr(self, "_mesh", val)
+        return getattr(self, "_mesh")
 
     @property
     def tex(self) -> Image.Image:
-        return self.texture2D.image.transpose(Image.FLIP_TOP_BOTTOM)
+        if not hasattr(self, "_tex"):
+            img = self.texture2D.image.transpose(Image.FLIP_TOP_BOTTOM)
+            setattr(self, "_tex", img)
+        return getattr(self, "_tex")
 
     @property
-    def rss(self) -> tuple[int, int]:
-        return int(self.rawSpriteSize.X), int(self.rawSpriteSize.Y)
+    def meshSize(self) -> Vector2:
+        if not hasattr(self, "_mesh_size"):
+            if self.mesh is None:
+                setattr(self, "_mesh_size", None)
+            else:
+                v = [x[0] for x in self.mesh]
+                w = max([x[2] for x in v]) + 1
+                h = max([x[3] for x in v]) + 1
+                setattr(self, "_mesh_size", Vector2(w, h))
+        return getattr(self, "_mesh_size")
+
+    @property
+    def spriteSize(self) -> Vector2:
+        if self.rawSpriteSize is None:
+            return self.meshSize
+        elif prod(self.meshSize) > prod(self.rawSpriteSize):
+            return self.meshSize
+        else:
+            return self.rawSpriteSize
+
+    @property
+    def canvasSize(self) -> Vector2:
+        if self.spriteSize is None:
+            return self.sizeDelta
+        elif prod(self.spriteSize) > prod(self.sizeDelta):
+            return self.spriteSize
+        else:
+            return self.sizeDelta

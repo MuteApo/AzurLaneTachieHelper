@@ -5,21 +5,13 @@ import threading
 import numpy as np
 import UnityPy
 from PIL import Image
-from UnityPy import Environment
 from UnityPy.classes import AssetBundle, GameObject, RectTransform, Texture2D
 from UnityPy.enums import ClassIDType
 
+from .IconViewer import IconPreset
 from .Layer import Layer
-from .utility import filter_env, read_img
-
-
-def rt_get_name(rt: RectTransform) -> str:
-    return rt.m_GameObject.read().m_Name.lower()
-
-
-def rt_filter_child(rt: RectTransform, name: str) -> list[RectTransform]:
-    rts: list[RectTransform] = [_.read() for _ in rt.m_Children]
-    return [_ for _ in rts if rt_get_name(_) == name]
+from .utility import filter_env, prod, read_img
+from .Vector import Vector2
 
 
 class AssetManager:
@@ -29,20 +21,26 @@ class AssetManager:
     def init(self):
         self.meta: str = None
         self.name: str = None
-        self.size: tuple[int, int] = None
-        self.bias: tuple[float, float] = None
+        self.size: Vector2 = None
+        self.bias: Vector2 = None
         self.deps: dict[str, str] = {}
         self.maps: dict[str, str] = {}
         self.layers: dict[str, Layer] = {}
-        self.faces: dict[int, Image.Image] = {}
-        self.repls: dict[str | int, Image.Image] = {}
+        self.faces: dict[str, Image.Image] = {}
+        self.icons: dict[str, Image.Image] = {}
+        self.repls: dict[str, Image.Image] = {}
+
+    @property
+    def face_layer(self):
+        return self.layers["face"]
 
     def analyze(self, file: str):
         self.init()
 
         self.meta = file
+        base = os.path.basename(file).removesuffix("_n")
 
-        env: Environment = UnityPy.load(file)
+        env = UnityPy.load(file)
         abs: list[AssetBundle] = filter_env(env, AssetBundle)
         for dep in abs[0].m_Dependencies:
             path = os.path.join(os.path.dirname(file) + "/", dep)
@@ -50,22 +48,34 @@ class AssetManager:
             self.deps[dep] = path
             env.load_file(path)
 
-            for x in env.files[path].container.values():
-                if x.type == ClassIDType.Sprite:
-                    self.maps[dep] = x.read().name
+            if not dep.startswith("paintingface"):
+                for x in env.files[path].container.values():
+                    if x.type == ClassIDType.Sprite:
+                        self.maps[dep] = x.read().name
 
-        face = "paintingface/" + os.path.basename(file).strip("_n")
+        face = os.path.join("paintingface/", base)
         path = os.path.join(os.path.dirname(file) + "/", face)
         if os.path.exists(path):
             self.deps[face] = path
             env.load_file(path)
             self.faces |= {
-                eval(_.name): _.image
+                _.name: _.image
                 for _ in filter_env(env, Texture2D)
                 if re.match(r"^0|([1-9][0-9]*)$", _.name)
             }
         else:
             self.deps[face] = None
+
+        for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
+            icon = os.path.join(kind + "/", base)
+            path = os.path.join(os.path.dirname(file) + "/", icon)
+            if os.path.exists(path):
+                env.load_file(path)
+                self.icons |= {
+                    kind: _.image
+                    for _ in filter_env(env, Texture2D)
+                    if re.match(f"^(?i){base}$", _.name)
+                }
 
         print("[INFO] Dependencies:")
         [print("      ", _) for _ in self.deps.keys()]
@@ -76,32 +86,76 @@ class AssetManager:
 
         self.name = base_layer.name
 
-        self.layers = base_layer.flatten() | {"face": base_layer.get_child("face")}
-
-        x_min, y_min = np.min([_.posMin for _ in self.layers.values()], 0)
-        x_max, y_max = np.max([_.posMax for _ in self.layers.values()], 0)
-        self.size = (round(x_max - x_min + 1), round(y_max - y_min + 1))
-        self.bias = (-x_min, -y_min)
-
+        self.layers: dict[str, Layer] = base_layer.flatten()
+        if "face" not in [x.name for x in self.layers.values()]:
+            self.layers["face"] = base_layer.get_child("face")
         [print(_) for _ in self.layers.values()]
+
+        x_min = min([_.posMin.X for _ in self.layers.values()])
+        x_max = max([_.posMax.X for _ in self.layers.values()])
+        y_min = min([_.posMin.Y for _ in self.layers.values()])
+        y_max = max([_.posMax.Y for _ in self.layers.values()])
+        self.size = Vector2(x_max - x_min, y_max - y_min).round()
+        self.bias = Vector2(-x_min, -y_min)
 
     def load_paintings(self, workload: dict[str, str]):
         def load(name: str, path: str):
             print("      ", path)
-            x, y = np.add(self.layers[name].posMin, self.bias)
-            w, h = self.layers[name].sizeDelta
+            layer = self.layers[name]
+            x, y = layer.posMin + self.bias
+            w, h = layer.canvasSize
             sub = read_img(path).crop((x, y, x + w, y + h))
-            self.repls[name] = sub.resize(self.layers[name].rss)
+            self.repls[name] = sub.resize(layer.spriteSize.round().tuple())
 
         tasks = [threading.Thread(target=load, args=(k, v)) for k, v in workload.items()]
         [_.start() for _ in tasks]
         [_.join() for _ in tasks]
 
     def load_faces(self, workload: dict[int, str]):
-        def load(name: int, path: str):
+        def load(name: str, path: str):
             print("      ", path)
             self.repls[name] = read_img(path)
 
         tasks = [threading.Thread(target=load, args=(k, v)) for k, v in workload.items()]
         [_.start() for _ in tasks]
         [_.join() for _ in tasks]
+
+    def clip_icons(self, workload: str, presets: dict[str, IconPreset]):
+        def clip(kind: str, preset: IconPreset):
+            w, h = preset.tex2d / preset.scale
+            x, y = center - Vector2(w, h) * preset.pivot
+
+            path = os.path.join(os.path.dirname(self.meta), f"{kind}.png")
+            img = full.rotate(preset.angle, center=(x + w / 2, y + h / 2))
+            if kind == "shipyardicon":
+                sub = img.copy()
+                img = Image.new("RGBA", sub.size)
+                img.paste(sub, (round(-10 / preset.scale), 0))
+                data = np.array(img)
+                data[..., :3] = 0
+                data[..., 3] = np.where(data[..., 3] > 76, 76, data[..., 3])
+                img = Image.fromarray(data)
+                img.paste(sub, mask=sub)
+            img.crop((x, y, x + w, y + h)).transpose(Image.FLIP_TOP_BOTTOM).save(path)
+            output.append(path)
+
+        full, center = self.prepare_icon(workload)
+        output = []
+
+        tasks = [threading.Thread(target=clip, args=(k, v)) for k, v in presets.items()]
+        [_.start() for _ in tasks]
+        [_.join() for _ in tasks]
+
+        return output
+
+    def prefered(self, layer: Layer) -> Layer:
+        expands = [x for x in self.layers.values() if x.name != "face" and x.contain(*layer.box)]
+        return sorted(expands, key=lambda v: prod(v.canvasSize))[0]
+
+    def prepare_icon(self, file: str) -> tuple[Image.Image, Vector2]:
+        prefered = self.prefered(self.face_layer)
+        x, y = prefered.posMin + self.bias
+        w, h = prefered.canvasSize
+        full = read_img(file).crop((x, y, x + w, y + h)).resize(prefered.spriteSize)
+        center = self.face_layer.posMin - prefered.posMin + self.face_layer.sizeDelta / 2
+        return full, center

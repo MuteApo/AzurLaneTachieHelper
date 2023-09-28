@@ -4,14 +4,16 @@ channels:
   - defaults
 dependencies:
   - python=3.10
+  - nuitka
+  - ordered-set
   - pip
+  - pillow
+  - pyinstaller
+  - six
+  - tqdm
+  - typing_extensions
   - pip:
-    - nuitka
     - numpy
-    - ordered-set
-    - pillow
-    - pyinstaller
     - pyside6
     - pytoshop
-    - six
     - unitypy
