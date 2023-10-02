@@ -1,5 +1,4 @@
 import math
-from dataclasses import dataclass
 
 from PIL import Image, ImageChops
 from PySide6.QtCore import QPoint, Qt
@@ -19,38 +18,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from typing_extensions import Self
 
+from .Data import IconPreset
 from .Vector import Vector2
-
-
-@dataclass
-class IconPreset:
-    sprite: Vector2
-    tex2d: Vector2
-    pivot: Vector2
-    scale: float
-    angle: float
-
-    def __repr__(self) -> str:
-        return f"<IconPreset angle={self.angle}, scale={self.scale}, pivot={self.pivot}>"
-
-    def apply(self, pivot: Vector2, scale: float, angle: float):
-        self.pivot += pivot
-        self.scale += scale
-        self.angle += angle
-
-    @property
-    def aspect_ratio(self):
-        return self.tex2d.X / self.tex2d.Y
-
-    @classmethod
-    def default(cls) -> dict[str, Self]:
-        return {
-            "shipyardicon": IconPreset(Vector2(192, 256), Vector2(192, 256), Vector2(0.5, 0.7), 0.6, 0),
-            "squareicon": IconPreset(Vector2(116, 116), Vector2(116, 116), Vector2(0.5, 0.6), 0.6, 0),
-            "herohrzicon": IconPreset(Vector2(272, 80), Vector2(360, 80), Vector2(0.2, 0.6), 0.6, 0),
-        }
 
 
 class Icon(QWidget):
@@ -117,8 +87,8 @@ class Icon(QWidget):
         painter.drawPixmap(0, 0, self.ref)
         x, y, w, h = self.texrect()
         if self.display:
-            sub = self.img.rotate(self.preset.angle, Image.Resampling.BICUBIC, False, (x + w / 2, y + h / 2))
-            sub = sub.crop((x, y, x + w, y + h)).resize(self.preset.tex2d, Image.Resampling.BICUBIC)
+            sub = self.img.rotate(self.preset.angle, center=(x + w / 2, y + h / 2))
+            sub = sub.crop((x, y, x + w, y + h)).resize(self.preset.tex2d)
             painter.drawPixmap(0, 0, sub.transpose(Image.FLIP_TOP_BOTTOM).toqpixmap())
         painter.drawRect(1, 1, *(self.preset.tex2d - 1))
 

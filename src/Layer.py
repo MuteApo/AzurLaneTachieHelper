@@ -290,3 +290,10 @@ class Layer:
             return self.spriteSize
         else:
             return self.sizeDelta
+
+    def decode(self) -> Image.Image:
+        if not hasattr(self, "_dec_tex"):
+            size = self.spriteSize.round().tuple()
+            dec = self.tex.transform(size, Image.MESH, self.mesh)
+            setattr(self, "_dec_tex", dec)
+        return getattr(self, "_dec_tex")

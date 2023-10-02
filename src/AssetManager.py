@@ -8,6 +8,9 @@ from PIL import Image
 from UnityPy.classes import AssetBundle, GameObject, RectTransform, Texture2D
 from UnityPy.enums import ClassIDType
 
+from .Data import MetaInfo
+from .DecodeHelper import DecodeHelper
+from .EncodeHelper import EncodeHelper
 from .IconViewer import IconPreset
 from .Layer import Layer
 from .utility import filter_env, prod, read_img
@@ -19,10 +22,7 @@ class AssetManager:
         self.init()
 
     def init(self):
-        self.meta: str = None
-        self.name: str = None
-        self.size: Vector2 = None
-        self.bias: Vector2 = None
+        self.meta: MetaInfo = None
         self.deps: dict[str, str] = {}
         self.maps: dict[str, str] = {}
         self.layers: dict[str, Layer] = {}
@@ -34,10 +34,24 @@ class AssetManager:
     def face_layer(self):
         return self.layers["face"]
 
+    def decode(self, dir: str, dump: bool) -> str:
+        return DecodeHelper.exec(dir, self.meta, self.layers, self.faces, dump)
+
+    # def encode(self, dir: str, dump: bool) -> str:
+    #     return EncodeHelper.exec(
+    #         self.name,
+    #         dir,
+    #         self.meta,
+    #         self.bias,
+    #         self.maps,
+    #         self.repls,
+    #         self.icons,
+    #         self.face_layer,
+    #     )
+
     def analyze(self, file: str):
         self.init()
 
-        self.meta = file
         base = os.path.basename(file).removesuffix("_n")
 
         env = UnityPy.load(file)
@@ -58,10 +72,10 @@ class AssetManager:
         if os.path.exists(path):
             self.deps[face] = path
             env.load_file(path)
-            self.faces |= {
-                _.name: _.image
-                for _ in filter_env(env, Texture2D)
-                if re.match(r"^0|([1-9][0-9]*)$", _.name)
+            self.faces = {
+                x.name: x.image
+                for x in filter_env(env, Texture2D)
+                if re.match(r"^0|([1-9][0-9]*)$", x.name)
             }
         else:
             self.deps[face] = None
@@ -71,10 +85,10 @@ class AssetManager:
             path = os.path.join(os.path.dirname(file) + "/", icon)
             if os.path.exists(path):
                 env.load_file(path)
-                self.icons |= {
-                    kind: _.image
-                    for _ in filter_env(env, Texture2D)
-                    if re.match(f"^(?i){base}$", _.name)
+                self.icons = {
+                    kind: x.image
+                    for x in filter_env(env, Texture2D)
+                    if re.match(f"^(?i){base}$", x.name)
                 }
 
         print("[INFO] Dependencies:")
@@ -83,8 +97,6 @@ class AssetManager:
         base_go: GameObject = list(env.container.values())[0].read()
         base_rt: RectTransform = base_go.m_Transform.read()
         base_layer = Layer(base_rt)
-
-        self.name = base_layer.name
 
         self.layers: dict[str, Layer] = base_layer.flatten()
         if "face" not in [x.name for x in self.layers.values()]:
@@ -95,8 +107,10 @@ class AssetManager:
         x_max = max([_.posMax.X for _ in self.layers.values()])
         y_min = min([_.posMin.Y for _ in self.layers.values()])
         y_max = max([_.posMax.Y for _ in self.layers.values()])
-        self.size = Vector2(x_max - x_min, y_max - y_min).round()
-        self.bias = Vector2(-x_min, -y_min)
+        size = Vector2(x_max - x_min, y_max - y_min).round()
+        bias = Vector2(-x_min, -y_min)
+
+        self.meta = MetaInfo(path, base_layer.name, size, bias)
 
     def load_paintings(self, workload: dict[str, str]):
         def load(name: str, path: str):
@@ -154,7 +168,7 @@ class AssetManager:
 
     def prepare_icon(self, file: str) -> tuple[Image.Image, Vector2]:
         prefered = self.prefered(self.face_layer)
-        x, y = prefered.posMin + self.bias
+        x, y = prefered.posMin + self.meta.bias
         w, h = prefered.canvasSize
         full = read_img(file).crop((x, y, x + w, y + h)).resize(prefered.spriteSize)
         center = self.face_layer.posMin - prefered.posMin + self.face_layer.sizeDelta / 2
