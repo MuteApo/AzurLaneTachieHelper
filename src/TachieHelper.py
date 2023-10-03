@@ -2,14 +2,13 @@ import os
 import re
 
 from PIL import Image
-from PySide6.QtCore import QDir, QSettings, Qt
-from PySide6.QtGui import QAction, QDragEnterEvent, QDragMoveEvent, QDropEvent
+from PySide6.QtCore import QDir, Qt
+from PySide6.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent
 from PySide6.QtWidgets import (
     QFileDialog,
     QHeaderView,
     QLabel,
     QMainWindow,
-    QMenu,
     QMessageBox,
     QSizePolicy,
     QTableWidget,
@@ -19,7 +18,8 @@ from PySide6.QtWidgets import (
 )
 
 from .AssetManager import AssetManager
-from .IconViewer import IconViewer
+from .Config import Config
+from .ui import IconViewer, Menu
 
 
 class AzurLaneTachieHelper(QMainWindow):
@@ -29,26 +29,13 @@ class AzurLaneTachieHelper(QMainWindow):
         self.setAcceptDrops(True)
         self.resize(720, 560)
 
-        self.settings = QSettings("config.ini", QSettings.Format.IniFormat)
-        self._read_ini()
+        self.config = Config("config.ini")
+        self.asset_manager = AssetManager()
+        # self.encoder = EncodeHelper(self.asset_manager)
 
         self._init_ui()
         self._init_statusbar()
-        self._init_action()
         self._init_menu()
-
-        self.asset_manager = AssetManager()
-        # self.decoder = DecodeHelper(self.asset_manager)
-        # self.encoder = EncodeHelper(self.asset_manager)
-
-    def _get_conf_bool(self, key: str, default: bool) -> bool:
-        value = {True: "true", False: "false"}[default]
-        return eval(str(self.settings.value(key, value)).capitalize())
-
-    def _read_ini(self):
-        self.dump_layer = self._get_conf_bool("Edit/DumpLayer", False)
-        self.adv_mode = self._get_conf_bool("Edit/AdvancedMode", False)
-        self.replace_icon = self._get_conf_bool("Edit/ReplaceIcon", False)
 
     def _layout_ab_dep(self):  # Layout for Assetbundle Dependencies
         label = QLabel(self.tr("Assetbundle Dependencies"))
@@ -129,96 +116,22 @@ class AzurLaneTachieHelper(QMainWindow):
         self.statusBar().addWidget(self.message)
         self.statusBar().setStyleSheet("QStatusBar::item{border:0px}")
 
-    def _init_action(self):
-        self.aFileOpenMetadata = QAction(
-            self.tr("Open Metadata"),
-            self,
-            shortcut="Ctrl+M",
-            enabled=True,
-            triggered=self.onClickFileOpenMetadata,
-        )
-        self.aFileImportPainting = QAction(
-            self.tr("Import Painting"),
-            self,
-            shortcut="Ctrl+P",
-            enabled=False,
-            triggered=self.onClickFileImportPainting,
-        )
-        self.aFileImportPaintingface = QAction(
-            self.tr("Import Paintingface"),
-            self,
-            shortcut="Ctrl+F",
-            enabled=False,
-            triggered=self.onClickFileImportPaintingface,
-        )
-        self.aFileImportIcons = QAction(
-            self.tr("Import Icons"),
-            self,
-            shortcut="Ctrl+I",
-            enabled=False,
-            triggered=self.onClickFileImportIcons,
-        )
-
-        self.aEditClipIcons = QAction(
-            self.tr("Clip Icons"),
-            self,
-            shortcut="Ctrl+C",
-            enabled=False,
-            triggered=self.onClickEditClip,
-        )
-        self.aEditDecodeTexture = QAction(
-            self.tr("Decode Texture"),
-            self,
-            shortcut="Ctrl+D",
-            enabled=False,
-            triggered=self.onClickEditDecode,
-        )
-        self.aEditEncodeTexture = QAction(
-            self.tr("Encode Texture"),
-            self,
-            shortcut="Ctrl+E",
-            enabled=False,
-            triggered=self.onClickEditEncode,
-        )
-
-        self.aOptionDumpLayer = QAction(
-            self.tr("Dump Intermediate Layers"),
-            self,
-            checkable=True,
-            checked=self.dump_layer,
-            triggered=self.onClickOption,
-        )
-        self.aOptionAdvMode = QAction(
-            self.tr("Advanced Paintingface Mode"),
-            self,
-            checkable=True,
-            checked=self.adv_mode,
-            triggered=self.onClickOption,
-        )
-        self.aOptionReplaceIcons = QAction(
-            self.tr("Replace Icons"),
-            self,
-            checkable=True,
-            checked=self.replace_icon,
-            triggered=self.onClickOption,
-        )
-
     def _init_menu(self):
-        self.mFile = QMenu(self.tr("File"), self)
-        self.mFile.addAction(self.aFileOpenMetadata)
-        self.mFile.addAction(self.aFileImportPainting)
-        self.mFile.addAction(self.aFileImportPaintingface)
-        self.mFile.addAction(self.aFileImportIcons)
-
-        self.mEdit = QMenu(self.tr("Edit"), self)
-        self.mEdit.addAction(self.aEditClipIcons)
-        self.mEdit.addAction(self.aEditDecodeTexture)
-        self.mEdit.addAction(self.aEditEncodeTexture)
-
-        self.mOption = QMenu(self.tr("Option"), self)
-        self.mOption.addAction(self.aOptionDumpLayer)
-        self.mOption.addAction(self.aOptionAdvMode)
-        self.mOption.addAction(self.aOptionReplaceIcons)
+        callbacks = {
+            "Open Metadata": self.onClickFileOpenMetadata,
+            "Import Painting": self.onClickFileImportPainting,
+            "Import Paintingface": self.onClickFileImportPaintingface,
+            "Import Icons": self.onClickFileImportIcons,
+            "Clip Icons": self.onClickEditClip,
+            "Decode Texture": self.onClickEditDecode,
+            "Encode Texture": self.onClickEditEncode,
+            "Dump Intermediate Layers": self.onClickOption,
+            "Advanced Paintingface Mode": self.onClickOption,
+            "Replace Icons": self.onClickOption,
+        }
+        self.mFile = Menu.File(callbacks)
+        self.mEdit = Menu.Edit(callbacks)
+        self.mOption = Menu.Option(callbacks, self.config)
 
         self.menuBar().addMenu(self.mFile)
         self.menuBar().addMenu(self.mEdit)
@@ -231,7 +144,7 @@ class AzurLaneTachieHelper(QMainWindow):
         msg_box.exec()
 
     def open_metadata(self, file: str):
-        self.settings.setValue("File/RecentPath", file)
+        self.config.set("File/RecentPath", file)
         self.message.setText(f"({os.path.basename(file)})  {QDir.toNativeSeparators(file)}")
         print("[INFO] Metadata:", file)
 
@@ -261,20 +174,20 @@ class AzurLaneTachieHelper(QMainWindow):
             self.tFaceRepl.setItem(i, 0, item)
             self.check_box[x] = item
 
-        self.aFileImportPainting.setEnabled(True)
-        self.aFileImportPaintingface.setEnabled(True)
-        self.aFileImportIcons.setEnabled(True)
-        self.aEditDecodeTexture.setEnabled(True)
-        self.aEditClipIcons.setEnabled(True)
+        self.mFile.aImportPainting.setEnabled(True)
+        self.mFile.aImportPaintingface.setEnabled(True)
+        self.mFile.aImportIcons.setEnabled(True)
+        self.mEdit.aDecodeTexture.setEnabled(True)
+        self.mEdit.aClipIcons.setEnabled(True)
 
     def onClickFileOpenMetadata(self):
-        last = self.settings.value("File/RecentPath", "")
+        last = self.config.get_str("File/RecentPath")
         file, _ = QFileDialog.getOpenFileName(self, self.tr("Select Metadata"), last)
         if file:
             self.open_metadata(file)
 
     def onClickFileImportPainting(self):
-        last = os.path.dirname(self.settings.value("File/RecentPath", ""))
+        last = os.path.dirname(self.config.get_str("File/RecentPath"))
         files, _ = QFileDialog.getOpenFileNames(
             self, self.tr("Select Paintings"), last, "Image (*.png)"
         )
@@ -292,10 +205,10 @@ class AzurLaneTachieHelper(QMainWindow):
                         break
             self.asset_manager.load_paintings(workload)
 
-            self.aEditEncodeTexture.setEnabled(True)
+            self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onClickFileImportPaintingface(self):
-        last = os.path.dirname(self.settings.value("File/RecentPath", ""))
+        last = os.path.dirname(self.config.get_str("File/RecentPath"))
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Paintingface Folder"), last)
         if dir:
             print("[INFO] Paintingface folder:")
@@ -319,10 +232,10 @@ class AzurLaneTachieHelper(QMainWindow):
                 workload |= {id: path}
             self.asset_manager.load_faces(workload)
 
-            self.aEditEncodeTexture.setEnabled(True)
+            self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onClickFileImportIcons(self):
-        last = os.path.dirname(self.settings.value("File/RecentPath", ""))
+        last = os.path.dirname(self.config.get_str("File/RecentPath"))
         files, _ = QFileDialog.getOpenFileNames(
             self, self.tr("Select Icons"), last, "Image (*.png)"
         )
@@ -335,10 +248,10 @@ class AzurLaneTachieHelper(QMainWindow):
                     print("      ", QDir.toNativeSeparators(file))
                     self.asset_manager.repls[name] = Image.open(file)
 
-            self.aEditEncodeTexture.setEnabled(True)
+            self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onClickEditClip(self):
-        last = os.path.dirname(self.settings.value("File/RecentPath", ""))
+        last = os.path.dirname(self.config.get_str("File/RecentPath"))
         file, _ = QFileDialog.getOpenFileName(
             self, self.tr("Select Reference"), last, "Image (*.png)"
         )
@@ -349,14 +262,14 @@ class AzurLaneTachieHelper(QMainWindow):
                 self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
 
     def onClickEditDecode(self):
-        last = os.path.dirname(self.settings.value("File/RecentPath", ""))
+        last = os.path.dirname(self.config.get_str("File/RecentPath", ""))
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Output Folder"), last)
         if dir:
-            res = self.asset_manager.decode(dir, self.dump_layer)
+            res = self.asset_manager.decode(dir, self.config.get_bool("Edit/DumpLayer"))
             self.show_path(QDir.toNativeSeparators(res))
 
     def onClickEditEncode(self):
-        last = os.path.dirname(self.settings.value("File/RecentPath", ""))
+        last = os.path.dirname(self.config.get_str("File/RecentPath"))
         dir = QFileDialog.getExistingDirectory(self, dir=last)
         if dir:
             is_clip = {
@@ -366,13 +279,11 @@ class AzurLaneTachieHelper(QMainWindow):
             self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
 
     def onClickOption(self):
-        self.dump_layer = self.aOptionDumpLayer.isChecked()
-        self.settings.setValue("Edit/DumpLayer", self.dump_layer)
+        self.config.set("Edit/DumpLayer", self.mOption.aDumpLayer.isChecked())
 
-        adv_mode = self.aOptionAdvMode.isChecked()
-        if adv_mode != self.adv_mode:
-            self.adv_mode = adv_mode
-            self.settings.setValue("Edit/AdvancedMode", adv_mode)
+        adv_mode = self.mOption.aAdvMode.isChecked()
+        if adv_mode != self.config.get_bool("Edit/AdvancedMode"):
+            self.config.set("Edit/AdvancedMode", adv_mode)
             if hasattr(self, "num_faces"):
                 for i in range(self.num_faces):
                     if adv_mode:
@@ -381,8 +292,7 @@ class AzurLaneTachieHelper(QMainWindow):
                         flag = ~Qt.ItemFlag.ItemIsEnabled
                     self.tFaceRepl.item(i, 0).setFlags(flag)
 
-        self.replace_icon = self.aOptionReplaceIcons.isChecked()
-        self.settings.setValue("Edit/ReplaceIcon", self.replace_icon)
+        self.config.set("Edit/ReplaceIcon", self.mOption.aReplaceIcons.isChecked())
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         # print("dragEnter")

@@ -19,8 +19,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .Data import IconPreset
-from .Vector import Vector2
+from ..Data import IconPreset
+from ..Vector import Vector2
 
 
 class Icon(QWidget):

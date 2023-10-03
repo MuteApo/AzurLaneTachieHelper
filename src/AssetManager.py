@@ -11,8 +11,8 @@ from UnityPy.enums import ClassIDType
 from .Data import MetaInfo
 from .DecodeHelper import DecodeHelper
 from .EncodeHelper import EncodeHelper
-from .IconViewer import IconPreset
 from .Layer import Layer
+from .ui import IconPreset
 from .utility import filter_env, prod, read_img
 from .Vector import Vector2
 
