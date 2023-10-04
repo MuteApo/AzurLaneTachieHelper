@@ -6,6 +6,8 @@ from PySide6.QtCore import QDir, Qt
 from PySide6.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent
 from PySide6.QtWidgets import (
     QFileDialog,
+    QFrame,
+    QHBoxLayout,
     QHeaderView,
     QLabel,
     QMainWindow,
@@ -19,7 +21,7 @@ from PySide6.QtWidgets import (
 
 from .AssetManager import AssetManager
 from .Config import Config
-from .ui import IconViewer, Menu
+from .ui import IconViewer, Menu, Previewer, Table
 
 
 class AzurLaneTachieHelper(QMainWindow):
@@ -37,48 +39,6 @@ class AzurLaneTachieHelper(QMainWindow):
         self._init_statusbar()
         self._init_menu()
 
-    def _layout_ab_dep(self):  # Layout for Assetbundle Dependencies
-        label = QLabel(self.tr("Assetbundle Dependencies"))
-        label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-
-        self.tDep = QTableWidget()
-        self.tDep.setColumnCount(2)
-        self.tDep.setHorizontalHeaderLabels([self.tr("Part Name"), self.tr("Full Path")])
-        self.tDep.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.ResizeToContents
-        )
-        self.tDep.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.tDep.setSizePolicy(
-            QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding
-        )
-
-        layout = QVBoxLayout()
-        layout.addWidget(label)
-        layout.addWidget(self.tDep)
-
-        return layout
-
-    def _layout_paint_repl(self):  # Layout for Painting Replacers
-        label = QLabel(self.tr("Painting Replacers"))
-        label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-
-        self.tPaintRepl = QTableWidget()
-        self.tPaintRepl.setColumnCount(2)
-        self.tPaintRepl.setHorizontalHeaderLabels([self.tr("Target"), self.tr("Image Source")])
-        self.tPaintRepl.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.ResizeToContents
-        )
-        self.tPaintRepl.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.tPaintRepl.setSizePolicy(
-            QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding
-        )
-
-        layout = QVBoxLayout()
-        layout.addWidget(label)
-        layout.addWidget(self.tPaintRepl)
-
-        return layout
-
     def _layout_face_repl(self):  # Layout for Paintingface Replacers
         label = QLabel(self.tr("Paintingface Replacers"))
         label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
@@ -90,9 +50,7 @@ class AzurLaneTachieHelper(QMainWindow):
             0, QHeaderView.ResizeMode.ResizeToContents
         )
         self.tFaceRepl.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.tFaceRepl.setSizePolicy(
-            QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding
-        )
+        self.tFaceRepl.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
 
         layout = QVBoxLayout()
         layout.addWidget(label)
@@ -101,10 +59,22 @@ class AzurLaneTachieHelper(QMainWindow):
         return layout
 
     def _init_ui(self):
-        layout = QVBoxLayout()
-        layout.addLayout(self._layout_ab_dep())
-        layout.addLayout(self._layout_paint_repl())
-        layout.addLayout(self._layout_face_repl())
+        self.preview = Previewer()
+
+        self.tDep = Table.Dep(self.preview)
+
+        left = QVBoxLayout()
+        left.addLayout(self.tDep)
+        # left.addLayout(self._layout_paint_repl())
+        left.addLayout(self._layout_face_repl())
+
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.VLine)
+
+        layout = QHBoxLayout()
+        layout.addLayout(left)
+        layout.addWidget(sep)
+        layout.addWidget(self.preview)
 
         central_widget = QWidget()
         central_widget.setLayout(layout)
@@ -148,31 +118,25 @@ class AzurLaneTachieHelper(QMainWindow):
         self.message.setText(f"({os.path.basename(file)})  {QDir.toNativeSeparators(file)}")
         print("[INFO] Metadata:", file)
 
-        self.tDep.clearContents()
-        self.tPaintRepl.clearContents()
+        self.tDep.table.clearContents()
         self.tFaceRepl.clearContents()
 
         self.asset_manager.analyze(file)
 
-        self.num_deps = len(self.asset_manager.deps)
+        # self.num_deps = len(self.asset_manager.deps)
         self.num_faces = len(self.asset_manager.faces)
-        self.tDep.setRowCount(self.num_deps)
-        self.tPaintRepl.setRowCount(self.num_deps - 1)
+        # self.tDep.setRowCount(self.num_deps)
         self.tFaceRepl.setRowCount(self.num_faces)
-        for i, (k, v) in enumerate(self.asset_manager.deps.items()):
-            x = self.tr("Not Found") if v is None else QDir.toNativeSeparators(v)
-            self.tDep.setItem(i, 0, QTableWidgetItem(k))
-            self.tDep.setItem(i, 1, QTableWidgetItem(x))
 
-            self.tPaintRepl.setItem(i, 0, QTableWidgetItem(k))
+        self.tDep.set_data(self.asset_manager.deps, self.asset_manager.layers)
 
-        self.check_box: dict[str, QTableWidgetItem] = {}
-        for i, x in enumerate(self.asset_manager.faces):
-            item = QTableWidgetItem(self.tDep.item(self.num_deps - 1, 0).text() + f"/{x}")
-            item.setCheckState(Qt.CheckState.Checked)
-            item.setFlags(~Qt.ItemFlag.ItemIsEnabled)
-            self.tFaceRepl.setItem(i, 0, item)
-            self.check_box[x] = item
+        # self.check_box: dict[str, QTableWidgetItem] = {}
+        # for i, x in enumerate(self.asset_manager.faces):
+        #     item = QTableWidgetItem(self.tDep.get_text(self.tDep.num - 1) + f"/{x}")
+        #     item.setCheckState(Qt.CheckState.Checked)
+        #     item.setFlags(~Qt.ItemFlag.ItemIsEnabled)
+        #     self.tFaceRepl.setItem(i, 0, item)
+        #     self.check_box[x] = item
 
         self.mFile.aImportPainting.setEnabled(True)
         self.mFile.aImportPaintingface.setEnabled(True)

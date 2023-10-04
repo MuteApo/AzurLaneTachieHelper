@@ -101,6 +101,8 @@ class AssetManager:
         self.layers: dict[str, Layer] = base_layer.flatten()
         if "face" not in [x.name for x in self.layers.values()]:
             self.layers["face"] = base_layer.get_child("face")
+        for k, v in self.deps.items():
+            self.layers[os.path.basename(k).removesuffix("_tex")].file = v
         [print(_) for _ in self.layers.values()]
 
         x_min = min([_.posMin.X for _ in self.layers.values()])

@@ -24,6 +24,7 @@ class Layer:
         self.parent = parent
         self.depth = 1 if parent is None else parent.depth + 1
         self.child: list[Self] = [Layer(x.read(), self) for x in rt.m_Children]
+        self.file = "Not Found"
 
     def __repr__(self) -> str:
         attrs = [
