@@ -37,17 +37,19 @@ class AssetManager:
     def decode(self, dir: str, dump: bool) -> str:
         return DecodeHelper.exec(dir, self.meta, self.layers, self.faces, dump)
 
-    # def encode(self, dir: str, dump: bool) -> str:
-    #     return EncodeHelper.exec(
-    #         self.name,
-    #         dir,
-    #         self.meta,
-    #         self.bias,
-    #         self.maps,
-    #         self.repls,
-    #         self.icons,
-    #         self.face_layer,
-    #     )
+    def encode(self, dir: str, enable_icon: bool, adv_mode: bool, is_clip: dict[str, bool]) -> str:
+        prefered = self.prefered(self.face_layer)
+        return EncodeHelper.exec(
+            dir,
+            self.meta,
+            self.layers,
+            self.repls,
+            self.icons,
+            prefered,
+            enable_icon,
+            adv_mode,
+            is_clip,
+        )
 
     def analyze(self, file: str):
         self.init()
@@ -70,15 +72,15 @@ class AssetManager:
         face = os.path.join("paintingface/", base)
         path = os.path.join(os.path.dirname(file) + "/", face)
         if os.path.exists(path):
-            self.deps[face] = path
+            # self.deps[face] = path
             env.load_file(path)
             self.faces = {
                 x.name: x.image
                 for x in filter_env(env, Texture2D)
                 if re.match(r"^0|([1-9][0-9]*)$", x.name)
             }
-        else:
-            self.deps[face] = None
+        # else:
+        #     self.deps[face] = None
 
         for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
             icon = os.path.join(kind + "/", base)
@@ -101,8 +103,6 @@ class AssetManager:
         self.layers: dict[str, Layer] = base_layer.flatten()
         if "face" not in [x.name for x in self.layers.values()]:
             self.layers["face"] = base_layer.get_child("face")
-        for k, v in self.deps.items():
-            self.layers[os.path.basename(k).removesuffix("_tex")].file = v
         [print(_) for _ in self.layers.values()]
 
         x_min = min([_.posMin.X for _ in self.layers.values()])
@@ -114,11 +114,16 @@ class AssetManager:
 
         self.meta = MetaInfo(path, base_layer.name, size, bias)
 
+        for k, v in self.deps.items():
+            layer = self.layers[os.path.basename(k).removesuffix("_tex")]
+            layer.path = v
+            layer.meta = self.meta
+
     def load_paintings(self, workload: dict[str, str]):
         def load(name: str, path: str):
             print("      ", path)
             layer = self.layers[name]
-            x, y = layer.posMin + self.bias
+            x, y = layer.posMin + self.meta.bias
             w, h = layer.canvasSize
             sub = read_img(path).crop((x, y, x + w, y + h))
             self.repls[name] = sub.resize(layer.spriteSize.round().tuple())

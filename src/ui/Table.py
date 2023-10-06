@@ -25,7 +25,7 @@ class Dep(QVBoxLayout):
         self.table.setColumnCount(1)
         self.table.setHorizontalHeaderLabels([self.tr("Layers")])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.table.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
+        self.table.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.MinimumExpanding)
 
         self.addWidget(label)
         self.addWidget(self.table)
@@ -33,10 +33,11 @@ class Dep(QVBoxLayout):
     def set_data(self, deps: dict[str, str], layers: dict[str, Layer]):
         self.deps = deps
         self.layers = layers
-        self.num = len(layers)
+        self.num = len(self.layers) - 1
         self.table.setRowCount(self.num)
         for i, k in enumerate(deps.keys()):
             self.table.setItem(i, 0, QTableWidgetItem(k))
+        self.onCellClicked(0, 0)
 
     def get_text(self, row: int) -> str:
         return self.table.item(row, 0).text()
@@ -44,3 +45,9 @@ class Dep(QVBoxLayout):
     def onCellClicked(self, row: int, col: int):
         dep = os.path.basename(self.table.item(row, col).text())
         self.preview.display(self.layers[dep.removesuffix("_tex")])
+
+    def load_painting(self, path: str) -> bool:
+        for layer in self.layers.values():
+            if layer.load(path):
+                return True
+        return False

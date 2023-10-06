@@ -105,7 +105,7 @@ class DecodeHelper:
                 x, y = v.posMin + meta.bias
                 sub = sub.resize(v.canvasSize.round().tuple())
                 sub = sub.transform(sub.size, Image.AFFINE, (1, 0, ceil(x) - x, 0, 1, y - floor(y)))
-                alias = f"{v.texture2D.name} [{k}]"
+                alias = f"{v.name} [{v.texture2D.name}]"
                 painting += [ps_layer(meta.size, alias, sub, ceil(x), floor(y), True)]
 
         psd = nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)

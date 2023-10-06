@@ -13,13 +13,12 @@ from .Layer import Layer
 from .utility import check_dir, filter_env
 
 
-def replace_painting(dir: str, meta: MetaInfo, asset: str, repls: dict[str, Image.Image]) -> str:
-    path = os.path.join(os.path.dirname(meta.path), "painting", asset)
-    env = UnityPy.load(path)
+def replace_painting(dir: str, layer: Layer) -> str:
+    env = UnityPy.load(layer.path)
 
     for _ in filter_env(env, Texture2D):
         tex2d: Texture2D = _.read()
-        img = repls[tex2d.name]
+        img = layer.repl
         tex2d.m_Width, tex2d.m_Height = img.size
         tex2d.set_image(img.transpose(Image.FLIP_TOP_BOTTOM), TextureFormat.RGBA32)
         tex2d.save()
@@ -31,7 +30,7 @@ def replace_painting(dir: str, meta: MetaInfo, asset: str, repls: dict[str, Imag
         mesh["m_SubMeshes"][0]["vertexCount"] = 4
         mesh["m_IndexBuffer"] = [0, 0, 1, 0, 2, 0, 2, 0, 3, 0, 0, 0]
         mesh["m_VertexData"]["m_VertexCount"] = 4
-        w, h = repls[mesh["m_Name"].removesuffix("-mesh")].size
+        w, h = layer.repl.size
         buf = [0, 0, 0, 0, 0, 0, h, 0, 0, 1, w, h, 0, 1, 1, w, 0, 0, 1, 0]
         data_size = struct.pack(_.reader.endian + "f" * 20, *buf)
         mesh["m_VertexData"]["m_DataSize"] = memoryview(data_size)
@@ -39,7 +38,7 @@ def replace_painting(dir: str, meta: MetaInfo, asset: str, repls: dict[str, Imag
         _.save_typetree(mesh)
 
     check_dir(dir, "output", "painting")
-    output = os.path.join(dir, "output", "painting", asset)
+    output = os.path.join(dir, "output", "painting", os.path.basename(layer.path))
     with open(output, "wb") as f:
         f.write(env.file.save("original"))
 
@@ -172,25 +171,24 @@ class EncodeHelper:
     def exec(
         dir: str,
         meta: MetaInfo,
-        maps: dict[str, str],
+        layers: dict[str, Layer],
         repls: dict[str, Image.Image],
         icons: dict[str, Image.Image],
-        layer: Layer,
         prefered: Layer,
+        enable_icon: bool,
         adv_mode: bool,
         is_clip: dict[str, bool],
-        enable_icon: bool,
     ) -> list[str]:
         painting = []
-        valid = [os.path.basename(k) for k, v in maps.items() if v in repls]
+        valid = [v for v in layers.values() if v.repl is not None]
         if valid != []:
             print("[INFO] Encoding painting")
-            painting += [replace_painting(dir, meta, x, repls) for x in tqdm(valid)]
+            painting += [replace_painting(dir, x) for x in tqdm(valid)]
 
         face = []
         if "1" in repls:
             print("[INFO] Encoding paintingface")
-            face += replace_face(dir, meta, repls, layer, prefered, adv_mode, is_clip)
+            face += replace_face(dir, meta, repls, layers["face"], prefered, adv_mode, is_clip)
 
         icon = []
         valid = [k for k in icons.keys() if k in repls]

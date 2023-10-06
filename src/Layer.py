@@ -1,3 +1,4 @@
+import os
 from typing import Callable, Optional
 
 from PIL import Image
@@ -14,7 +15,8 @@ from UnityPy.classes import (
 from UnityPy.enums import ClassIDType
 from UnityPy.math import Quaternion, Vector3
 
-from .utility import prod
+from .Data import MetaInfo
+from .utility import prod, read_img
 from .Vector import Vector2
 
 
@@ -24,7 +26,9 @@ class Layer:
         self.parent = parent
         self.depth = 1 if parent is None else parent.depth + 1
         self.child: list[Self] = [Layer(x.read(), self) for x in rt.m_Children]
-        self.file = "Not Found"
+        self.path: str = "Not Found"
+        self.repl: Image.Image = None
+        self.meta: MetaInfo = None
 
     def __repr__(self) -> str:
         attrs = [
@@ -36,8 +40,8 @@ class Layer:
             # "anchoredPosition",
             "sizeDelta",
             # "pivot",
-            "posMin",
-            "posMax",
+            # "posMin",
+            # "posMax",
             "meshSize",
             "rawSpriteSize",
             "texture2D",
@@ -298,3 +302,14 @@ class Layer:
             dec = self.tex.transform(size, Image.MESH, self.mesh)
             setattr(self, "_dec_tex", dec)
         return getattr(self, "_dec_tex")
+
+    def load(self, path: str) -> bool:
+        name, _ = os.path.splitext(os.path.basename(path))
+        if self.name != name:
+            return False
+        print("[INFO] Painting:", path)
+        x, y = self.posMin + self.meta.bias
+        w, h = self.canvasSize
+        sub = read_img(path).crop((x, y, x + w, y + h))
+        self.repl = sub.resize(self.spriteSize.round().tuple())
+        return True

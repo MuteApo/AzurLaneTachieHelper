@@ -65,7 +65,6 @@ class AzurLaneTachieHelper(QMainWindow):
 
         left = QVBoxLayout()
         left.addLayout(self.tDep)
-        # left.addLayout(self._layout_paint_repl())
         left.addLayout(self._layout_face_repl())
 
         sep = QFrame()
@@ -123,20 +122,18 @@ class AzurLaneTachieHelper(QMainWindow):
 
         self.asset_manager.analyze(file)
 
-        # self.num_deps = len(self.asset_manager.deps)
         self.num_faces = len(self.asset_manager.faces)
-        # self.tDep.setRowCount(self.num_deps)
         self.tFaceRepl.setRowCount(self.num_faces)
 
         self.tDep.set_data(self.asset_manager.deps, self.asset_manager.layers)
 
-        # self.check_box: dict[str, QTableWidgetItem] = {}
-        # for i, x in enumerate(self.asset_manager.faces):
-        #     item = QTableWidgetItem(self.tDep.get_text(self.tDep.num - 1) + f"/{x}")
-        #     item.setCheckState(Qt.CheckState.Checked)
-        #     item.setFlags(~Qt.ItemFlag.ItemIsEnabled)
-        #     self.tFaceRepl.setItem(i, 0, item)
-        #     self.check_box[x] = item
+        self.check_box: dict[str, QTableWidgetItem] = {}
+        for i, x in enumerate(self.asset_manager.faces):
+            item = QTableWidgetItem(f"paintingface/{x}")
+            item.setCheckState(Qt.CheckState.Checked)
+            item.setFlags(~Qt.ItemFlag.ItemIsEnabled)
+            self.tFaceRepl.setItem(i, 0, item)
+            self.check_box[x] = item
 
         self.mFile.aImportPainting.setEnabled(True)
         self.mFile.aImportPaintingface.setEnabled(True)
@@ -156,20 +153,14 @@ class AzurLaneTachieHelper(QMainWindow):
             self, self.tr("Select Paintings"), last, "Image (*.png)"
         )
         if files:
-            print("[INFO] Paintings:")
+            workload = []
+            for file in files:
+                path = QDir.toNativeSeparators(file)
+                if self.tDep.load_painting(file):
+                    workload += [path]
 
-            workload = {}
-            for i in range(self.num_deps - 1):
-                name = self.asset_manager.maps[self.tPaintRepl.item(i, 0).text()]
-                for file in files:
-                    if os.path.splitext(os.path.basename(file))[0] == name:
-                        path = QDir.toNativeSeparators(file)
-                        self.tPaintRepl.setItem(i, 1, QTableWidgetItem(path))
-                        workload |= {name: path}
-                        break
-            self.asset_manager.load_paintings(workload)
-
-            self.mEdit.aEncodeTexture.setEnabled(True)
+            if workload != []:
+                self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onClickFileImportPaintingface(self):
         last = os.path.dirname(self.config.get_str("File/RecentPath"))
@@ -236,10 +227,12 @@ class AzurLaneTachieHelper(QMainWindow):
         last = os.path.dirname(self.config.get_str("File/RecentPath"))
         dir = QFileDialog.getExistingDirectory(self, dir=last)
         if dir:
+            adv_mode = self.config.get_bool("Edit/AdvancedMode")
+            enable_icon = self.config.get_bool("Edit/ReplaceIcon")
             is_clip = {
                 k: v.checkState() != Qt.CheckState.Unchecked for k, v in self.check_box.items()
             }
-            res = self.encoder.exec(dir, self.replace_icon, self.adv_mode, is_clip)
+            res = self.asset_manager.encode(dir, enable_icon, adv_mode, is_clip)
             self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
 
     def onClickOption(self):
@@ -259,28 +252,27 @@ class AzurLaneTachieHelper(QMainWindow):
         self.config.set("Edit/ReplaceIcon", self.mOption.aReplaceIcons.isChecked())
 
     def dragEnterEvent(self, event: QDragEnterEvent):
-        # print("dragEnter")
-        if event.mimeData().hasUrls:
-            event.accept()
-        else:
-            event.ignore()
+        if event.mimeData().hasUrls():
+            self.preview.dragEnterEvent(event)
+            if not event.isAccepted():
+                event.accept()
 
     def dragMoveEvent(self, event: QDragMoveEvent):
-        # print("dragMove")
-        if event.mimeData().hasUrls:
+        if event.mimeData().hasUrls():
             event.setDropAction(Qt.DropAction.CopyAction)
-            event.accept()
-        else:
-            event.ignore()
+            self.preview.dragMoveEvent(event)
+            if not event.isAccepted():
+                event.accept()
 
     def dropEvent(self, event: QDropEvent):
-        # print("drop")
-        if event.mimeData().hasUrls:
+        if event.mimeData().hasUrls():
             event.setDropAction(Qt.DropAction.CopyAction)
-            event.accept()
-            links = []
-            for url in event.mimeData().urls():
-                links.append(str(url.toLocalFile()))
-            self.open_metadata(links[0])
-        else:
-            event.ignore()
+            self.preview.dropEvent(event)
+            if event.isAccepted():
+                self.mEdit.aEncodeTexture.setEnabled(True)
+            else:
+                event.accept()
+                links = []
+                for url in event.mimeData().urls():
+                    links.append(str(url.toLocalFile()))
+                self.open_metadata(links[0])
