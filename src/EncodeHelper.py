@@ -1,5 +1,4 @@
 import os
-import re
 import struct
 
 import UnityPy
@@ -9,7 +8,7 @@ from UnityPy.classes import Mesh, Sprite, Texture2D
 from UnityPy.enums import TextureFormat
 
 from .Data import IconPreset, MetaInfo
-from .Layer import Layer
+from .Layer import Layer, PseudoLayer
 from .utility import check_dir, filter_env
 
 
@@ -45,8 +44,8 @@ def replace_painting(dir: str, layer: Layer) -> str:
     return output
 
 
-def replace_meta(meta: MetaInfo, layer: Layer, prefered: Layer) -> str:
-    env = UnityPy.load(meta.path)
+def replace_meta(dir: str, layer: Layer, prefered: Layer) -> str:
+    env = UnityPy.load(layer.meta.path)
     cab = list(env.cabs.values())[0]
     face_rt = cab.objects[layer.pathId]
     face = face_rt.read_typetree()
@@ -54,7 +53,7 @@ def replace_meta(meta: MetaInfo, layer: Layer, prefered: Layer) -> str:
     px, py = prefered.pivot
     fix = (prefered.canvasSize - prefered.sizeDelta) * prefered.pivot
     x1, y1 = prefered.posPivot - layer.parent.posPivot + fix
-    x2, y2 = prefered.posPivot - layer.posAnchor + meta.bias + fix
+    x2, y2 = prefered.posPivot - layer.posAnchor + layer.meta.bias + fix
     face["m_SizeDelta"] = {"x": w, "y": h}
     face["m_Pivot"] = {"x": px, "y": py}
     face["m_LocalPosition"] = {"x": x1, "y": y1, "z": 0.0}
@@ -62,62 +61,34 @@ def replace_meta(meta: MetaInfo, layer: Layer, prefered: Layer) -> str:
     face_rt.save_typetree(face)
 
     check_dir(dir, "output", "painting")
-    meta = os.path.join(dir, "output", "painting", os.path.basename(meta))
-    with open(meta, "wb") as f:
+    path = os.path.join(dir, "output", "painting", os.path.basename(layer.meta.path))
+    with open(path, "wb") as f:
         f.write(env.file.save("original"))
 
-    return [meta]
+    return [path]
 
 
-def replace_face(
-    dir: str,
-    meta: MetaInfo,
-    repls: dict[str, Image.Image],
-    layer: Layer,
-    prefered: Layer,
-    adv_mode: bool,
-    is_clip: dict[str, bool],
-) -> list[str]:
-    base = meta.name.removesuffix("_n").lower()
-    path = os.path.join(os.path.dirname(meta), "paintingface", base)
+def replace_face(dir: str, faces: dict[str, PseudoLayer]) -> list[str]:
+    first = list(faces.values())[0]
+    layer = first.layer
+    prefered = first.prefered
+    adv_mode = first.adv_mode
+
+    base = layer.meta.name.removesuffix("_n").lower()
+    path = os.path.join(os.path.dirname(layer.meta.path), "paintingface", base)
     env = UnityPy.load(path)
 
-    repls: dict[str, Image.Image] = {}
-    for k, v in tqdm(is_clip.items()):
-        x, y = layer.posMin + meta.bias
-        w, h = layer.sizeDelta
-        img = repls[k]
-        if not adv_mode:
-            repls[k] = img.crop((x, y, x + w, y + h))
-        else:
-            if v:
-                rgb = Image.new("RGBA", img.size)
-                rgb.paste(img.crop((x, y, x + w + 1, y + h + 1)), (round(x), round(y)))
+    valid: list[Sprite] = [x for x in filter_env(env, Sprite) if x.name in faces]
+    for sprite in tqdm(valid):
+        img = faces[sprite.name].repl
+        sprite.m_Rect.width, sprite.m_Rect.height = img.size
+        sprite.m_RD.textureRect.width, sprite.m_RD.textureRect.height = img.size
+        sprite.save()
 
-                a = Image.new("RGBA", img.size)
-                a.paste(img.crop((x + 1, y + 1, x + w, y + h)), (round(x + 1), round(y + 1)))
-
-                img = Image.merge("RGBA", [*rgb.split()[:3], a.split()[-1]])
-
-            x, y = prefered.posMin + meta.bias
-            w, h = prefered.canvasSize
-            repls[k] = img.crop((x, y, x + w, y + h))
-
-    for _ in filter_env(env, Texture2D, False):
-        tex2d: Texture2D = _.read()
-        if re.match(r"^0|([1-9][0-9]*)$", tex2d.name):
-            img = repls[tex2d.name]
-            tex2d.m_Width, tex2d.m_Height = img.size
-            tex2d.set_image(img.transpose(Image.FLIP_TOP_BOTTOM), TextureFormat.RGBA32)
-            tex2d.save()
-
-    for _ in filter_env(env, Sprite, False):
-        sprite: Sprite = _.read()
-        if re.match(r"^0|([1-9][0-9]*)$", sprite.name):
-            size = repls[sprite.name].size
-            sprite.m_Rect.width, sprite.m_Rect.height = size
-            sprite.m_RD.textureRect.width, sprite.m_RD.textureRect.height = size
-            sprite.save()
+        tex2d: Texture2D = sprite.m_RD.texture.read()
+        tex2d.m_Width, tex2d.m_Height = img.size
+        tex2d.set_image(img.transpose(Image.FLIP_TOP_BOTTOM), TextureFormat.RGBA32)
+        tex2d.save()
 
     check_dir(dir, "output", "paintingface")
     output = os.path.join(dir, "output", "paintingface", base)
@@ -125,7 +96,7 @@ def replace_face(
         f.write(env.file.save("original"))
 
     if adv_mode:
-        return replace_meta(meta.path, meta.bias, layer, prefered) + [output]
+        return replace_meta(dir, layer, prefered) + [output]
     else:
         return [output]
 
@@ -172,12 +143,10 @@ class EncodeHelper:
         dir: str,
         meta: MetaInfo,
         layers: dict[str, Layer],
+        faces: dict[str, PseudoLayer],
         repls: dict[str, Image.Image],
         icons: dict[str, Image.Image],
-        prefered: Layer,
         enable_icon: bool,
-        adv_mode: bool,
-        is_clip: dict[str, bool],
     ) -> list[str]:
         painting = []
         valid = [v for v in layers.values() if v.repl is not None]
@@ -186,9 +155,11 @@ class EncodeHelper:
             painting += [replace_painting(dir, x) for x in tqdm(valid)]
 
         face = []
-        if "1" in repls:
+
+        valid = dict(filter(lambda x: x[1].repl is not None, faces.items()))
+        if valid != {}:
             print("[INFO] Encoding paintingface")
-            face += replace_face(dir, meta, repls, layers["face"], prefered, adv_mode, is_clip)
+            face += replace_face(dir, valid)
 
         icon = []
         valid = [k for k in icons.keys() if k in repls]

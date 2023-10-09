@@ -12,6 +12,9 @@ class MetaInfo:
     size: Vector2
     bias: Vector2
 
+    def __str__(self):
+        return f"<MetaInfo name={self.name}, size={self.size}, bias={self.bias}>: {self.path}"
+
 
 @dataclass
 class IconPreset:

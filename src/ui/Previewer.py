@@ -1,15 +1,18 @@
+import os
+from typing import Callable
+
 from PIL import Image
 from PySide6.QtCore import QDir, Qt
-from PySide6.QtGui import QPaintEvent, QDropEvent
+from PySide6.QtGui import QDragEnterEvent, QDropEvent, QAction
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-from ..Layer import Layer
+from ..Layer import Layer, PseudoLayer
 
 
 class Previewer(QWidget):
-    def __init__(self):
+    def __init__(self, aEncodeTexture: QAction):
         super().__init__()
-        self.setAcceptDrops(True)
+        self.aEncodeTexture = aEncodeTexture
 
         self.lName = QLabel()
         self.lName.setAlignment(Qt.AlignmentFlag.AlignBaseline)
@@ -29,27 +32,49 @@ class Previewer(QWidget):
 
         self.setLayout(layout)
 
-    def display(self, layer: Layer):
+    def set_callback(self, load_painting: Callable[[str], bool], load_face: Callable[[str], bool]):
+        self.load_painting = load_painting
+        self.load_face = load_face
+
+    def display_painting(self, layer: Layer):
         self.layer = layer
-        self.update()
+        self.lName.setText(layer.name)
+        self.lPath.setText(QDir.toNativeSeparators(layer.path))
+        self.refresh()
 
-    def paintEvent(self, event: QPaintEvent):
-        if not hasattr(self, "layer"):
-            return
+    def display_face(self, face: PseudoLayer):
+        self.layer = face
+        self.lName.setText("")
+        self.lPath.setText("")
+        self.refresh()
 
-        self.lName.setText(self.layer.name)
-        self.lPath.setText(QDir.toNativeSeparators(self.layer.path))
+    def refresh(self):
         if self.layer.repl is None:
-            img = self.layer.decode()
+            img = self.layer.decode().copy()
         else:
-            img = self.layer.repl
+            img = self.layer.repl.copy()
         img.thumbnail((512, 512))
         self.lImage.setPixmap(img.transpose(Image.FLIP_TOP_BOTTOM).toqpixmap())
+        self.update()
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        if event.mimeData().hasUrls():
+            event.accept()
 
     def dropEvent(self, event: QDropEvent):
-        links = []
-        for url in event.mimeData().urls():
-            links.append(str(url.toLocalFile()))
-        if links[0].endswith(".png"):
-            self.layer.load(links[0])
-            event.accept()
+        urls = event.mimeData().urls()
+        if len(urls) == 1:
+            link = urls[0].toLocalFile()
+            if os.path.isdir(link):
+                if self.load_face(link):
+                    self.aEncodeTexture.setEnabled(True)
+                    self.refresh()
+                    event.accept()
+                    return
+        for url in urls:
+            link = url.toLocalFile()
+            if link.endswith(".png"):
+                if self.load_painting(link):
+                    self.aEncodeTexture.setEnabled(True)
+                    self.refresh()
+                    event.accept()

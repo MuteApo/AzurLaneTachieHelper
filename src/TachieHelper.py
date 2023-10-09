@@ -1,20 +1,16 @@
 import os
-import re
 
 from PIL import Image
 from PySide6.QtCore import QDir, Qt
-from PySide6.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent
+from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QMainWindow,
     QMessageBox,
     QSizePolicy,
-    QTableWidget,
-    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -33,39 +29,20 @@ class AzurLaneTachieHelper(QMainWindow):
 
         self.config = Config("config.ini")
         self.asset_manager = AssetManager()
-        # self.encoder = EncodeHelper(self.asset_manager)
 
-        self._init_ui()
         self._init_statusbar()
         self._init_menu()
-
-    def _layout_face_repl(self):  # Layout for Paintingface Replacers
-        label = QLabel(self.tr("Paintingface Replacers"))
-        label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-
-        self.tFaceRepl = QTableWidget()
-        self.tFaceRepl.setColumnCount(2)
-        self.tFaceRepl.setHorizontalHeaderLabels([self.tr("Clip"), self.tr("Image Source")])
-        self.tFaceRepl.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.ResizeToContents
-        )
-        self.tFaceRepl.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.tFaceRepl.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
-
-        layout = QVBoxLayout()
-        layout.addWidget(label)
-        layout.addWidget(self.tFaceRepl)
-
-        return layout
+        self._init_ui()
 
     def _init_ui(self):
-        self.preview = Previewer()
-
-        self.tDep = Table.Dep(self.preview)
+        self.preview = Previewer(self.mEdit.aEncodeTexture)
+        self.tPainting = Table.Painting(self.preview)
+        self.tFace = Table.Paintingface(self.preview)
+        self.preview.set_callback(self.tPainting.load_painting, self.tFace.load_face)
 
         left = QVBoxLayout()
-        left.addLayout(self.tDep)
-        left.addLayout(self._layout_face_repl())
+        left.addLayout(self.tPainting)
+        left.addLayout(self.tFace)
 
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.VLine)
@@ -117,23 +94,17 @@ class AzurLaneTachieHelper(QMainWindow):
         self.message.setText(f"({os.path.basename(file)})  {QDir.toNativeSeparators(file)}")
         print("[INFO] Metadata:", file)
 
-        self.tDep.table.clearContents()
-        self.tFaceRepl.clearContents()
+        self.tPainting.table.clearContents()
+        self.tFace.table.clearContents()
 
         self.asset_manager.analyze(file)
 
-        self.num_faces = len(self.asset_manager.faces)
-        self.tFaceRepl.setRowCount(self.num_faces)
+        self.tPainting.set_data(self.asset_manager.deps, self.asset_manager.layers)
 
-        self.tDep.set_data(self.asset_manager.deps, self.asset_manager.layers)
-
-        self.check_box: dict[str, QTableWidgetItem] = {}
-        for i, x in enumerate(self.asset_manager.faces):
-            item = QTableWidgetItem(f"paintingface/{x}")
-            item.setCheckState(Qt.CheckState.Checked)
-            item.setFlags(~Qt.ItemFlag.ItemIsEnabled)
-            self.tFaceRepl.setItem(i, 0, item)
-            self.check_box[x] = item
+        face_layer = self.asset_manager.face_layer
+        prefered = self.asset_manager.prefered(face_layer)
+        adv_mode = self.config.get_bool("Edit/AdvancedMode")
+        self.tFace.set_data(self.asset_manager.faces, face_layer, prefered, adv_mode)
 
         self.mFile.aImportPainting.setEnabled(True)
         self.mFile.aImportPaintingface.setEnabled(True)
@@ -153,41 +124,19 @@ class AzurLaneTachieHelper(QMainWindow):
             self, self.tr("Select Paintings"), last, "Image (*.png)"
         )
         if files:
-            workload = []
+            flag = False
             for file in files:
-                path = QDir.toNativeSeparators(file)
-                if self.tDep.load_painting(file):
-                    workload += [path]
-
-            if workload != []:
+                if self.tPainting.load_painting(file):
+                    flag = True
+            if flag:
                 self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onClickFileImportPaintingface(self):
         last = os.path.dirname(self.config.get_str("File/RecentPath"))
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Paintingface Folder"), last)
         if dir:
-            print("[INFO] Paintingface folder:")
-            print("      ", QDir.toNativeSeparators(dir))
-            print("[INFO] Paintingfaces:")
-
-            pics = {}
-            for file in os.listdir(dir):
-                name, _ = os.path.splitext(file)
-                if re.match(r"^0|([1-9][0-9]*)$", name):
-                    pics[name] = file
-            workload = {}
-            for i in range(self.num_faces):
-                id = os.path.basename(self.tFaceRepl.item(i, 0).text())
-                path = QDir.toNativeSeparators(os.path.join(dir, pics[id]))
-                self.tFaceRepl.setItem(i, 1, QTableWidgetItem(path))
-                if self.adv_mode:
-                    item = self.tFaceRepl.item(i, 0)
-                    item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
-                    item.setCheckState(Qt.CheckState.Checked)
-                workload |= {id: path}
-            self.asset_manager.load_faces(workload)
-
-            self.mEdit.aEncodeTexture.setEnabled(True)
+            if self.tFace.load_face(dir):
+                self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onClickFileImportIcons(self):
         last = os.path.dirname(self.config.get_str("File/RecentPath"))
@@ -227,12 +176,8 @@ class AzurLaneTachieHelper(QMainWindow):
         last = os.path.dirname(self.config.get_str("File/RecentPath"))
         dir = QFileDialog.getExistingDirectory(self, dir=last)
         if dir:
-            adv_mode = self.config.get_bool("Edit/AdvancedMode")
             enable_icon = self.config.get_bool("Edit/ReplaceIcon")
-            is_clip = {
-                k: v.checkState() != Qt.CheckState.Unchecked for k, v in self.check_box.items()
-            }
-            res = self.asset_manager.encode(dir, enable_icon, adv_mode, is_clip)
+            res = self.asset_manager.encode(dir, enable_icon)
             self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
 
     def onClickOption(self):
@@ -242,37 +187,26 @@ class AzurLaneTachieHelper(QMainWindow):
         if adv_mode != self.config.get_bool("Edit/AdvancedMode"):
             self.config.set("Edit/AdvancedMode", adv_mode)
             if hasattr(self, "num_faces"):
-                for i in range(self.num_faces):
+                for i in range(self.tFace.num):
                     if adv_mode:
                         flag = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable
                     else:
                         flag = ~Qt.ItemFlag.ItemIsEnabled
-                    self.tFaceRepl.item(i, 0).setFlags(flag)
+                    self.tFace.table.item(i, 0).setFlags(flag)
 
         self.config.set("Edit/ReplaceIcon", self.mOption.aReplaceIcons.isChecked())
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():
-            self.preview.dragEnterEvent(event)
-            if not event.isAccepted():
-                event.accept()
-
-    def dragMoveEvent(self, event: QDragMoveEvent):
-        if event.mimeData().hasUrls():
-            event.setDropAction(Qt.DropAction.CopyAction)
-            self.preview.dragMoveEvent(event)
             if not event.isAccepted():
                 event.accept()
 
     def dropEvent(self, event: QDropEvent):
         if event.mimeData().hasUrls():
             event.setDropAction(Qt.DropAction.CopyAction)
-            self.preview.dropEvent(event)
+            self.open_metadata(event.mimeData().urls()[0].toLocalFile())
+            self.preview.setAcceptDrops(True)
             if event.isAccepted():
                 self.mEdit.aEncodeTexture.setEnabled(True)
             else:
                 event.accept()
-                links = []
-                for url in event.mimeData().urls():
-                    links.append(str(url.toLocalFile()))
-                self.open_metadata(links[0])

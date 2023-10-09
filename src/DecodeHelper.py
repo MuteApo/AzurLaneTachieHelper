@@ -8,7 +8,7 @@ from pytoshop.user import nested_layers
 from tqdm import tqdm
 
 from .Data import MetaInfo
-from .Layer import Layer
+from .Layer import Layer,PseudoLayer
 from .Vector import Vector2
 
 
@@ -60,7 +60,7 @@ class DecodeHelper:
         dir: str,
         meta: MetaInfo,
         layers: dict[str, Layer],
-        faces: dict[str, Image.Image],
+        faces: dict[str, PseudoLayer],
         dump: bool,
     ) -> str:
         """
@@ -74,8 +74,8 @@ class DecodeHelper:
             Metadata of the painting, including path, name, size, bias and etc.
         layers: dict[str, Layer]
             A dict containing each of the painting layers.
-        faces: dict[str, Image.Image]
-            A dict containing each of the paintingface images.
+        faces: dict[str, PseudoLayer]
+            A dict containing each of the paintingface images, as pseudo-layers.
         dump: bool
             Whether to dump intermediate layers, before assembled together as a whole psd.
 
@@ -89,7 +89,7 @@ class DecodeHelper:
         face = []
         for k, v in tqdm(sorted(faces.items(), key=lambda x: int(x[0]))):
             x, y = layers["face"].posMin + meta.bias
-            sub = v.transform(v.size, Image.AFFINE, (1, 0, ceil(x) - x, 0, 1, y - floor(y)))
+            sub = v.decode().transform(v.size, Image.AFFINE, (1, 0, ceil(x) - x, 0, 1, y - floor(y)))
             alias = f"face [{k}]"
             face += [ps_layer(meta.size, alias, sub, ceil(x), floor(y), False)]
 

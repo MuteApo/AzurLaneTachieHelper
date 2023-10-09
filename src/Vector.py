@@ -71,6 +71,11 @@ class Vector2:
             other = Vector2(other)
         return Vector2(self.X / other.X, self.Y / other.Y)
 
+    def __floordiv__(self, other) -> Self:
+        if not isinstance(other, Vector2):
+            other = Vector2(other)
+        return Vector2(self.X // other.X, self.Y // other.Y)
+
     def __pow__(self, other):
         if not isinstance(other, Vector2):
             other = Vector2(other)

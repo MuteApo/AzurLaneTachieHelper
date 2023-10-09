@@ -3,15 +3,7 @@ from typing import Callable, Optional
 
 from PIL import Image
 from typing_extensions import Self
-from UnityPy.classes import (
-    GameObject,
-    Mesh,
-    MonoBehaviour,
-    PPtr,
-    RectTransform,
-    Sprite,
-    Texture2D,
-)
+from UnityPy.classes import GameObject, Mesh, MonoBehaviour, PPtr, RectTransform, Sprite, Texture2D
 from UnityPy.enums import ClassIDType
 from UnityPy.math import Quaternion, Vector3
 
@@ -223,7 +215,7 @@ class Layer:
 
     @property
     def posMin(self) -> Vector2:
-        return self.posPivot - self.sizeDelta * self.pivot
+        return self.posPivot - (self.sizeDelta + 1) // 2 * 2 * self.pivot
 
     @property
     def posMax(self) -> Vector2:
@@ -303,13 +295,55 @@ class Layer:
             setattr(self, "_dec_tex", dec)
         return getattr(self, "_dec_tex")
 
+    def crop(self, img: Image.Image):
+        x, y = self.posMin + self.meta.bias
+        w, h = self.canvasSize
+        return img.crop((x, y, x + w, y + h))
+
     def load(self, path: str) -> bool:
         name, _ = os.path.splitext(os.path.basename(path))
         if self.name != name:
             return False
         print("[INFO] Painting:", path)
-        x, y = self.posMin + self.meta.bias
-        w, h = self.canvasSize
-        sub = read_img(path).crop((x, y, x + w, y + h))
-        self.repl = sub.resize(self.spriteSize.round().tuple())
+        self.repl = self.crop(read_img(path)).resize(self.spriteSize.round().tuple())
         return True
+
+
+class PseudoLayer:
+    def __init__(self, fake: Image.Image = None):
+        self.fake = fake
+        self.repl: Image.Image = None
+
+    def decode(self):
+        return self.fake
+
+    def set_data(self, layer: Layer, prefered: Layer, adv_mode: bool, is_clip: bool):
+        self.layer = layer
+        self.prefered = prefered
+        self.adv_mode = adv_mode
+        self.is_clip = is_clip
+
+    def load(self, path: str):
+        self.full = read_img(path)
+        self.repl = self.crop()
+        print("      ", path)
+
+    def crop(self):
+        x, y = self.layer.posMin + self.layer.meta.bias
+        w, h = self.layer.sizeDelta
+        img = self.full
+        if not self.adv_mode:
+            return img.crop((x, y, x + w, y + h))
+        else:
+            if self.is_clip:
+                rgb = Image.new("RGBA", img.size)
+                rgb.paste(img.crop((x, y, x + w + 1, y + h + 1)), (round(x), round(y)))
+
+                a = Image.new("RGBA", img.size)
+                a.paste(img.crop((x + 1, y + 1, x + w, y + h)), (round(x + 1), round(y + 1)))
+
+                img = Image.merge("RGBA", [*rgb.split()[:3], a.split()[-1]])
+
+            x, y = self.prefered.posMin + self.layer.meta.bias
+            w, h = self.prefered.canvasSize
+            return img.crop((x, y, x + w, y + h))
