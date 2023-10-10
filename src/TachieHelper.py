@@ -1,6 +1,5 @@
 import os
 
-from PIL import Image
 from PySide6.QtCore import QDir, Qt
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
@@ -38,11 +37,13 @@ class AzurLaneTachieHelper(QMainWindow):
         self.preview = Previewer(self.mEdit.aEncodeTexture)
         self.tPainting = Table.Painting(self.preview)
         self.tFace = Table.Paintingface(self.preview)
-        self.preview.set_callback(self.tPainting.load_painting, self.tFace.load_face)
+        self.tIcon = Table.Icon(self.preview)
+        self.preview.set_callback(self.tPainting.load, self.tFace.load, self.tIcon.load)
 
         left = QVBoxLayout()
         left.addLayout(self.tPainting)
         left.addLayout(self.tFace)
+        left.addLayout(self.tIcon)
 
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.VLine)
@@ -106,6 +107,8 @@ class AzurLaneTachieHelper(QMainWindow):
         adv_mode = self.config.get_bool("Edit/AdvancedMode")
         self.tFace.set_data(self.asset_manager.faces, face_layer, prefered, adv_mode)
 
+        self.tIcon.set_data(self.asset_manager.icons, face_layer, prefered)
+
         self.mFile.aImportPainting.setEnabled(True)
         self.mFile.aImportPaintingface.setEnabled(True)
         self.mFile.aImportIcons.setEnabled(True)
@@ -126,7 +129,7 @@ class AzurLaneTachieHelper(QMainWindow):
         if files:
             flag = False
             for file in files:
-                if self.tPainting.load_painting(file):
+                if self.tPainting.load(file):
                     flag = True
             if flag:
                 self.mEdit.aEncodeTexture.setEnabled(True)
@@ -135,7 +138,7 @@ class AzurLaneTachieHelper(QMainWindow):
         last = os.path.dirname(self.config.get_str("File/RecentPath"))
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Paintingface Folder"), last)
         if dir:
-            if self.tFace.load_face(dir):
+            if self.tFace.load(dir):
                 self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onClickFileImportIcons(self):
@@ -144,15 +147,12 @@ class AzurLaneTachieHelper(QMainWindow):
             self, self.tr("Select Icons"), last, "Image (*.png)"
         )
         if files:
-            print("[INFO] Icons:")
-
+            flag = False
             for file in files:
-                name, _ = os.path.splitext(os.path.basename(file))
-                if name in ["shipyardicon", "squareicon", "herohrzicon"]:
-                    print("      ", QDir.toNativeSeparators(file))
-                    self.asset_manager.repls[name] = Image.open(file)
-
-            self.mEdit.aEncodeTexture.setEnabled(True)
+                if self.tIcon.load(file):
+                    flag = True
+            if flag:
+                self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onClickEditClip(self):
         last = os.path.dirname(self.config.get_str("File/RecentPath"))
@@ -176,8 +176,7 @@ class AzurLaneTachieHelper(QMainWindow):
         last = os.path.dirname(self.config.get_str("File/RecentPath"))
         dir = QFileDialog.getExistingDirectory(self, dir=last)
         if dir:
-            enable_icon = self.config.get_bool("Edit/ReplaceIcon")
-            res = self.asset_manager.encode(dir, enable_icon)
+            res = self.asset_manager.encode(dir)
             self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
 
     def onClickOption(self):

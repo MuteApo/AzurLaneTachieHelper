@@ -27,8 +27,7 @@ class AssetManager:
         self.maps: dict[str, str] = {}
         self.layers: dict[str, Layer] = {}
         self.faces: dict[str, PseudoLayer] = {}
-        self.icons: dict[str, Image.Image] = {}
-        self.repls: dict[str, Image.Image] = {}
+        self.icons: dict[str, PseudoLayer] = {}
 
     @property
     def face_layer(self):
@@ -37,10 +36,8 @@ class AssetManager:
     def decode(self, dir: str, dump: bool) -> str:
         return DecodeHelper.exec(dir, self.meta, self.layers, self.faces, dump)
 
-    def encode(self, dir: str, enable_icon: bool) -> str:
-        return EncodeHelper.exec(
-            dir, self.meta, self.layers, self.faces, self.repls, self.icons, enable_icon
-        )
+    def encode(self, dir: str) -> str:
+        return EncodeHelper.exec(dir, self.layers, self.faces, self.icons)
 
     def analyze(self, file: str):
         self.init()
@@ -101,8 +98,8 @@ class AssetManager:
             path = os.path.join(os.path.dirname(file) + "/", icon)
             if os.path.exists(path):
                 env.load_file(path)
-                self.icons = {
-                    kind: x.image
+                self.icons |= {
+                    kind: PseudoLayer(x.image.transpose(Image.FLIP_TOP_BOTTOM))
                     for x in filter_env(env, Texture2D)
                     if re.match(f"^(?i){base}$", x.name)
                 }

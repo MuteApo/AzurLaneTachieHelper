@@ -3,11 +3,19 @@ from typing import Callable, Optional
 
 from PIL import Image
 from typing_extensions import Self
-from UnityPy.classes import GameObject, Mesh, MonoBehaviour, PPtr, RectTransform, Sprite, Texture2D
+from UnityPy.classes import (
+    GameObject,
+    Mesh,
+    MonoBehaviour,
+    PPtr,
+    RectTransform,
+    Sprite,
+    Texture2D,
+)
 from UnityPy.enums import ClassIDType
 from UnityPy.math import Quaternion, Vector3
 
-from .Data import MetaInfo
+from .Data import IconPreset, MetaInfo
 from .utility import prod, read_img
 from .Vector import Vector2
 
@@ -304,8 +312,8 @@ class Layer:
         name, _ = os.path.splitext(os.path.basename(path))
         if self.name != name:
             return False
-        print("[INFO] Painting:", path)
         self.repl = self.crop(read_img(path)).resize(self.spriteSize.round().tuple())
+        print("[INFO] Painting:", path)
         return True
 
 
@@ -317,18 +325,22 @@ class PseudoLayer:
     def decode(self):
         return self.fake
 
-    def set_data(self, layer: Layer, prefered: Layer, adv_mode: bool, is_clip: bool):
+    def set_data(self, layer: Layer, prefered: Layer, adv_mode: bool = False, is_clip: bool = True):
         self.layer = layer
         self.prefered = prefered
         self.adv_mode = adv_mode
         self.is_clip = is_clip
 
-    def load(self, path: str):
+    def load_face(self, path: str):
         self.full = read_img(path)
-        self.repl = self.crop()
-        print("      ", path)
+        self.repl = self.crop_face()
+        print("[INFO] Paintingface:", path)
 
-    def crop(self):
+    def load_icon(self, path: str, preset: IconPreset):
+        self.repl = read_img(path).resize(preset.tex2d.tuple())
+        print("[INFO] Icon:", path)
+
+    def crop_face(self):
         x, y = self.layer.posMin + self.layer.meta.bias
         w, h = self.layer.sizeDelta
         img = self.full

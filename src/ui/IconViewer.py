@@ -1,4 +1,5 @@
 import math
+from typing import Callable
 
 from PIL import Image, ImageChops
 from PySide6.QtCore import QPoint, Qt
@@ -18,13 +19,21 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from typing_extensions import Self
 
 from ..Data import IconPreset
 from ..Vector import Vector2
 
 
 class Icon(QWidget):
-    def __init__(self, img: Image.Image, ref: Image.Image, preset: IconPreset, center: Vector2):
+    def __init__(
+        self,
+        img: Image.Image,
+        ref: Image.Image,
+        preset: IconPreset,
+        center: Vector2,
+        callback: Callable[[Self], None],
+    ):
         super().__init__()
 
         self.img = img
@@ -32,6 +41,7 @@ class Icon(QWidget):
         self.ref = ImageChops.blend(ref, bg, 0.5).toqpixmap()
         self.preset = preset
         self.center = center
+        self.set_last = callback
         self.pressed = False
         self.display = True
         self.rotate = False
@@ -42,10 +52,12 @@ class Icon(QWidget):
         if event.button() == Qt.MouseButton.LeftButton:
             self.prev_pos = event.globalPos()
             self.pressed = True
+            self.set_last(self)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         if self.pressed:
             self.pressed = False
+            self.set_last(self)
 
     def mouseMoveEvent(self, event: QMouseEvent):
         if not self.pressed:
@@ -56,24 +68,34 @@ class Icon(QWidget):
             center = QPoint(w / 2, h / 2)
             cur = self.mapFromGlobal(current_pos) - center
             prev = self.mapFromGlobal(self.prev_pos) - center
-            delta = self.calc_angle(cur, prev)
-            self.apply(angle=delta)
+            self.apply(angle=self.calc_angle(cur, prev))
         else:
             diff = current_pos - self.prev_pos
-            delta = Vector2(diff.x(), -diff.y()).rotate(self.preset.angle)
-            self.apply(pivot=delta / self.preset.tex2d)
+            print(diff)
+            self.apply(pivot=Vector2(diff.x(), -diff.y()))
         self.prev_pos = current_pos
+        self.set_last(self)
 
     def wheelEvent(self, event: QWheelEvent):
         diff = event.angleDelta()
         self.apply(scale=diff.y() / 18000)
+        self.set_last(self)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
+        fine_tune = {
+            Qt.Key.Key_A: Vector2(-1, 0),
+            Qt.Key.Key_D: Vector2(1, 0),
+            Qt.Key.Key_W: Vector2(0, 1),
+            Qt.Key.Key_S: Vector2(0, -1),
+        }
         if event.key() == Qt.Key.Key_Alt:
             self.display = False
             self.update()
         elif event.key() == Qt.Key.Key_Control:
             self.rotate = True
+        elif event.key() in fine_tune:
+            self.apply(pivot=fine_tune[event.key()])
+            self.update()
 
     def keyReleaseEvent(self, event: QKeyEvent) -> None:
         if event.key() == Qt.Key.Key_Alt:
@@ -103,7 +125,7 @@ class Icon(QWidget):
         return x, y, w, h
 
     def apply(self, pivot: Vector2 = Vector2.zero(), scale: float = 0, angle: float = 0):
-        self.preset.apply(pivot, scale, angle)
+        self.preset.apply(pivot.rotate(self.preset.angle) / self.preset.tex2d, scale, angle)
         self.update()
 
 
@@ -118,7 +140,8 @@ class IconViewer(QDialog):
         self.icons: dict[str, Icon] = {}
         for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
             ref = refs.get(kind, Image.new("RGBA", self.presets[kind].tex2d.tuple()))
-            self.icons[kind] = Icon(img, ref, self.presets[kind], center)
+            self.icons[kind] = Icon(img, ref, self.presets[kind], center, self.setLast)
+        self.last: Icon = None
 
         layout1 = QHBoxLayout()
         layout1.addWidget(self.icons["squareicon"])
@@ -136,14 +159,23 @@ class IconViewer(QDialog):
         self.setLayout(layout)
 
     def keyPressEvent(self, event: QKeyEvent):
-        for x in self.icons.values():
-            x.keyPressEvent(event)
+        if event.key() in [Qt.Key.Key_Alt, Qt.Key.Key_Control]:
+            for x in self.icons.values():
+                x.keyPressEvent(event)
+        elif self.last is not None:
+            self.last.keyPressEvent(event)
 
     def keyReleaseEvent(self, event: QKeyEvent):
-        for x in self.icons.values():
-            x.keyReleaseEvent(event)
+        if event.key() in [Qt.Key.Key_Alt, Qt.Key.Key_Control]:
+            for x in self.icons.values():
+                x.keyReleaseEvent(event)
+        elif self.last is not None:
+            self.last.keyReleaseEvent(event)
 
     def onClickClip(self):
         for k, v in self.presets.items():
             print(f"[INFO] {k}: {v}")
         self.accept()
+
+    def setLast(self, icon: Icon):
+        self.last = icon

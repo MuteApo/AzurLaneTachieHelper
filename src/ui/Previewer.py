@@ -3,7 +3,7 @@ from typing import Callable
 
 from PIL import Image
 from PySide6.QtCore import QDir, Qt
-from PySide6.QtGui import QDragEnterEvent, QDropEvent, QAction
+from PySide6.QtGui import QAction, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from ..Layer import Layer, PseudoLayer
@@ -32,9 +32,15 @@ class Previewer(QWidget):
 
         self.setLayout(layout)
 
-    def set_callback(self, load_painting: Callable[[str], bool], load_face: Callable[[str], bool]):
+    def set_callback(
+        self,
+        load_painting: Callable[[str], bool],
+        load_face: Callable[[str], bool],
+        load_icon: Callable[[str], bool],
+    ):
         self.load_painting = load_painting
         self.load_face = load_face
+        self.load_icon = load_icon
 
     def display_painting(self, layer: Layer):
         self.layer = layer
@@ -42,8 +48,8 @@ class Previewer(QWidget):
         self.lPath.setText(QDir.toNativeSeparators(layer.path))
         self.refresh()
 
-    def display_face(self, face: PseudoLayer):
-        self.layer = face
+    def display_face_or_icon(self, layer: PseudoLayer):
+        self.layer = layer
         self.lName.setText("")
         self.lPath.setText("")
         self.refresh()
@@ -71,10 +77,17 @@ class Previewer(QWidget):
                     self.refresh()
                     event.accept()
                     return
-        for url in urls:
-            link = url.toLocalFile()
-            if link.endswith(".png"):
-                if self.load_painting(link):
+        links = [x.toLocalFile() for x in urls]
+        files = [x for x in links if x.endswith(".png")]
+        for file in files:
+            name, _ = os.path.splitext(file)
+            if os.path.basename(name) in ["shipyardicon", "squareicon", "herohrzicon"]:
+                if self.load_icon(file):
+                    self.aEncodeTexture.setEnabled(True)
+                    self.refresh()
+                    event.accept()
+            else:
+                if self.load_painting(file):
                     self.aEncodeTexture.setEnabled(True)
                     self.refresh()
                     event.accept()

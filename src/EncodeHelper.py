@@ -7,7 +7,7 @@ from tqdm import tqdm
 from UnityPy.classes import Mesh, Sprite, Texture2D
 from UnityPy.enums import TextureFormat
 
-from .Data import IconPreset, MetaInfo
+from .Data import IconPreset
 from .Layer import Layer, PseudoLayer
 from .utility import check_dir, filter_env
 
@@ -108,24 +108,18 @@ def aspect_ratio(preset: IconPreset, w: int, h: int, clip: bool):
     return w, h
 
 
-def replace_icon(dir: str, meta: MetaInfo, kind: str, repls: dict[str, Image.Image]):
-    base = meta.name.removesuffix("_n").lower()
-    path = os.path.join(os.path.dirname(meta), kind, base)
+def replace_icon(dir: str, kind: str, icon: PseudoLayer):
+    layer = icon.layer
+    base = layer.meta.name.removesuffix("_n").lower()
+    path = os.path.join(os.path.dirname(layer.meta.path), kind, base)
     if not os.path.exists(path):
         return
 
     env = UnityPy.load(path)
-    preset = IconPreset.default()[kind]
     for v in env.container.values():
-        img = repls[kind]
-        tex2d_size = aspect_ratio(preset, *img.size, False)
-        sprite_size = aspect_ratio(preset, *img.size, True)
-        sub = Image.new("RGBA", tex2d_size)
-        sub.paste(img.crop((0, 0, *sprite_size)))
-
         sprite: Sprite = v.read()
         tex2d: Texture2D = sprite.m_RD.texture.read()
-        tex2d.set_image(sub.resize(tex2d.image.size), TextureFormat.RGBA32)
+        tex2d.set_image(icon.repl.transpose(Image.FLIP_TOP_BOTTOM), TextureFormat.RGBA32)
         tex2d.save()
 
     check_dir(dir, "output", kind)
@@ -141,12 +135,9 @@ class EncodeHelper:
     @staticmethod
     def exec(
         dir: str,
-        meta: MetaInfo,
         layers: dict[str, Layer],
         faces: dict[str, PseudoLayer],
-        repls: dict[str, Image.Image],
-        icons: dict[str, Image.Image],
-        enable_icon: bool,
+        icons: dict[str, PseudoLayer],
     ) -> list[str]:
         painting = []
         valid = [v for v in layers.values() if v.repl is not None]
@@ -155,16 +146,15 @@ class EncodeHelper:
             painting += [replace_painting(dir, x) for x in tqdm(valid)]
 
         face = []
-
         valid = dict(filter(lambda x: x[1].repl is not None, faces.items()))
         if valid != {}:
             print("[INFO] Encoding paintingface")
             face += replace_face(dir, valid)
 
         icon = []
-        valid = [k for k in icons.keys() if k in repls]
-        if enable_icon and valid != []:
+        valid = dict(filter(lambda x: x[1].repl is not None, icons.items()))
+        if valid != {}:
             print("[INFO] Encoding icons")
-            icon += [replace_icon(dir, meta, x, repls) for x in tqdm(valid)]
+            icon += [replace_icon(dir, k, v) for k, v in tqdm(valid.items())]
 
         return painting + face + icon
