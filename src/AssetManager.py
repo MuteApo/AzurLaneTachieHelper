@@ -109,7 +109,7 @@ class AssetManager:
             w, h = preset.tex2d / preset.scale
             x, y = center - Vector2(w, h) * preset.pivot
 
-            path = os.path.join(os.path.dirname(self.meta), f"{kind}.png")
+            path = os.path.join(os.path.dirname(self.meta.path), f"{kind}.png")
             img = full.rotate(preset.angle, center=(x + w / 2, y + h / 2))
             if kind == "shipyardicon":
                 sub = img.copy()

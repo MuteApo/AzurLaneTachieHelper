@@ -23,6 +23,7 @@ from typing_extensions import Self
 
 from ..Data import IconPreset
 from ..Vector import Vector2
+from ..Layer import PseudoLayer
 
 
 class Icon(QWidget):
@@ -35,13 +36,13 @@ class Icon(QWidget):
         callback: Callable[[Self], None],
     ):
         super().__init__()
-
         self.img = img
         bg = Image.new("RGBA", ref.size, (255, 255, 255, 0))
         self.ref = ImageChops.blend(ref, bg, 0.5).toqpixmap()
         self.preset = preset
         self.center = center
         self.set_last = callback
+
         self.pressed = False
         self.display = True
         self.rotate = False
@@ -71,7 +72,6 @@ class Icon(QWidget):
             self.apply(angle=self.calc_angle(cur, prev))
         else:
             diff = current_pos - self.prev_pos
-            print(diff)
             self.apply(pivot=Vector2(diff.x(), -diff.y()))
         self.prev_pos = current_pos
         self.set_last(self)
@@ -130,7 +130,7 @@ class Icon(QWidget):
 
 
 class IconViewer(QDialog):
-    def __init__(self, refs: dict[str, Image.Image], img: Image.Image, center: Vector2):
+    def __init__(self, refs: dict[str, PseudoLayer], img: Image.Image, center: Vector2):
         super().__init__()
         self.setWindowTitle(self.tr("AzurLane Tachie Helper"))
         self.setWindowIcon(QPixmap("ico/cheshire.ico"))
@@ -139,7 +139,10 @@ class IconViewer(QDialog):
         self.presets = IconPreset.default()
         self.icons: dict[str, Icon] = {}
         for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
-            ref = refs.get(kind, Image.new("RGBA", self.presets[kind].tex2d.tuple()))
+            if kind in refs:
+                ref = refs[kind].decode().transpose(Image.FLIP_TOP_BOTTOM)
+            else:
+                ref = Image.new("RGBA", self.presets[kind].tex2d.tuple())
             self.icons[kind] = Icon(img, ref, self.presets[kind], center, self.setLast)
         self.last: Icon = None
 

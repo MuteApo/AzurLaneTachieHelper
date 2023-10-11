@@ -86,6 +86,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
     def show_path(self, text: str):
         msg_box = QMessageBox()
+        msg_box.setWindowTitle(self.tr("AzurLane Tachie Helper"))
         msg_box.setText(self.tr("Successfully written into:") + f"\n{text}")
         msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg_box.exec()
@@ -192,8 +193,6 @@ class AzurLaneTachieHelper(QMainWindow):
                     else:
                         flag = ~Qt.ItemFlag.ItemIsEnabled
                     self.tFace.table.item(i, 0).setFlags(flag)
-
-        self.config.set("Edit/ReplaceIcon", self.mOption.aReplaceIcons.isChecked())
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():

@@ -97,14 +97,6 @@ class Option(QMenu):
             checked=config.get_bool("Edit/AdvancedMode"),
             triggered=callbacks["Advanced Paintingface Mode"],
         )
-        self.aReplaceIcons = QAction(
-            self.tr("Replace Icons"),
-            self,
-            checkable=True,
-            checked=config.get_bool("Edit/ReplaceIcon"),
-            triggered=callbacks["Replace Icons"],
-        )
 
         self.addAction(self.aDumpLayer)
         self.addAction(self.aAdvMode)
-        self.addAction(self.aReplaceIcons)
