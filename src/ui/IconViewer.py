@@ -38,7 +38,7 @@ class Icon(QWidget):
         super().__init__()
         self.img = img
         bg = Image.new("RGBA", ref.size, (255, 255, 255, 0))
-        self.ref = ImageChops.blend(ref, bg, 0.5).toqpixmap()
+        self.ref = ImageChops.blend(ref, bg, 0.5).resize(preset.tex2d.tuple()).toqpixmap()
         self.preset = preset
         self.center = center
         self.set_last = callback
@@ -78,7 +78,7 @@ class Icon(QWidget):
 
     def wheelEvent(self, event: QWheelEvent):
         diff = event.angleDelta()
-        self.apply(scale=diff.y() / 18000)
+        self.apply(scale=diff.y() / 24000)
         self.set_last(self)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
@@ -130,13 +130,19 @@ class Icon(QWidget):
 
 
 class IconViewer(QDialog):
-    def __init__(self, refs: dict[str, PseudoLayer], img: Image.Image, center: Vector2):
+    def __init__(
+        self,
+        refs: dict[str, PseudoLayer],
+        presets: dict[str, IconPreset],
+        img: Image.Image,
+        center: Vector2,
+    ):
         super().__init__()
         self.setWindowTitle(self.tr("AzurLane Tachie Helper"))
         self.setWindowIcon(QPixmap("ico/cheshire.ico"))
         self.resize(750, 350)
 
-        self.presets = IconPreset.default()
+        self.presets = presets
         self.icons: dict[str, Icon] = {}
         for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
             if kind in refs:

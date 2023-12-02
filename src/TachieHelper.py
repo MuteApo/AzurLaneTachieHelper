@@ -64,21 +64,22 @@ class AzurLaneTachieHelper(QMainWindow):
         self.statusBar().setStyleSheet("QStatusBar::item{border:0px}")
 
     def _init_menu(self):
-        callbacks = {
-            "Open Metadata": self.onClickFileOpenMetadata,
-            "Import Painting": self.onClickFileImportPainting,
-            "Import Paintingface": self.onClickFileImportPaintingface,
-            "Import Icons": self.onClickFileImportIcons,
-            "Clip Icons": self.onClickEditClip,
-            "Decode Texture": self.onClickEditDecode,
-            "Encode Texture": self.onClickEditEncode,
-            "Dump Intermediate Layers": self.onClickOption,
-            "Advanced Paintingface Mode": self.onClickOption,
-            "Replace Icons": self.onClickOption,
-        }
-        self.mFile = Menu.File(callbacks)
-        self.mEdit = Menu.Edit(callbacks)
-        self.mOption = Menu.Option(callbacks, self.config)
+        self.mFile = Menu.File(
+            self.onClickFileOpenMetadata,
+            self.onClickFileImportPainting,
+            self.onClickFileImportPaintingface,
+            self.onClickFileImportIcons,
+        )
+        self.mEdit = Menu.Edit(
+            self.onClickEditClip,
+            self.onClickEditDecode,
+            self.onClickEditEncode,
+        )
+        self.mOption = Menu.Option(
+            self.config,
+            self.onClickOption,
+            self.onClickOption,
+        )
 
         self.menuBar().addMenu(self.mFile)
         self.menuBar().addMenu(self.mEdit)
@@ -92,7 +93,7 @@ class AzurLaneTachieHelper(QMainWindow):
         msg_box.exec()
 
     def open_metadata(self, file: str):
-        self.config.set("File/RecentPath", file)
+        self.config.set("system/RecentPath", file)
         self.message.setText(f"({os.path.basename(file)})  {QDir.toNativeSeparators(file)}")
         print("[INFO] Metadata:", file)
 
@@ -105,7 +106,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
         face_layer = self.asset_manager.face_layer
         prefered = self.asset_manager.prefered(face_layer)
-        adv_mode = self.config.get_bool("Edit/AdvancedMode")
+        adv_mode = self.config.get_bool("system/AdvancedMode")
         self.tFace.set_data(self.asset_manager.faces, face_layer, prefered, adv_mode)
 
         self.tIcon.set_data(self.asset_manager.icons, face_layer, prefered)
@@ -117,13 +118,13 @@ class AzurLaneTachieHelper(QMainWindow):
         self.mEdit.aClipIcons.setEnabled(True)
 
     def onClickFileOpenMetadata(self):
-        last = self.config.get_str("File/RecentPath")
+        last = self.config.get_str("system/RecentPath")
         file, _ = QFileDialog.getOpenFileName(self, self.tr("Select Metadata"), last)
         if file:
             self.open_metadata(file)
 
     def onClickFileImportPainting(self):
-        last = os.path.dirname(self.config.get_str("File/RecentPath"))
+        last = os.path.dirname(self.config.get_str("system/RecentPath"))
         files, _ = QFileDialog.getOpenFileNames(
             self, self.tr("Select Paintings"), last, "Image (*.png)"
         )
@@ -136,7 +137,7 @@ class AzurLaneTachieHelper(QMainWindow):
                 self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onClickFileImportPaintingface(self):
-        last = os.path.dirname(self.config.get_str("File/RecentPath"))
+        last = os.path.dirname(self.config.get_str("system/RecentPath"))
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Paintingface Folder"), last)
         if dir:
             if self.tFace.load(dir):
@@ -151,7 +152,7 @@ class AzurLaneTachieHelper(QMainWindow):
             self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onClickFileImportIcons(self):
-        last = os.path.dirname(self.config.get_str("File/RecentPath"))
+        last = os.path.dirname(self.config.get_str("system/RecentPath"))
         files, _ = QFileDialog.getOpenFileNames(
             self, self.tr("Select Icons"), last, "Image (*.png)"
         )
@@ -159,13 +160,16 @@ class AzurLaneTachieHelper(QMainWindow):
             self.import_icon(files)
 
     def onClickEditClip(self):
-        last = os.path.dirname(self.config.get_str("File/RecentPath"))
+        last = os.path.dirname(self.config.get_str("system/RecentPath"))
         file, _ = QFileDialog.getOpenFileName(
             self, self.tr("Select Reference"), last, "Image (*.png)"
         )
         if file:
-            viewer = IconViewer(self.asset_manager.icons, *self.asset_manager.prepare_icon(file))
+            presets = self.config.get_presets(self.asset_manager.meta.name_stem)
+            full, center = self.asset_manager.prepare_icon(file)
+            viewer = IconViewer(self.asset_manager.icons, presets, full, center)
             if viewer.exec():
+                self.config.set_presets(self.asset_manager.meta.name_stem, viewer.presets)
                 res = self.asset_manager.clip_icons(file, viewer.presets)
                 res = [QDir.toNativeSeparators(_) for _ in res]
                 self.show_path("\n".join(res))
@@ -173,7 +177,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
     def onClickEditDecode(self):
         base = os.path.dirname(self.asset_manager.meta.path)
-        res = self.asset_manager.decode(base, self.config.get_bool("Edit/DumpLayer"))
+        res = self.asset_manager.decode(base, self.config.get_bool("system/DumpLayer"))
         self.show_path(QDir.toNativeSeparators(res))
 
     def onClickEditEncode(self):
@@ -182,11 +186,11 @@ class AzurLaneTachieHelper(QMainWindow):
         self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
 
     def onClickOption(self):
-        self.config.set("Edit/DumpLayer", self.mOption.aDumpLayer.isChecked())
+        self.config.set("system/DumpLayer", self.mOption.aDumpLayer.isChecked())
 
         adv_mode = self.mOption.aAdvMode.isChecked()
-        if adv_mode != self.config.get_bool("Edit/AdvancedMode"):
-            self.config.set("Edit/AdvancedMode", adv_mode)
+        if adv_mode != self.config.get_bool("system/AdvancedMode"):
+            self.config.set("system/AdvancedMode", adv_mode)
             if hasattr(self, "num_faces"):
                 for i in range(self.tFace.num):
                     if adv_mode:

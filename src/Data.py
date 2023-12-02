@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 
 from typing_extensions import Self
@@ -36,12 +37,16 @@ class IconPreset:
         self.scale += scale
         self.angle += angle
 
-    @property
-    def aspect_ratio(self):
-        return self.tex2d.X / self.tex2d.Y
+    def from_repr(self, repr: str) -> Self:
+        num = r"\d+\.\d+|\d+"
+        self.angle = eval(re.search(f"angle=({num})", repr).group(1))
+        self.scale = eval(re.search(f"scale=({num})", repr).group(1))
+        pivot = re.search(f"pivot=\(({num}),\s*({num})\)", repr)
+        self.pivot = Vector2(eval(pivot.group(1)), eval(pivot.group(2)))
+        return self
 
     @classmethod
-    def default(cls) -> dict[str, Self]:
+    def defaults(cls) -> dict[str, Self]:
         return {
             "shipyardicon": IconPreset(
                 Vector2(192, 256), Vector2(192, 256), Vector2(0.5, 0.7), 0.6, 0

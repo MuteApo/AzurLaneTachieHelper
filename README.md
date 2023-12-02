@@ -2,10 +2,11 @@
 
 #### Features
 
-- Unpack & pack painting
-- Merge & split paintingface 
-- Support multi-layers
-- Dump as photoshop document (i.e. psd)
+- Unpack/pack painting
+- Merge/split paintingface
+- Clip shipyardicon/herohrzicon/squareicon
+- Support multiple layers
+- Dump as photoshop document
 
 #### Building Dependencies
 

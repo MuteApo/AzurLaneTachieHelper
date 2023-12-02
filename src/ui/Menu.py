@@ -7,37 +7,21 @@ from ..Config import Config
 
 
 class File(QMenu):
-    def __init__(self, callbacks: dict[str, Callable]):
+    def __init__(self, *callbacks: list[Callable]):
         super().__init__()
         self.setTitle(self.tr("File"))
 
         self.aOpenMetadata = QAction(
-            self.tr("Open Metadata"),
-            self,
-            shortcut="Ctrl+M",
-            enabled=True,
-            triggered=callbacks["Open Metadata"],
+            self.tr("Open Metadata"), shortcut="Ctrl+M", enabled=True, triggered=callbacks[0]
         )
         self.aImportPainting = QAction(
-            self.tr("Import Painting"),
-            self,
-            shortcut="Ctrl+P",
-            enabled=False,
-            triggered=callbacks["Import Painting"],
+            self.tr("Import Painting"), shortcut="Ctrl+P", enabled=False, triggered=callbacks[1]
         )
         self.aImportPaintingface = QAction(
-            self.tr("Import Paintingface"),
-            self,
-            shortcut="Ctrl+F",
-            enabled=False,
-            triggered=callbacks["Import Paintingface"],
+            self.tr("Import Paintingface"), shortcut="Ctrl+F", enabled=False, triggered=callbacks[2]
         )
         self.aImportIcons = QAction(
-            self.tr("Import Icons"),
-            self,
-            shortcut="Ctrl+I",
-            enabled=False,
-            triggered=callbacks["Import Icons"],
+            self.tr("Import Icons"), shortcut="Ctrl+I", enabled=False, triggered=callbacks[3]
         )
 
         self.addAction(self.aOpenMetadata)
@@ -47,30 +31,18 @@ class File(QMenu):
 
 
 class Edit(QMenu):
-    def __init__(self, callbacks: dict[str, Callable]):
+    def __init__(self, *callbacks: list[Callable]):
         super().__init__()
         self.setTitle(self.tr("Edit"))
 
         self.aClipIcons = QAction(
-            self.tr("Clip Icons"),
-            self,
-            shortcut="Ctrl+C",
-            enabled=False,
-            triggered=callbacks["Clip Icons"],
+            self.tr("Clip Icons"), shortcut="Ctrl+C", enabled=False, triggered=callbacks[0]
         )
         self.aDecodeTexture = QAction(
-            self.tr("Decode Texture"),
-            self,
-            shortcut="Ctrl+D",
-            enabled=False,
-            triggered=callbacks["Decode Texture"],
+            self.tr("Decode Texture"), shortcut="Ctrl+D", enabled=False, triggered=callbacks[1]
         )
         self.aEncodeTexture = QAction(
-            self.tr("Encode Texture"),
-            self,
-            shortcut="Ctrl+E",
-            enabled=False,
-            triggered=callbacks["Encode Texture"],
+            self.tr("Encode Texture"), shortcut="Ctrl+E", enabled=False, triggered=callbacks[2]
         )
 
         self.addAction(self.aClipIcons)
@@ -79,23 +51,21 @@ class Edit(QMenu):
 
 
 class Option(QMenu):
-    def __init__(self, callbacks: dict[str, Callable], config: Config):
+    def __init__(self, config: Config, *callbacks: list[Callable]):
         super().__init__()
         self.setTitle(self.tr("Option"))
 
         self.aDumpLayer = QAction(
             self.tr("Dump Intermediate Layers"),
-            self,
             checkable=True,
-            checked=config.get_bool("Edit/DumpLayer"),
-            triggered=callbacks["Dump Intermediate Layers"],
+            checked=config.get_bool("system/DumpLayer"),
+            triggered=callbacks[0],
         )
         self.aAdvMode = QAction(
             self.tr("Advanced Paintingface Mode"),
-            self,
             checkable=True,
-            checked=config.get_bool("Edit/AdvancedMode"),
-            triggered=callbacks["Advanced Paintingface Mode"],
+            checked=config.get_bool("system/AdvancedMode"),
+            triggered=callbacks[1],
         )
 
         self.addAction(self.aDumpLayer)

@@ -173,6 +173,6 @@ class Icon(QVBoxLayout):
     def load(self, path: str) -> bool:
         kind, _ = os.path.splitext(os.path.basename(path))
         if kind in self.icons:
-            self.icons[kind].load_icon(path, IconPreset.default()[kind])
+            self.icons[kind].load_icon(path, IconPreset.defaults()[kind])
             return True
         return False
