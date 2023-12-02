@@ -37,12 +37,11 @@ class AssetManager:
         return DecodeHelper.exec(dir, self.meta, self.layers, self.faces, dump)
 
     def encode(self, dir: str) -> str:
-        return EncodeHelper.exec(dir, self.layers, self.faces, self.icons)
+        faces = {int(k): v for k, v in self.faces.items()}
+        return EncodeHelper.exec(dir, self.layers, faces, self.icons)
 
     def analyze(self, file: str):
         self.init()
-
-        base = os.path.basename(file).removesuffix("_n")
 
         env = UnityPy.load(file)
         abs: list[AssetBundle] = filter_env(env, AssetBundle)
@@ -78,11 +77,12 @@ class AssetManager:
 
         self.meta = MetaInfo(file, base_layer.name, size, bias)
 
-        for k, v in self.deps.items():
-            self.layers[os.path.basename(k).removesuffix("_tex")].path = v
         for k, v in self.layers.items():
             v.meta = self.meta
+            if k != "face":
+                v.path = self.deps[f"painting/{v.texture2D.name}_tex"]
 
+        base = os.path.basename(file).removesuffix("_ex").removesuffix("_n")
         face = os.path.join("paintingface/", base)
         path = os.path.join(os.path.dirname(file) + "/", face)
         if os.path.exists(path):
@@ -104,7 +104,7 @@ class AssetManager:
                     if re.match(f"^(?i){base}$", x.name)
                 }
 
-    def clip_icons(self, workload: str, presets: dict[str, IconPreset]):
+    def clip_icons(self, workload: str, presets: dict[str, IconPreset]) -> list[str]:
         def clip(kind: str, preset: IconPreset):
             w, h = preset.tex2d / preset.scale
             x, y = center - Vector2(w, h) * preset.pivot
@@ -114,7 +114,7 @@ class AssetManager:
             if kind == "shipyardicon":
                 sub = img.copy()
                 img = Image.new("RGBA", sub.size)
-                img.paste(sub, (round(-10 / preset.scale), 0))
+                img.paste(sub, (round(-9 / preset.scale), 0))
                 data = np.array(img)
                 data[..., :3] = 0
                 data[..., 3] = np.where(data[..., 3] > 76, 76, data[..., 3])

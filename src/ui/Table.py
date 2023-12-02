@@ -38,8 +38,9 @@ class Painting(QVBoxLayout):
         self.layers = layers
         self.num = len(self.layers) - 1
         self.table.setRowCount(self.num)
-        for i, k in enumerate(deps.keys()):
-            self.table.setItem(i, 0, QTableWidgetItem(k))
+        for i, k in enumerate(layers.keys()):
+            if k != "face":
+                self.table.setItem(i, 0, QTableWidgetItem(k))
         self.onCellClicked(0, 0)
 
     def get_text(self, row: int) -> str:
@@ -83,7 +84,11 @@ class Paintingface(QVBoxLayout):
         self.layer = face_layer
         self.num = len(faces)
         self.table.setRowCount(self.num)
+        self.adv_mode = adv_mode
         self.check_box: dict[str, QTableWidgetItem] = {}
+        self.is_clip: dict[str, bool] = {}
+        self.table.itemChanged.connect(self.onItemChanged)
+        self.table.itemChanged.disconnect()
         for i, (k, v) in enumerate(faces.items()):
             v.set_data(face_layer, prefered, adv_mode, True)
             item = QTableWidgetItem("")
@@ -92,16 +97,20 @@ class Paintingface(QVBoxLayout):
             self.table.setItem(i, 0, item)
             self.table.setItem(i, 1, QTableWidgetItem(f"paintingface/{k}"))
             self.check_box[k] = item
-
-    def get_text(self, row: int) -> str:
-        return self.table.item(row, 0).text()
-
-    def get_clip(self) -> dict[str, bool]:
-        return {k: v.checkState() != Qt.CheckState.Unchecked for k, v in self.check_box.items()}
+            self.is_clip[i] = True
+        self.table.itemChanged.connect(self.onItemChanged)
 
     def onCellClicked(self, row: int, col: int):
-        idx = os.path.basename(self.table.item(row, col).text())
+        idx = os.path.basename(self.table.item(row, 1).text())
         self.preview.display_face_or_icon(self.faces[idx])
+
+    def onItemChanged(self, item: QTableWidgetItem):
+        if item.column() == 0:
+            val = item.checkState() != Qt.CheckState.Unchecked
+            if val != self.is_clip[item.row()]:
+                self.is_clip[item.row()] = val
+                idx = os.path.basename(self.table.item(item.row(), 1).text())
+                self.faces[idx].update_clip(val)
 
     def load(self, path: str) -> bool:
         print("[INFO] Paintingface folder:")
@@ -115,7 +124,8 @@ class Paintingface(QVBoxLayout):
             img = QDir.toNativeSeparators(os.path.join(path, file))
             tasks += [threading.Thread(target=self.faces[name].load_face, args=(img,))]
             check_box = self.check_box[name]
-            check_box.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
+            if self.adv_mode:
+                check_box.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
             check_box.setCheckState(Qt.CheckState.Checked)
 
         if tasks == []:

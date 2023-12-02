@@ -40,8 +40,8 @@ class Layer:
             # "anchoredPosition",
             "sizeDelta",
             # "pivot",
-            # "posMin",
-            # "posMax",
+            "posMin",
+            "posMax",
             "meshSize",
             "rawSpriteSize",
             "texture2D",
@@ -223,7 +223,7 @@ class Layer:
 
     @property
     def posMin(self) -> Vector2:
-        return self.posPivot - (self.sizeDelta + 1) // 2 * 2 * self.pivot
+        return self.posPivot - self.sizeDelta * self.pivot
 
     @property
     def posMax(self) -> Vector2:
@@ -250,12 +250,9 @@ class Layer:
                     t = [(round(t[i] * w), round(t[i + 1] * h)) for i in range(0, len(t), 2)]
                     f = self.rawMesh.m_Indices
                     for i in range(0, len(f), 6):
-                        val += [
-                            (
-                                (*v[f[i]], *v[f[i + 3]]),
-                                (*t[f[i]], *t[f[i + 1]], *t[f[i + 3]], *t[f[i + 4]]),
-                            )
-                        ]
+                        pos = (*v[f[i]], *v[f[i + 3]])
+                        quad = (*t[f[i]], *t[f[i + 1]], *t[f[i + 3]], *t[f[i + 4]])
+                        val += [(pos, quad)]
                 setattr(self, "_mesh", val)
         return getattr(self, "_mesh")
 
@@ -273,8 +270,10 @@ class Layer:
                 setattr(self, "_mesh_size", None)
             else:
                 v = [x[0] for x in self.mesh]
-                w = max([x[2] for x in v]) + 1
-                h = max([x[3] for x in v]) + 1
+                w = max([x[2] for x in v])
+                h = max([x[3] for x in v])
+                if w == 2047 or h == 2047:
+                    w, h = w + 1, h + 1
                 setattr(self, "_mesh_size", Vector2(w, h))
         return getattr(self, "_mesh_size")
 
@@ -298,7 +297,7 @@ class Layer:
 
     def decode(self) -> Image.Image:
         if not hasattr(self, "_dec_tex"):
-            size = self.spriteSize.round().tuple()
+            size = self.meshSize.round().tuple()
             dec = self.tex.transform(size, Image.MESH, self.mesh)
             setattr(self, "_dec_tex", dec)
         return getattr(self, "_dec_tex")
@@ -339,6 +338,10 @@ class PseudoLayer:
     def load_icon(self, path: str, preset: IconPreset):
         self.repl = read_img(path).resize(preset.tex2d.tuple())
         print("[INFO] Icon:", path)
+
+    def update_clip(self, is_clip: bool):
+        self.is_clip = is_clip
+        self.repl = self.crop_face()
 
     def crop_face(self):
         x, y = self.layer.posMin + self.layer.meta.bias

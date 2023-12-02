@@ -142,18 +142,21 @@ class AzurLaneTachieHelper(QMainWindow):
             if self.tFace.load(dir):
                 self.mEdit.aEncodeTexture.setEnabled(True)
 
+    def import_icon(self, files: list[str]):
+        flag = False
+        for file in files:
+            if self.tIcon.load(file):
+                flag = True
+        if flag:
+            self.mEdit.aEncodeTexture.setEnabled(True)
+
     def onClickFileImportIcons(self):
         last = os.path.dirname(self.config.get_str("File/RecentPath"))
         files, _ = QFileDialog.getOpenFileNames(
             self, self.tr("Select Icons"), last, "Image (*.png)"
         )
         if files:
-            flag = False
-            for file in files:
-                if self.tIcon.load(file):
-                    flag = True
-            if flag:
-                self.mEdit.aEncodeTexture.setEnabled(True)
+            self.import_icon(files)
 
     def onClickEditClip(self):
         last = os.path.dirname(self.config.get_str("File/RecentPath"))
@@ -164,21 +167,19 @@ class AzurLaneTachieHelper(QMainWindow):
             viewer = IconViewer(self.asset_manager.icons, *self.asset_manager.prepare_icon(file))
             if viewer.exec():
                 res = self.asset_manager.clip_icons(file, viewer.presets)
-                self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
+                res = [QDir.toNativeSeparators(_) for _ in res]
+                self.show_path("\n".join(res))
+                self.import_icon(res)
 
     def onClickEditDecode(self):
-        last = os.path.dirname(self.config.get_str("File/RecentPath", ""))
-        dir = QFileDialog.getExistingDirectory(self, self.tr("Select Output Folder"), last)
-        if dir:
-            res = self.asset_manager.decode(dir, self.config.get_bool("Edit/DumpLayer"))
-            self.show_path(QDir.toNativeSeparators(res))
+        base = os.path.dirname(self.asset_manager.meta.path)
+        res = self.asset_manager.decode(base, self.config.get_bool("Edit/DumpLayer"))
+        self.show_path(QDir.toNativeSeparators(res))
 
     def onClickEditEncode(self):
-        last = os.path.dirname(self.config.get_str("File/RecentPath"))
-        dir = QFileDialog.getExistingDirectory(self, dir=last)
-        if dir:
-            res = self.asset_manager.encode(dir)
-            self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
+        base = os.path.dirname(self.asset_manager.meta.path)
+        res = self.asset_manager.encode(base)
+        self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
 
     def onClickOption(self):
         self.config.set("Edit/DumpLayer", self.mOption.aDumpLayer.isChecked())

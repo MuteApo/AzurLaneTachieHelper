@@ -44,7 +44,7 @@ class Previewer(QWidget):
 
     def display_painting(self, layer: Layer):
         self.layer = layer
-        self.lName.setText(layer.name)
+        self.lName.setText(layer.texture2D.name)
         self.lPath.setText(QDir.toNativeSeparators(layer.path))
         self.refresh()
 

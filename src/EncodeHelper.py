@@ -7,13 +7,13 @@ from tqdm import tqdm
 from UnityPy.classes import Mesh, Sprite, Texture2D
 from UnityPy.enums import TextureFormat
 
-from .Data import IconPreset
 from .Layer import Layer, PseudoLayer
 from .utility import check_dir, filter_env
 
 
 def replace_painting(dir: str, layer: Layer) -> str:
-    env = UnityPy.load(layer.path)
+    path = layer.path if layer.path != "Not Found" else layer.meta.path
+    env = UnityPy.load(path)
 
     for _ in filter_env(env, Texture2D):
         tex2d: Texture2D = _.read()
@@ -37,7 +37,7 @@ def replace_painting(dir: str, layer: Layer) -> str:
         _.save_typetree(mesh)
 
     check_dir(dir, "output", "painting")
-    output = os.path.join(dir, "output", "painting", os.path.basename(layer.path))
+    output = os.path.join(dir, "output", "painting", os.path.basename(path))
     with open(output, "wb") as f:
         f.write(env.file.save("original"))
 
@@ -74,12 +74,12 @@ def replace_face(dir: str, faces: dict[str, PseudoLayer]) -> list[str]:
     prefered = first.prefered
     adv_mode = first.adv_mode
 
-    base = layer.meta.name.removesuffix("_n").lower()
+    base = layer.meta.name_stem
     path = os.path.join(os.path.dirname(layer.meta.path), "paintingface", base)
     env = UnityPy.load(path)
 
     valid: list[Sprite] = [x for x in filter_env(env, Sprite) if x.name in faces]
-    for sprite in tqdm(valid):
+    for sprite in tqdm(valid, "[INFO] Encoding paintingface"):
         img = faces[sprite.name].repl
         sprite.m_Rect.width, sprite.m_Rect.height = img.size
         sprite.m_RD.textureRect.width, sprite.m_RD.textureRect.height = img.size
@@ -101,16 +101,9 @@ def replace_face(dir: str, faces: dict[str, PseudoLayer]) -> list[str]:
         return [output]
 
 
-def aspect_ratio(preset: IconPreset, w: int, h: int, clip: bool):
-    std = preset.tex2d
-    if clip:
-        w = round(w / std.X * preset.sprite.X)
-    return w, h
-
-
 def replace_icon(dir: str, kind: str, icon: PseudoLayer):
     layer = icon.layer
-    base = layer.meta.name.removesuffix("_n").lower()
+    base = layer.meta.name_stem
     path = os.path.join(os.path.dirname(layer.meta.path), kind, base)
     if not os.path.exists(path):
         return
@@ -142,19 +135,18 @@ class EncodeHelper:
         painting = []
         valid = [v for v in layers.values() if v.repl is not None]
         if valid != []:
-            print("[INFO] Encoding painting")
-            painting += [replace_painting(dir, x) for x in tqdm(valid)]
+            painting += [replace_painting(dir, x) for x in tqdm(valid, "[INFO] Encoding painting")]
 
         face = []
         valid = dict(filter(lambda x: x[1].repl is not None, faces.items()))
         if valid != {}:
-            print("[INFO] Encoding paintingface")
             face += replace_face(dir, valid)
 
         icon = []
         valid = dict(filter(lambda x: x[1].repl is not None, icons.items()))
         if valid != {}:
-            print("[INFO] Encoding icons")
-            icon += [replace_icon(dir, k, v) for k, v in tqdm(valid.items())]
+            icon += [
+                replace_icon(dir, k, v) for k, v in tqdm(valid.items(), "[INFO] Encoding icons")
+            ]
 
         return painting + face + icon

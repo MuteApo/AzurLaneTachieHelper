@@ -2,13 +2,13 @@ import os
 from math import ceil, floor
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 from pytoshop.enums import ColorMode
 from pytoshop.user import nested_layers
 from tqdm import tqdm
 
 from .Data import MetaInfo
-from .Layer import Layer,PseudoLayer
+from .Layer import Layer, PseudoLayer
 from .Vector import Vector2
 
 
@@ -61,7 +61,7 @@ class DecodeHelper:
         meta: MetaInfo,
         layers: dict[str, Layer],
         faces: dict[str, PseudoLayer],
-        dump: bool,
+        is_dump: bool,
     ) -> str:
         """
         Decode layers of a painting along with paintingface and return file path of the dumped psd.
@@ -74,9 +74,9 @@ class DecodeHelper:
             Metadata of the painting, including path, name, size, bias and etc.
         layers: dict[str, Layer]
             A dict containing each of the painting layers.
-        faces: dict[str, PseudoLayer]
+        faces: dict[int, PseudoLayer]
             A dict containing each of the paintingface images, as pseudo-layers.
-        dump: bool
+        is_dump: bool
             Whether to dump intermediate layers, before assembled together as a whole psd.
 
         Returns
@@ -85,28 +85,27 @@ class DecodeHelper:
             Path to the resulting psd.
         """
 
-        print("[INFO] Decoding paintingface")
         face = []
-        for k, v in tqdm(sorted(faces.items(), key=lambda x: int(x[0]))):
+        for k, v in tqdm(sorted(faces.items()), "[INFO] Decoding paintingface"):
             x, y = layers["face"].posMin + meta.bias
-            sub = v.decode().transform(v.size, Image.AFFINE, (1, 0, ceil(x) - x, 0, 1, y - floor(y)))
+            tex = v.decode().transpose(Image.FLIP_TOP_BOTTOM)
+            # tex = tex.transform(tex.size, Image.AFFINE, (1, 0, round(x) - x, 0, 1, y - round(y)))
             alias = f"face [{k}]"
-            face += [ps_layer(meta.size, alias, sub, ceil(x), floor(y), False)]
+            face += [ps_layer(meta.size, alias, tex, round(x), round(y), False)]
 
-        print("[INFO] Decoding painting")
         painting = []
-        for k, v in tqdm(layers.items()):
+        for k, v in tqdm(layers.items(), "[INFO] Decoding painting"):
             if k == "face":
                 painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
             else:
-                sub = v.decode().transpose(Image.FLIP_TOP_BOTTOM)
-                if dump:
-                    sub.save(f"{os.path.join(dir, k)}.png")
+                tex = v.decode().transpose(Image.FLIP_TOP_BOTTOM)
+                if is_dump:
+                    tex.save(f"{os.path.join(dir, k)}.png")
                 x, y = v.posMin + meta.bias
-                sub = sub.resize(v.canvasSize.round().tuple())
-                sub = sub.transform(sub.size, Image.AFFINE, (1, 0, ceil(x) - x, 0, 1, y - floor(y)))
+                tex = ImageOps.contain(tex, v.canvasSize.round().tuple())
+                # tex = tex.transform(tex.size, Image.AFFINE, (1, 0, round(x) - x, 0, 1, y - round(y)))
                 alias = f"{v.name} [{v.texture2D.name}]"
-                painting += [ps_layer(meta.size, alias, sub, ceil(x), floor(y), True)]
+                painting += [ps_layer(meta.size, alias, tex, round(x), round(y), True)]
 
         psd = nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)
         path = os.path.join(dir, meta.name + ".psd")
