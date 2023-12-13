@@ -33,6 +33,12 @@ class AzurLaneTachieHelper(QMainWindow):
         self._init_menu()
         self._init_ui()
 
+    def _init_statusbar(self):
+        self.message = QLabel(self.tr("Ready"))
+        self.message.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.statusBar().addWidget(self.message)
+        self.statusBar().setStyleSheet("QStatusBar::item{border:0px}")
+
     def _init_ui(self):
         self.preview = Previewer(self.mEdit.aEncodeTexture)
         self.tPainting = Table.Painting(self.preview)
@@ -57,29 +63,10 @@ class AzurLaneTachieHelper(QMainWindow):
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
 
-    def _init_statusbar(self):
-        self.message = QLabel(self.tr("Ready"))
-        self.message.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.statusBar().addWidget(self.message)
-        self.statusBar().setStyleSheet("QStatusBar::item{border:0px}")
-
     def _init_menu(self):
-        self.mFile = Menu.File(
-            self.onClickFileOpenMetadata,
-            self.onClickFileImportPainting,
-            self.onClickFileImportPaintingface,
-            self.onClickFileImportIcons,
-        )
-        self.mEdit = Menu.Edit(
-            self.onClickEditClip,
-            self.onClickEditDecode,
-            self.onClickEditEncode,
-        )
-        self.mOption = Menu.Option(
-            self.config,
-            self.onClickOption,
-            self.onClickOption,
-        )
+        self.mFile = Menu.File(self.onOpenMetadata, self.onImportPainting, self.onImportFaces, self.onImportIcons)
+        self.mEdit = Menu.Edit(self.onEditClip, self.onEditDecode, self.onEditEncode)
+        self.mOption = Menu.Option(self.config, self.onOption, self.onOption)
 
         self.menuBar().addMenu(self.mFile)
         self.menuBar().addMenu(self.mEdit)
@@ -94,7 +81,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
     def open_metadata(self, file: str):
         self.config.set("system/RecentPath", file)
-        self.message.setText(f"({os.path.basename(file)})  {QDir.toNativeSeparators(file)}")
+        self.message.setText(f"({os.path.basename(file)}) {QDir.toNativeSeparators(file)}")
         print("[INFO] Metadata:", file)
 
         self.tPainting.table.clearContents()
@@ -117,17 +104,15 @@ class AzurLaneTachieHelper(QMainWindow):
         self.mEdit.aDecodeTexture.setEnabled(True)
         self.mEdit.aClipIcons.setEnabled(True)
 
-    def onClickFileOpenMetadata(self):
+    def onOpenMetadata(self):
         last = self.config.get_str("system/RecentPath")
         file, _ = QFileDialog.getOpenFileName(self, self.tr("Select Metadata"), last)
         if file:
             self.open_metadata(file)
 
-    def onClickFileImportPainting(self):
+    def onImportPainting(self):
         last = os.path.dirname(self.config.get_str("system/RecentPath"))
-        files, _ = QFileDialog.getOpenFileNames(
-            self, self.tr("Select Paintings"), last, "Image (*.png)"
-        )
+        files, _ = QFileDialog.getOpenFileNames(self, self.tr("Select Paintings"), last, "Image (*.png)")
         if files:
             flag = False
             for file in files:
@@ -136,7 +121,7 @@ class AzurLaneTachieHelper(QMainWindow):
             if flag:
                 self.mEdit.aEncodeTexture.setEnabled(True)
 
-    def onClickFileImportPaintingface(self):
+    def onImportFaces(self):
         last = os.path.dirname(self.config.get_str("system/RecentPath"))
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Paintingface Folder"), last)
         if dir:
@@ -151,19 +136,15 @@ class AzurLaneTachieHelper(QMainWindow):
         if flag:
             self.mEdit.aEncodeTexture.setEnabled(True)
 
-    def onClickFileImportIcons(self):
+    def onImportIcons(self):
         last = os.path.dirname(self.config.get_str("system/RecentPath"))
-        files, _ = QFileDialog.getOpenFileNames(
-            self, self.tr("Select Icons"), last, "Image (*.png)"
-        )
+        files, _ = QFileDialog.getOpenFileNames(self, self.tr("Select Icons"), last, "Image (*.png)")
         if files:
             self.import_icon(files)
 
-    def onClickEditClip(self):
+    def onEditClip(self):
         last = os.path.dirname(self.config.get_str("system/RecentPath"))
-        file, _ = QFileDialog.getOpenFileName(
-            self, self.tr("Select Reference"), last, "Image (*.png)"
-        )
+        file, _ = QFileDialog.getOpenFileName(self, self.tr("Select Reference"), last, "Image (*.png)")
         if file:
             presets = self.config.get_presets(self.asset_manager.meta.name_stem)
             full, center = self.asset_manager.prepare_icon(file)
@@ -175,17 +156,17 @@ class AzurLaneTachieHelper(QMainWindow):
                 self.show_path("\n".join(res))
                 self.import_icon(res)
 
-    def onClickEditDecode(self):
+    def onEditDecode(self):
         base = os.path.dirname(self.asset_manager.meta.path)
         res = self.asset_manager.decode(base, self.config.get_bool("system/DumpLayer"))
         self.show_path(QDir.toNativeSeparators(res))
 
-    def onClickEditEncode(self):
+    def onEditEncode(self):
         base = os.path.dirname(self.asset_manager.meta.path)
         res = self.asset_manager.encode(base)
         self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
 
-    def onClickOption(self):
+    def onOption(self):
         self.config.set("system/DumpLayer", self.mOption.aDumpLayer.isChecked())
 
         adv_mode = self.mOption.aAdvMode.isChecked()

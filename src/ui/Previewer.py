@@ -6,7 +6,7 @@ from PySide6.QtCore import QDir, Qt
 from PySide6.QtGui import QAction, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-from ..Layer import Layer, PseudoLayer
+from ..Layer import Layer, FaceLayer, IconLayer
 
 
 class Previewer(QWidget):
@@ -24,7 +24,7 @@ class Previewer(QWidget):
         info.addWidget(self.lPath)
 
         self.lImage = QLabel()
-        self.lImage.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lImage.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         layout = QVBoxLayout()
         layout.addLayout(info)
@@ -48,10 +48,10 @@ class Previewer(QWidget):
         self.lPath.setText(QDir.toNativeSeparators(layer.path))
         self.refresh()
 
-    def display_face_or_icon(self, layer: PseudoLayer):
+    def display_face_or_icon(self, layer: FaceLayer | IconLayer):
         self.layer = layer
-        self.lName.setText("")
-        self.lPath.setText("")
+        self.lName.setText(layer.name)
+        self.lPath.setText(QDir.toNativeSeparators(layer.path))
         self.refresh()
 
     def refresh(self):

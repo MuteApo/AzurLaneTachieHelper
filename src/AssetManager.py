@@ -6,12 +6,11 @@ import numpy as np
 import UnityPy
 from PIL import Image
 from UnityPy.classes import AssetBundle, GameObject, RectTransform, Texture2D
-from UnityPy.enums import ClassIDType
 
 from .Data import MetaInfo
 from .DecodeHelper import DecodeHelper
 from .EncodeHelper import EncodeHelper
-from .Layer import Layer, PseudoLayer
+from .Layer import Layer, FaceLayer, IconLayer
 from .ui import IconPreset
 from .utility import filter_env, prod, read_img
 from .Vector import Vector2
@@ -24,21 +23,25 @@ class AssetManager:
     def init(self):
         self.meta: MetaInfo = None
         self.deps: dict[str, str] = {}
-        self.maps: dict[str, str] = {}
         self.layers: dict[str, Layer] = {}
-        self.faces: dict[str, PseudoLayer] = {}
-        self.icons: dict[str, PseudoLayer] = {}
+        self.faces: dict[str, FaceLayer] = {}
+        self.icons: dict[str, IconLayer] = {}
 
     @property
     def face_layer(self):
         return self.layers["face"]
 
     def decode(self, dir: str, dump: bool) -> str:
-        return DecodeHelper.exec(dir, self.meta, self.layers, self.faces, dump)
+        faces = {int(k): v for k, v in self.faces.items()}
+        psd = DecodeHelper.exec(dir, self.layers, faces, dump)
+        path = os.path.join(dir, self.meta.name + ".psd")
+        with open(path, "wb") as f:
+            psd.write(f)
+
+        return path
 
     def encode(self, dir: str) -> str:
-        faces = {int(k): v for k, v in self.faces.items()}
-        return EncodeHelper.exec(dir, self.layers, faces, self.icons)
+        return EncodeHelper.exec(dir, self.layers, self.faces, self.icons)
 
     def analyze(self, file: str):
         self.init()
@@ -51,11 +54,6 @@ class AssetManager:
             self.deps[dep] = path
             env.load_file(path)
 
-            if not dep.startswith("paintingface"):
-                for x in env.files[path].container.values():
-                    if x.type == ClassIDType.Sprite:
-                        self.maps[dep] = x.read().name
-
         print("[INFO] Dependencies:")
         [print("      ", _) for _ in self.deps.keys()]
 
@@ -67,6 +65,26 @@ class AssetManager:
         if "face" not in [x.name for x in self.layers.values()]:
             self.layers["face"] = base_layer.get_child("face")
         [print(_) for _ in self.layers.values()]
+
+        base = os.path.basename(file).removesuffix("_ex").removesuffix("_n")
+        path = os.path.join(os.path.dirname(file), "paintingface", base)
+        if os.path.exists(path):
+            env.load_file(path)
+            self.faces = {
+                x.name: FaceLayer(x.name, path, x.image.transpose(Image.FLIP_TOP_BOTTOM))
+                for x in filter_env(env, Texture2D)
+                if re.match(r"^0|([1-9]\d*)$", x.name)
+            }
+
+        for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
+            path = os.path.join(os.path.dirname(file), kind, base)
+            if os.path.exists(path):
+                env.load_file(path)
+                self.icons |= {
+                    kind: IconLayer(kind, path, x.image.transpose(Image.FLIP_TOP_BOTTOM))
+                    for x in filter_env(env, Texture2D)
+                    if re.match(f"^(?i){base}$", x.name)
+                }
 
         x_min = min([_.posMin.X for _ in self.layers.values()])
         x_max = max([_.posMax.X for _ in self.layers.values()])
@@ -81,28 +99,6 @@ class AssetManager:
             v.meta = self.meta
             if k != "face":
                 v.path = self.deps[f"painting/{v.texture2D.name}_tex"]
-
-        base = os.path.basename(file).removesuffix("_ex").removesuffix("_n")
-        face = os.path.join("paintingface/", base)
-        path = os.path.join(os.path.dirname(file) + "/", face)
-        if os.path.exists(path):
-            env.load_file(path)
-            self.faces = {
-                x.name: PseudoLayer(x.image.transpose(Image.FLIP_TOP_BOTTOM))
-                for x in filter_env(env, Texture2D)
-                if re.match(r"^0|([1-9][0-9]*)$", x.name)
-            }
-
-        for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
-            icon = os.path.join(kind + "/", base)
-            path = os.path.join(os.path.dirname(file) + "/", icon)
-            if os.path.exists(path):
-                env.load_file(path)
-                self.icons |= {
-                    kind: PseudoLayer(x.image.transpose(Image.FLIP_TOP_BOTTOM))
-                    for x in filter_env(env, Texture2D)
-                    if re.match(f"^(?i){base}$", x.name)
-                }
 
     def clip_icons(self, workload: str, presets: dict[str, IconPreset]) -> list[str]:
         def clip(kind: str, preset: IconPreset):
@@ -125,7 +121,6 @@ class AssetManager:
 
         full, center = self.prepare_icon(workload)
         output = []
-
         tasks = [threading.Thread(target=clip, args=(k, v)) for k, v in presets.items()]
         [_.start() for _ in tasks]
         [_.join() for _ in tasks]

@@ -7,7 +7,7 @@ from tqdm import tqdm
 from UnityPy.classes import Mesh, Sprite, Texture2D
 from UnityPy.enums import TextureFormat
 
-from .Layer import Layer, PseudoLayer
+from .Layer import FaceLayer, IconLayer, Layer
 from .utility import check_dir, filter_env
 
 
@@ -68,7 +68,7 @@ def replace_meta(dir: str, layer: Layer, prefered: Layer) -> str:
     return [path]
 
 
-def replace_face(dir: str, faces: dict[str, PseudoLayer]) -> list[str]:
+def replace_face(dir: str, faces: dict[str, FaceLayer]) -> list[str]:
     first = list(faces.values())[0]
     layer = first.layer
     prefered = first.prefered
@@ -101,7 +101,7 @@ def replace_face(dir: str, faces: dict[str, PseudoLayer]) -> list[str]:
         return [output]
 
 
-def replace_icon(dir: str, kind: str, icon: PseudoLayer):
+def replace_icon(dir: str, kind: str, icon: IconLayer):
     layer = icon.layer
     base = layer.meta.name_stem
     path = os.path.join(os.path.dirname(layer.meta.path), kind, base)
@@ -126,12 +126,7 @@ def replace_icon(dir: str, kind: str, icon: PseudoLayer):
 
 class EncodeHelper:
     @staticmethod
-    def exec(
-        dir: str,
-        layers: dict[str, Layer],
-        faces: dict[str, PseudoLayer],
-        icons: dict[str, PseudoLayer],
-    ) -> list[str]:
+    def exec(dir: str, layers: dict[str, Layer], faces: dict[str, FaceLayer], icons: dict[str, IconLayer]) -> list[str]:
         painting = []
         valid = [v for v in layers.values() if v.repl is not None]
         if valid != []:
@@ -145,8 +140,6 @@ class EncodeHelper:
         icon = []
         valid = dict(filter(lambda x: x[1].repl is not None, icons.items()))
         if valid != {}:
-            icon += [
-                replace_icon(dir, k, v) for k, v in tqdm(valid.items(), "[INFO] Encoding icons")
-            ]
+            icon += [replace_icon(dir, k, v) for k, v in tqdm(valid.items(), "[INFO] Encoding icons")]
 
         return painting + face + icon

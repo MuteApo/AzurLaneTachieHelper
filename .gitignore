@@ -6,6 +6,7 @@ dist
 node_modules
 out
 test
+tools
 *.bat
 *.ini
 *.spec

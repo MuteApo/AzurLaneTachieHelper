@@ -38,7 +38,7 @@ class IconPreset:
         self.angle += angle
 
     def from_repr(self, repr: str) -> Self:
-        num = r"\d+\.\d+|\d+"
+        num = r"-?\d+\.\d+|-?\d+"
         self.angle = eval(re.search(f"angle=({num})", repr).group(1))
         self.scale = eval(re.search(f"scale=({num})", repr).group(1))
         pivot = re.search(f"pivot=\(({num}),\s*({num})\)", repr)
@@ -48,13 +48,7 @@ class IconPreset:
     @classmethod
     def defaults(cls) -> dict[str, Self]:
         return {
-            "shipyardicon": IconPreset(
-                Vector2(192, 256), Vector2(192, 256), Vector2(0.5, 0.7), 0.6, 0
-            ),
-            "squareicon": IconPreset(
-                Vector2(116, 116), Vector2(116, 116), Vector2(0.5, 0.6), 0.6, 0
-            ),
-            "herohrzicon": IconPreset(
-                Vector2(272, 80), Vector2(360, 80), Vector2(0.2, 0.6), 0.6, 0
-            ),
+            "shipyardicon": IconPreset(Vector2(192, 256), Vector2(192, 256), Vector2(0.5, 0.7), 0.6, 0),
+            "squareicon": IconPreset(Vector2(116, 116), Vector2(116, 116), Vector2(0.5, 0.6), 0.6, 0),
+            "herohrzicon": IconPreset(Vector2(272, 80), Vector2(360, 80), Vector2(0.2, 0.6), 0.6, 0),
         }

@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..Data import IconPreset
-from ..Layer import Layer, PseudoLayer
+from ..Layer import Layer, FaceLayer, IconLayer
 from .Previewer import Previewer
 
 
@@ -78,7 +78,7 @@ class Paintingface(QVBoxLayout):
         self.addWidget(self.table)
 
     def set_data(
-        self, faces: dict[str, PseudoLayer], face_layer: Layer, prefered: Layer, adv_mode: bool
+        self, faces: dict[str, FaceLayer], face_layer: Layer, prefered: Layer, adv_mode: bool
     ):
         self.faces = faces
         self.layer = face_layer
@@ -153,7 +153,7 @@ class Icon(QVBoxLayout):
         self.addWidget(label)
         self.addWidget(self.table)
 
-    def set_data(self, icons: dict[str, PseudoLayer], face_layer: Layer, prefered: Layer):
+    def set_data(self, icons: dict[str, IconLayer], face_layer: Layer, prefered: Layer):
         self.icons = icons
         self.layer = face_layer
         self.prefered = prefered

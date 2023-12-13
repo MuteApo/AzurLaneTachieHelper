@@ -1,44 +1,25 @@
 import math
 from typing import Callable
 
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageOps
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import (
-    QKeyEvent,
-    QMouseEvent,
-    QPainter,
-    QPaintEvent,
-    QPixmap,
-    QWheelEvent,
-)
-from PySide6.QtWidgets import (
-    QDialog,
-    QHBoxLayout,
-    QPushButton,
-    QSizePolicy,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtGui import QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QWheelEvent
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 from typing_extensions import Self
 
 from ..Data import IconPreset
+from ..Layer import IconLayer
 from ..Vector import Vector2
-from ..Layer import PseudoLayer
 
 
 class Icon(QWidget):
     def __init__(
-        self,
-        img: Image.Image,
-        ref: Image.Image,
-        preset: IconPreset,
-        center: Vector2,
-        callback: Callable[[Self], None],
+        self, img: Image.Image, ref: Image.Image, preset: IconPreset, center: Vector2, callback: Callable[[Self], None]
     ):
         super().__init__()
         self.img = img
-        bg = Image.new("RGBA", ref.size, (255, 255, 255, 0))
-        self.ref = ImageChops.blend(ref, bg, 0.5).resize(preset.tex2d.tuple()).toqpixmap()
+        bg = ImageChops.blend(ref, Image.new("RGBA", ref.size, (255, 255, 255, 0)), 0.5)
+        self.ref = bg.resize(preset.tex2d.tuple()).toqpixmap()
         self.preset = preset
         self.center = center
         self.set_last = callback
@@ -47,7 +28,7 @@ class Icon(QWidget):
         self.display = True
         self.rotate = False
 
-        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.MinimumExpanding)
+        self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -130,17 +111,11 @@ class Icon(QWidget):
 
 
 class IconViewer(QDialog):
-    def __init__(
-        self,
-        refs: dict[str, PseudoLayer],
-        presets: dict[str, IconPreset],
-        img: Image.Image,
-        center: Vector2,
-    ):
+    def __init__(self, refs: dict[str, IconLayer], presets: dict[str, IconPreset], img: Image.Image, center: Vector2):
         super().__init__()
         self.setWindowTitle(self.tr("AzurLane Tachie Helper"))
         self.setWindowIcon(QPixmap("ico/cheshire.ico"))
-        self.resize(750, 350)
+        self.resize(700, 350)
 
         self.presets = presets
         self.icons: dict[str, Icon] = {}
@@ -152,10 +127,12 @@ class IconViewer(QDialog):
             self.icons[kind] = Icon(img, ref, self.presets[kind], center, self.setLast)
         self.last: Icon = None
 
+        self._init_ui()
+
+    def _init_ui(self):
         layout1 = QHBoxLayout()
-        layout1.addWidget(self.icons["squareicon"])
-        layout1.addWidget(QPushButton(self.tr("Clip"), self, clicked=self.onClickClip))
-        layout1.addSpacing(50)
+        layout1.addWidget(self.icons["squareicon"], 5)
+        layout1.addWidget(QPushButton(self.tr("Clip"), self, clicked=self.onClickClip), 10)
 
         layout2 = QVBoxLayout()
         layout2.addWidget(self.icons["herohrzicon"])

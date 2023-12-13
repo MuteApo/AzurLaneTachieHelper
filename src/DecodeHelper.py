@@ -3,18 +3,16 @@ from math import ceil, floor
 
 import numpy as np
 from PIL import Image, ImageOps
+from pytoshop import PsdFile
 from pytoshop.enums import ColorMode
 from pytoshop.user import nested_layers
 from tqdm import tqdm
 
-from .Data import MetaInfo
-from .Layer import Layer, PseudoLayer
+from .Layer import FaceLayer, Layer
 from .Vector import Vector2
 
 
-def ps_layer(
-    size: Vector2, name: str, img: Image.Image, x: int, y: int, visible: bool
-) -> nested_layers.Layer:
+def ps_layer(size: Vector2, name: str, img: Image.Image, x: int, y: int, visible: bool) -> nested_layers.Layer:
     """
     Generate a single psd layer.
 
@@ -43,26 +41,14 @@ def ps_layer(
     r, g, b, a = img.split()
     channels = {i - 1: np.array(x) for i, x in enumerate([a, r, g, b])}
     layer = nested_layers.Image(
-        name=name,
-        visible=visible,
-        top=size.Y - y - h,
-        left=x,
-        bottom=size.Y - y,
-        right=x + w,
-        channels=channels,
+        name=name, visible=visible, top=size.Y - y - h, left=x, bottom=size.Y - y, right=x + w, channels=channels
     )
     return layer
 
 
 class DecodeHelper:
     @staticmethod
-    def exec(
-        dir: str,
-        meta: MetaInfo,
-        layers: dict[str, Layer],
-        faces: dict[str, PseudoLayer],
-        is_dump: bool,
-    ) -> str:
+    def exec(dir: str, layers: dict[str, Layer], faces: dict[str, FaceLayer], is_dump: bool) -> PsdFile:
         """
         Decode layers of a painting along with paintingface and return file path of the dumped psd.
 
@@ -70,28 +56,25 @@ class DecodeHelper:
         ----------
         dir: str
             Directory of the psd to dump on.
-        meta: MetaInfo
-            Metadata of the painting, including path, name, size, bias and etc.
         layers: dict[str, Layer]
             A dict containing each of the painting layers.
-        faces: dict[int, PseudoLayer]
+        faces: dict[int, FaceLayer]
             A dict containing each of the paintingface images, as pseudo-layers.
         is_dump: bool
             Whether to dump intermediate layers, before assembled together as a whole psd.
 
         Returns
         -------
-        path: str
-            Path to the resulting psd.
+        psd: PsdFile
+            The resulting photoshop document.
         """
 
         face = []
         for k, v in tqdm(sorted(faces.items()), "[INFO] Decoding paintingface"):
-            x, y = layers["face"].posMin + meta.bias
             tex = v.decode().transpose(Image.FLIP_TOP_BOTTOM)
-            # tex = tex.transform(tex.size, Image.AFFINE, (1, 0, round(x) - x, 0, 1, y - round(y)))
+            x, y = layers["face"].posMin + layers["face"].meta.bias
             alias = f"face [{k}]"
-            face += [ps_layer(meta.size, alias, tex, round(x), round(y), False)]
+            face += [ps_layer(layers["face"].meta.size, alias, tex, round(x), round(y), False)]
 
         painting = []
         for k, v in tqdm(layers.items(), "[INFO] Decoding painting"):
@@ -101,15 +84,9 @@ class DecodeHelper:
                 tex = v.decode().transpose(Image.FLIP_TOP_BOTTOM)
                 if is_dump:
                     tex.save(f"{os.path.join(dir, k)}.png")
-                x, y = v.posMin + meta.bias
                 tex = ImageOps.contain(tex, v.canvasSize.round().tuple())
-                # tex = tex.transform(tex.size, Image.AFFINE, (1, 0, round(x) - x, 0, 1, y - round(y)))
+                x, y = v.posMin + v.meta.bias
                 alias = f"{v.name} [{v.texture2D.name}]"
-                painting += [ps_layer(meta.size, alias, tex, round(x), round(y), True)]
+                painting += [ps_layer(v.meta.size, alias, tex, round(x), round(y), True)]
 
-        psd = nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)
-        path = os.path.join(dir, meta.name + ".psd")
-        with open(path, "wb") as f:
-            psd.write(f)
-
-        return path
+        return nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)

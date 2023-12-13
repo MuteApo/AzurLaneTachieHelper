@@ -3,15 +3,7 @@ from typing import Callable, Optional
 
 from PIL import Image
 from typing_extensions import Self
-from UnityPy.classes import (
-    GameObject,
-    Mesh,
-    MonoBehaviour,
-    PPtr,
-    RectTransform,
-    Sprite,
-    Texture2D,
-)
+from UnityPy.classes import GameObject, Mesh, MonoBehaviour, PPtr, RectTransform, Sprite, Texture2D
 from UnityPy.enums import ClassIDType
 from UnityPy.math import Quaternion, Vector3
 
@@ -272,7 +264,7 @@ class Layer:
                 v = [x[0] for x in self.mesh]
                 w = max([x[2] for x in v])
                 h = max([x[3] for x in v])
-                if w == 2047 or h == 2047:
+                if w < 2048 and h < 2048:
                     w, h = w + 1, h + 1
                 setattr(self, "_mesh_size", Vector2(w, h))
         return getattr(self, "_mesh_size")
@@ -316,15 +308,17 @@ class Layer:
         return True
 
 
-class PseudoLayer:
-    def __init__(self, fake: Image.Image = None):
-        self.fake = fake
+class FaceLayer:
+    def __init__(self, name: str, path: str, orig: Image.Image):
+        self.name = name
+        self.path = path
+        self.orig = orig
         self.repl: Image.Image = None
 
     def decode(self):
-        return self.fake
+        return self.orig
 
-    def set_data(self, layer: Layer, prefered: Layer, adv_mode: bool = False, is_clip: bool = True):
+    def set_data(self, layer: Layer, prefered: Layer, adv_mode: bool, is_clip: bool):
         self.layer = layer
         self.prefered = prefered
         self.adv_mode = adv_mode
@@ -334,10 +328,6 @@ class PseudoLayer:
         self.full = read_img(path)
         self.repl = self.crop_face()
         print("[INFO] Paintingface:", path)
-
-    def load_icon(self, path: str, preset: IconPreset):
-        self.repl = read_img(path).resize(preset.tex2d.tuple())
-        print("[INFO] Icon:", path)
 
     def update_clip(self, is_clip: bool):
         self.is_clip = is_clip
@@ -362,3 +352,22 @@ class PseudoLayer:
             x, y = self.prefered.posMin + self.layer.meta.bias
             w, h = self.prefered.canvasSize
             return img.crop((x, y, x + w, y + h))
+
+
+class IconLayer:
+    def __init__(self, name: str, path: str, orig: Image.Image):
+        self.name = name
+        self.path = path
+        self.orig = orig
+        self.repl: Image.Image = None
+
+    def decode(self):
+        return self.orig
+
+    def set_data(self, layer: Layer, prefered: Layer):
+        self.layer = layer
+        self.prefered = prefered
+
+    def load_icon(self, path: str, preset: IconPreset):
+        self.repl = read_img(path).resize(preset.tex2d.tuple())
+        print("[INFO] Icon:", path)
