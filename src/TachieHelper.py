@@ -14,8 +14,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .AssetManager import AssetManager
-from .Config import Config
+from .base import Config
+from .module import AssetManager
 from .ui import IconViewer, Menu, Previewer, Table
 
 
@@ -99,7 +99,7 @@ class AzurLaneTachieHelper(QMainWindow):
         self.tIcon.set_data(self.asset_manager.icons, face_layer, prefered)
 
         self.mFile.aImportPainting.setEnabled(True)
-        self.mFile.aImportPaintingface.setEnabled(True)
+        self.mFile.aImportFaces.setEnabled(True)
         self.mFile.aImportIcons.setEnabled(True)
         self.mEdit.aDecodeTexture.setEnabled(True)
         self.mEdit.aClipIcons.setEnabled(True)

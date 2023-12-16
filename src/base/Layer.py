@@ -3,12 +3,19 @@ from typing import Callable, Optional
 
 from PIL import Image
 from typing_extensions import Self
-from UnityPy.classes import GameObject, Mesh, MonoBehaviour, PPtr, RectTransform, Sprite, Texture2D
+from UnityPy.classes import (
+    GameObject,
+    Mesh,
+    MonoBehaviour,
+    PPtr,
+    RectTransform,
+    Sprite,
+    Texture2D,
+)
 from UnityPy.enums import ClassIDType
 from UnityPy.math import Quaternion, Vector3
 
 from .Data import IconPreset, MetaInfo
-from .utility import prod, read_img
 from .Vector import Vector2
 
 
@@ -24,20 +31,20 @@ class Layer:
 
     def __repr__(self) -> str:
         attrs = [
+            "texture2D",
+            "rawMesh",
+            "meshSize",
+            "rawSpriteSize",
+            "sizeDelta",
+            "posMin",
+            "posMax",
             # "localRotation",
             # "localPosition",
             # "localScale",
             # "anchorMin",
             # "anchorMax",
             # "anchoredPosition",
-            "sizeDelta",
             # "pivot",
-            "posMin",
-            "posMax",
-            "meshSize",
-            "rawSpriteSize",
-            "texture2D",
-            "rawMesh",
         ]
         items = [""]
         for x in attrs:
@@ -273,7 +280,7 @@ class Layer:
     def spriteSize(self) -> Vector2:
         if self.rawSpriteSize is None:
             return self.meshSize
-        elif prod(self.meshSize) > prod(self.rawSpriteSize):
+        elif self.meshSize.prod() > self.rawSpriteSize.prod():
             return self.meshSize
         else:
             return self.rawSpriteSize
@@ -282,7 +289,7 @@ class Layer:
     def canvasSize(self) -> Vector2:
         if self.spriteSize is None:
             return self.sizeDelta
-        elif prod(self.spriteSize) > prod(self.sizeDelta):
+        elif self.spriteSize.prod() > self.sizeDelta.prod():
             return self.spriteSize
         else:
             return self.sizeDelta
@@ -303,7 +310,7 @@ class Layer:
         name, _ = os.path.splitext(os.path.basename(path))
         if self.name != name:
             return False
-        self.repl = self.crop(read_img(path)).resize(self.spriteSize.round().tuple())
+        self.repl = self.crop(Image.open(path).transpose(Image.FLIP_TOP_BOTTOM)).resize(self.spriteSize.round().tuple())
         print("[INFO] Painting:", path)
         return True
 
@@ -325,7 +332,7 @@ class FaceLayer:
         self.is_clip = is_clip
 
     def load_face(self, path: str):
-        self.full = read_img(path)
+        self.full = Image.open(path).transpose(Image.FLIP_TOP_BOTTOM)
         self.repl = self.crop_face()
         print("[INFO] Paintingface:", path)
 
@@ -369,5 +376,5 @@ class IconLayer:
         self.prefered = prefered
 
     def load_icon(self, path: str, preset: IconPreset):
-        self.repl = read_img(path).resize(preset.tex2d.tuple())
+        self.repl = Image.open(path).transpose(Image.FLIP_TOP_BOTTOM).resize(preset.tex2d.tuple())
         print("[INFO] Icon:", path)

@@ -7,8 +7,8 @@ from tqdm import tqdm
 from UnityPy.classes import Mesh, Sprite, Texture2D
 from UnityPy.enums import TextureFormat
 
-from .Layer import FaceLayer, IconLayer, Layer
-from .utility import check_dir, filter_env
+from ..base import FaceLayer, IconLayer, Layer
+from ..utility import check_dir, filter_env
 
 
 def replace_painting(dir: str, layer: Layer) -> str:

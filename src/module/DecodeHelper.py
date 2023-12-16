@@ -1,5 +1,4 @@
 import os
-from math import ceil, floor
 
 import numpy as np
 from PIL import Image, ImageOps
@@ -8,8 +7,7 @@ from pytoshop.enums import ColorMode
 from pytoshop.user import nested_layers
 from tqdm import tqdm
 
-from .Layer import FaceLayer, Layer
-from .Vector import Vector2
+from ..base import FaceLayer, Layer, Vector2
 
 
 def ps_layer(size: Vector2, name: str, img: Image.Image, x: int, y: int, visible: bool) -> nested_layers.Layer:

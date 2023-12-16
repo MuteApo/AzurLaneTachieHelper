@@ -6,16 +6,14 @@ from typing_extensions import Self
 class Vector2:
     def __init__(self, *args):
         if len(args) == 1:
-            if isinstance(args[0], Vector2):
+            if isinstance(args[0], (Vector2, list, tuple)):
                 self.X, self.Y = args[0]
             elif isinstance(args[0], (float, int)):
                 self.X = self.Y = args[0]
-            elif isinstance(args[0], (list, tuple)):
-                self.X, self.Y = args[0]
+            else:
+                raise ValueError(args)
         elif len(args) == 2:
             self.X, self.Y = args
-            # assert isinstance(self.X, (float, int)), f"{type(self.X)}: {self.X}"
-            # assert isinstance(self.Y, (float, int)), f"{type(self.Y)}: {self.Y}"
         else:
             raise ValueError(args)
 
@@ -52,40 +50,37 @@ class Vector2:
         return Vector2(-self.X, -self.Y)
 
     def __add__(self, other) -> Self:
-        if not isinstance(other, Vector2):
-            other = Vector2(other)
+        other = Vector2(other)
         return Vector2(self.X + other.X, self.Y + other.Y)
 
     def __sub__(self, other) -> Self:
-        if not isinstance(other, Vector2):
-            other = Vector2(other)
+        other = Vector2(other)
         return Vector2(self.X - other.X, self.Y - other.Y)
 
     def __mul__(self, other) -> Self:
-        if not isinstance(other, Vector2):
-            other = Vector2(other)
+        other = Vector2(other)
         return Vector2(self.X * other.X, self.Y * other.Y)
 
     def __truediv__(self, other) -> Self:
-        if not isinstance(other, Vector2):
-            other = Vector2(other)
+        other = Vector2(other)
         return Vector2(self.X / other.X, self.Y / other.Y)
 
     def __floordiv__(self, other) -> Self:
-        if not isinstance(other, Vector2):
-            other = Vector2(other)
+        other = Vector2(other)
         return Vector2(self.X // other.X, self.Y // other.Y)
 
     def __pow__(self, other):
-        if not isinstance(other, Vector2):
-            other = Vector2(other)
+        other = Vector2(other)
         return Vector2(self.X**other.X, self.Y**other.Y)
-
-    def norm(self):
-        return math.sqrt((self**2).sum())
 
     def sum(self):
         return self.X + self.Y
+
+    def prod(self):
+        return self.X * self.Y
+
+    def norm(self):
+        return math.sqrt((self**2).sum())
 
     def rotate(self, theta: float):
         rad = math.radians(theta)

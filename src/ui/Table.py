@@ -11,8 +11,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from ..Data import IconPreset
-from ..Layer import Layer, FaceLayer, IconLayer
+from ..base import FaceLayer, IconLayer, IconPreset, Layer
 from .Previewer import Previewer
 
 
@@ -68,18 +67,14 @@ class Paintingface(QVBoxLayout):
         self.table = QTableWidget(cellClicked=self.onCellClicked)
         self.table.setColumnCount(2)
         self.table.setHorizontalHeaderLabels([self.tr("Clip"), self.tr("Layers")])
-        self.table.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.ResizeToContents
-        )
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.MinimumExpanding)
 
         self.addWidget(label)
         self.addWidget(self.table)
 
-    def set_data(
-        self, faces: dict[str, FaceLayer], face_layer: Layer, prefered: Layer, adv_mode: bool
-    ):
+    def set_data(self, faces: dict[str, FaceLayer], face_layer: Layer, prefered: Layer, adv_mode: bool):
         self.faces = faces
         self.layer = face_layer
         self.num = len(faces)

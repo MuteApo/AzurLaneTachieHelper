@@ -6,7 +6,7 @@ from PySide6.QtCore import QDir, Qt
 from PySide6.QtGui import QAction, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-from ..Layer import Layer, FaceLayer, IconLayer
+from ..base import FaceLayer, IconLayer, Layer
 
 
 class Previewer(QWidget):
@@ -15,28 +15,21 @@ class Previewer(QWidget):
         self.aEncodeTexture = aEncodeTexture
 
         self.lName = QLabel()
-        self.lName.setAlignment(Qt.AlignmentFlag.AlignBaseline)
         self.lPath = QLabel()
-        self.lPath.setAlignment(Qt.AlignmentFlag.AlignBaseline)
+        self.lImage = QLabel()
 
         info = QHBoxLayout()
         info.addWidget(self.lName)
         info.addWidget(self.lPath)
 
-        self.lImage = QLabel()
-        self.lImage.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-
         layout = QVBoxLayout()
         layout.addLayout(info)
-        layout.addWidget(self.lImage)
+        layout.addWidget(self.lImage, stretch=1, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.setLayout(layout)
 
     def set_callback(
-        self,
-        load_painting: Callable[[str], bool],
-        load_face: Callable[[str], bool],
-        load_icon: Callable[[str], bool],
+        self, load_painting: Callable[[str], bool], load_face: Callable[[str], bool], load_icon: Callable[[str], bool]
     ):
         self.load_painting = load_painting
         self.load_face = load_face

@@ -1,3 +1,2 @@
-from . import Menu, Table
-from .IconViewer import *
-from .Previewer import *
+from .IconViewer import IconViewer
+from .Previewer import Previewer

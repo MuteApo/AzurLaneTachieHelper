@@ -1,15 +1,27 @@
 import math
 from typing import Callable
 
-from PIL import Image, ImageChops, ImageOps
+from PIL import Image, ImageChops
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QWheelEvent
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtGui import (
+    QKeyEvent,
+    QMouseEvent,
+    QPainter,
+    QPaintEvent,
+    QPixmap,
+    QWheelEvent,
+)
+from PySide6.QtWidgets import (
+    QDialog,
+    QHBoxLayout,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 from typing_extensions import Self
 
-from ..Data import IconPreset
-from ..Layer import IconLayer
-from ..Vector import Vector2
+from ..base import IconLayer, IconPreset, Vector2
 
 
 class Icon(QWidget):

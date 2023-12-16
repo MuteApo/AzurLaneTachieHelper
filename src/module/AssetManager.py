@@ -7,13 +7,10 @@ import UnityPy
 from PIL import Image
 from UnityPy.classes import AssetBundle, GameObject, RectTransform, Texture2D
 
-from .Data import MetaInfo
+from ..base import FaceLayer, IconLayer, IconPreset, Layer, MetaInfo, Vector2
+from ..utility import filter_env
 from .DecodeHelper import DecodeHelper
 from .EncodeHelper import EncodeHelper
-from .Layer import Layer, FaceLayer, IconLayer
-from .ui import IconPreset
-from .utility import filter_env, prod, read_img
-from .Vector import Vector2
 
 
 class AssetManager:
@@ -129,12 +126,12 @@ class AssetManager:
 
     def prefered(self, layer: Layer) -> Layer:
         expands = [x for x in self.layers.values() if x.name != "face" and x.contain(*layer.box)]
-        return sorted(expands, key=lambda v: prod(v.canvasSize))[0]
+        return sorted(expands, key=lambda v: v.canvasSize.prod())[0]
 
     def prepare_icon(self, file: str) -> tuple[Image.Image, Vector2]:
         prefered = self.prefered(self.face_layer)
         x, y = prefered.posMin + self.meta.bias
         w, h = prefered.canvasSize
-        full = read_img(file).crop((x, y, x + w, y + h)).resize(prefered.spriteSize)
+        full = Image.open(file).transpose(Image.FLIP_TOP_BOTTOM).crop((x, y, x + w, y + h))
         center = self.face_layer.posMin - prefered.posMin + self.face_layer.sizeDelta / 2
-        return full, center
+        return full.resize(prefered.spriteSize), center
