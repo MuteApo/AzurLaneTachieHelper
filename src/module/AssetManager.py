@@ -75,6 +75,8 @@ class AssetManager:
 
         for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
             path = os.path.join(os.path.dirname(file), kind, base)
+            if not os.path.exists(path):
+                path += ".ys"
             if os.path.exists(path):
                 env.load_file(path)
                 self.icons |= {
@@ -95,7 +97,7 @@ class AssetManager:
         for k, v in self.layers.items():
             v.meta = self.meta
             if k != "face":
-                v.path = self.deps[f"painting/{v.texture2D.name}_tex"]
+                v.path = self.deps[f"painting/{v.texture2D.name}_tex".lower()]
 
     def clip_icons(self, workload: str, presets: dict[str, IconPreset]) -> list[str]:
         def clip(kind: str, preset: IconPreset):
@@ -124,14 +126,8 @@ class AssetManager:
 
         return output
 
-    def prefered(self, layer: Layer) -> Layer:
-        expands = [x for x in self.layers.values() if x.name != "face" and x.contain(*layer.box)]
-        return sorted(expands, key=lambda v: v.canvasSize.prod())[0]
-
     def prepare_icon(self, file: str) -> tuple[Image.Image, Vector2]:
-        prefered = self.prefered(self.face_layer)
-        x, y = prefered.posMin + self.meta.bias
-        w, h = prefered.canvasSize
-        full = Image.open(file).transpose(Image.FLIP_TOP_BOTTOM).crop((x, y, x + w, y + h))
+        prefered = self.face_layer.prefered(self.layers)
+        full = Image.open(file).transpose(Image.FLIP_TOP_BOTTOM).crop(prefered.box())
         center = self.face_layer.posMin - prefered.posMin + self.face_layer.sizeDelta / 2
-        return full.resize(prefered.spriteSize), center
+        return full.resize(prefered.spriteSize.round()), center

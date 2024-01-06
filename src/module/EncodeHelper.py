@@ -49,11 +49,10 @@ def replace_meta(dir: str, layer: Layer, prefered: Layer) -> str:
     cab = list(env.cabs.values())[0]
     face_rt = cab.objects[layer.pathId]
     face = face_rt.read_typetree()
-    w, h = prefered.canvasSize
+    w, h = prefered.sizeDelta
     px, py = prefered.pivot
-    fix = (prefered.canvasSize - prefered.sizeDelta) * prefered.pivot
-    x1, y1 = prefered.posPivot - layer.parent.posPivot + fix
-    x2, y2 = prefered.posPivot - layer.posAnchor + layer.meta.bias + fix
+    x1, y1 = prefered.posPivot - layer.parent.posPivot
+    x2, y2 = prefered.posPivot - layer.posAnchor + layer.meta.bias
     face["m_SizeDelta"] = {"x": w, "y": h}
     face["m_Pivot"] = {"x": px, "y": py}
     face["m_LocalPosition"] = {"x": x1, "y": y1, "z": 0.0}
@@ -102,13 +101,7 @@ def replace_face(dir: str, faces: dict[str, FaceLayer]) -> list[str]:
 
 
 def replace_icon(dir: str, kind: str, icon: IconLayer):
-    layer = icon.layer
-    base = layer.meta.name_stem
-    path = os.path.join(os.path.dirname(layer.meta.path), kind, base)
-    if not os.path.exists(path):
-        return
-
-    env = UnityPy.load(path)
+    env = UnityPy.load(icon.path)
     for v in env.container.values():
         sprite: Sprite = v.read()
         tex2d: Texture2D = sprite.m_RD.texture.read()
@@ -117,7 +110,7 @@ def replace_icon(dir: str, kind: str, icon: IconLayer):
 
     check_dir(dir, "output", kind)
     outdir = os.path.join(dir, "output", kind)
-    path = os.path.join(outdir, base)
+    path = os.path.join(outdir, icon.layer.meta.name_stem)
     with open(path, "wb") as f:
         f.write(env.file.save("original"))
 
@@ -138,7 +131,7 @@ class EncodeHelper:
             face += replace_face(dir, valid)
 
         icon = []
-        valid = dict(filter(lambda x: x[1].repl is not None, icons.items()))
+        valid = dict(filter(lambda x: x[1].repl is not None and os.path.exists(x[1].path), icons.items()))
         if valid != {}:
             icon += [replace_icon(dir, k, v) for k, v in tqdm(valid.items(), "[INFO] Encoding icons")]
 

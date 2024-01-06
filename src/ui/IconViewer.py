@@ -30,8 +30,8 @@ class Icon(QWidget):
     ):
         super().__init__()
         self.img = img
-        bg = ImageChops.blend(ref, Image.new("RGBA", ref.size, (255, 255, 255, 0)), 0.5)
-        self.ref = bg.resize(preset.tex2d.tuple()).toqpixmap()
+        bg = Image.new("RGBA", ref.size, (255, 255, 255, 0))
+        self.ref = ImageChops.blend(ref, bg, 0.5).resize(preset.tex2d).toqpixmap()
         self.preset = preset
         self.center = center
         self.set_last = callback

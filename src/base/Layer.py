@@ -1,5 +1,5 @@
 import os
-from typing import Callable, Optional
+from typing import Optional
 
 from PIL import Image
 from typing_extensions import Self
@@ -13,7 +13,6 @@ from UnityPy.classes import (
     Texture2D,
 )
 from UnityPy.enums import ClassIDType
-from UnityPy.math import Quaternion, Vector3
 
 from .Data import IconPreset, MetaInfo
 from .Vector import Vector2
@@ -30,34 +29,25 @@ class Layer:
         self.meta: MetaInfo = None
 
     def __repr__(self) -> str:
-        attrs = [
-            "texture2D",
-            "rawMesh",
-            "meshSize",
-            "rawSpriteSize",
-            "sizeDelta",
-            "posMin",
-            "posMax",
-            # "localRotation",
-            # "localPosition",
-            # "localScale",
-            # "anchorMin",
-            # "anchorMax",
-            # "anchoredPosition",
-            # "pivot",
-        ]
+        attrs = ["texture2D", "rawMesh", "meshSize", "rawSpriteSize", "sizeDelta", "posPivot", "posMin", "posMax"]
         items = [""]
         for x in attrs:
             if hasattr(self, x):
                 y = getattr(self, x)
                 if y is not None:
                     items += [f"{x[0].capitalize()}{x[1:]}: {y}"]
-
         txt = "\n       ".join(items)
         return f"Layer@{self.depth} {self.name} {txt}"
 
     def __str__(self) -> str:
         return f"[INFO] {self.__repr__()}"
+
+    def __contains__(self, other: Self) -> bool:
+        if self.posMin[0] > other.posMin[0] or self.posMin[1] > other.posMin[1]:
+            return False
+        if self.posMax[0] < other.posMax[0] or self.posMax[1] < other.posMax[1]:
+            return False
+        return True
 
     def get_child(self, name: str) -> Optional[Self]:
         for x in self.child:
@@ -74,42 +64,17 @@ class Layer:
             res |= x.flatten()
         return res
 
-    def contain(self, l: float, b: float, r: float, t: float) -> bool:
-        if l < self.posMin[0] or b < self.posMin[1]:
-            return False
-        if r > self.posMax[0] or t > self.posMax[1]:
-            return False
-        return True
-
-    def fetch(attr: str):
-        attrs = ["m_AnchorMin", "m_AnchorMax", "m_AnchoredPosition", "m_SizeDelta", "m_Pivot"]
-
-        def decor(func: Callable):
-            def inner(self: Self):
-                if hasattr(self.rt, attr):
-                    val = getattr(self.rt, attr)
-                    if attr in attrs:
-                        val = Vector2(val.x, val.y)
-                else:
-                    val = None
-                return func(self, val)
-
-            return inner
-
-        return decor
-
     @property
     def name(self) -> str:
-        return self.gameObject.name if self.gameObject else ""
+        return self.gameObject.name if self.gameObject is not None else "Undefined"
 
     @property
     def pathId(self) -> int:
         return self.rt.path_id
 
     @property
-    @fetch("m_GameObject")
-    def gameObject(self, val: PPtr) -> GameObject:
-        return val.read()
+    def gameObject(self) -> GameObject:
+        return self.rt.m_GameObject.read()
 
     @property
     def components(self) -> list[PPtr]:
@@ -171,44 +136,44 @@ class Layer:
         return getattr(self, "m_RawSpriteSize")
 
     @property
-    @fetch("m_LocalRotation")
-    def localRotation(self, val: Quaternion) -> Vector2:
+    def localRotation(self) -> Vector2:
+        val = self.rt.m_LocalRotation
         return Vector2(val.X, val.Y)
 
     @property
-    @fetch("m_LocalPosition")
-    def localPosition(self, val: Vector3) -> Vector2:
+    def localPosition(self) -> Vector2:
+        val = self.rt.m_LocalPosition
         return Vector2(val.X, val.Y)
 
     @property
-    @fetch("m_LocalScale")
-    def localScale(self, val: Vector3) -> Vector2:
-        return val
+    def localScale(self) -> Vector2:
+        val = self.rt.m_LocalScale
+        return Vector2(val.X, val.Y)
 
     @property
-    @fetch("m_AnchorMin")
-    def anchorMin(self, val: Vector2) -> Vector2:
-        return val
+    def anchorMin(self) -> Vector2:
+        val: Vector2 = self.rt.m_AnchorMin
+        return Vector2(val.x, val.y)
 
     @property
-    @fetch("m_AnchorMax")
-    def anchorMax(self, val: Vector2) -> Vector2:
-        return val
+    def anchorMax(self) -> Vector2:
+        val: Vector2 = self.rt.m_AnchorMax
+        return Vector2(val.x, val.y)
 
     @property
-    @fetch("m_AnchoredPosition")
-    def anchoredPosition(self, val: Vector2) -> Vector2:
-        return val
+    def anchoredPosition(self) -> Vector2:
+        val: Vector2 = self.rt.m_AnchoredPosition
+        return Vector2(val.x, val.y)
 
     @property
-    @fetch("m_SizeDelta")
-    def sizeDelta(self, val: Vector2) -> Vector2:
-        return val
+    def sizeDelta(self) -> Vector2:
+        val: Vector2 = self.rt.m_SizeDelta
+        return Vector2(val.x, val.y)
 
     @property
-    @fetch("m_Pivot")
-    def pivot(self, val: Vector2) -> Vector2:
-        return val
+    def pivot(self) -> Vector2:
+        val: Vector2 = self.rt.m_Pivot
+        return Vector2(val.x, val.y)
 
     @property
     def posAnchor(self) -> Vector2:
@@ -226,11 +191,11 @@ class Layer:
 
     @property
     def posMax(self) -> Vector2:
-        return self.posMin + self.canvasSize
+        return self.posMin + self.sizeDelta
 
     @property
-    def box(self) -> tuple[float, float, float, float]:
-        return *self.posMin, *self.posMax
+    def posBiased(self) -> Vector2:
+        return self.posMin + self.meta.bias
 
     @property
     def mesh(self) -> list[tuple]:
@@ -246,7 +211,7 @@ class Layer:
                     v = self.rawMesh.m_Vertices
                     v = [(round(v[i]), round(v[i + 1])) for i in range(0, len(v), 3)]
                     t = self.rawMesh.m_UV0
-                    t = [(round(t[i] * w), round(t[i + 1] * h)) for i in range(0, len(t), 2)]
+                    t = [(t[i] * w, t[i + 1] * h) for i in range(0, len(t), 2)]
                     f = self.rawMesh.m_Indices
                     for i in range(0, len(f), 6):
                         pos = (*v[f[i]], *v[f[i + 3]])
@@ -278,21 +243,11 @@ class Layer:
 
     @property
     def spriteSize(self) -> Vector2:
-        if self.rawSpriteSize is None:
-            return self.meshSize
-        elif self.meshSize.prod() > self.rawSpriteSize.prod():
-            return self.meshSize
-        else:
-            return self.rawSpriteSize
+        return self.meshSize if self.rawSpriteSize is None else self.rawSpriteSize
 
-    @property
-    def canvasSize(self) -> Vector2:
-        if self.spriteSize is None:
-            return self.sizeDelta
-        elif self.spriteSize.prod() > self.sizeDelta.prod():
-            return self.spriteSize
-        else:
-            return self.sizeDelta
+    def prefered(self, layers: dict[str, Self]) -> Self:
+        expands = [x for x in layers.values() if self in x and x.name != "face"]
+        return sorted(expands, key=lambda v: v.sizeDelta.prod())[0]
 
     def decode(self) -> Image.Image:
         if not hasattr(self, "_dec_tex"):
@@ -301,16 +256,22 @@ class Layer:
             setattr(self, "_dec_tex", dec)
         return getattr(self, "_dec_tex")
 
-    def crop(self, img: Image.Image):
-        x, y = self.posMin + self.meta.bias
-        w, h = self.canvasSize
-        return img.crop((x, y, x + w, y + h))
+    def box(self, size: Optional[Vector2] = None) -> tuple[float, float, float, float]:
+        x, y = self.posBiased
+        w, h = self.sizeDelta if size is None else size
+        return x, y, x + w, y + h
+
+    def crop(self, img: Image.Image, resize: bool = True) -> Image.Image:
+        if resize:
+            return img.crop(self.box()).resize(self.spriteSize)
+        else:
+            return img.crop(self.box(self.meshSize))
 
     def load(self, path: str) -> bool:
         name, _ = os.path.splitext(os.path.basename(path))
         if self.name != name:
             return False
-        self.repl = self.crop(Image.open(path).transpose(Image.FLIP_TOP_BOTTOM)).resize(self.spriteSize.round().tuple())
+        self.repl = self.crop(Image.open(path).transpose(Image.FLIP_TOP_BOTTOM))
         print("[INFO] Painting:", path)
         return True
 
@@ -341,24 +302,18 @@ class FaceLayer:
         self.repl = self.crop_face()
 
     def crop_face(self):
-        x, y = self.layer.posMin + self.layer.meta.bias
-        w, h = self.layer.sizeDelta
         img = self.full
-        if not self.adv_mode:
-            return img.crop((x, y, x + w, y + h))
-        else:
+        if self.adv_mode:
             if self.is_clip:
+                x1, y1, x2, y2 = self.layer.box()
                 rgb = Image.new("RGBA", img.size)
-                rgb.paste(img.crop((x, y, x + w + 1, y + h + 1)), (round(x), round(y)))
-
+                rgb.paste(img.crop((x1, y1, x2 + 1, y2 + 1)), (round(x1), round(y1)))
                 a = Image.new("RGBA", img.size)
-                a.paste(img.crop((x + 1, y + 1, x + w, y + h)), (round(x + 1), round(y + 1)))
-
+                a.paste(img.crop((x1 + 1, y1 + 1, x2, y2)), (round(x1 + 1), round(y1 + 1)))
                 img = Image.merge("RGBA", [*rgb.split()[:3], a.split()[-1]])
-
-            x, y = self.prefered.posMin + self.layer.meta.bias
-            w, h = self.prefered.canvasSize
-            return img.crop((x, y, x + w, y + h))
+            return img.crop(self.prefered.box())
+        else:
+            return img.crop(self.layer.box())
 
 
 class IconLayer:
@@ -376,5 +331,5 @@ class IconLayer:
         self.prefered = prefered
 
     def load_icon(self, path: str, preset: IconPreset):
-        self.repl = Image.open(path).transpose(Image.FLIP_TOP_BOTTOM).resize(preset.tex2d.tuple())
+        self.repl = Image.open(path).transpose(Image.FLIP_TOP_BOTTOM).resize(preset.tex2d)
         print("[INFO] Icon:", path)

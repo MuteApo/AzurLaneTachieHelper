@@ -92,7 +92,7 @@ class AzurLaneTachieHelper(QMainWindow):
         self.tPainting.set_data(self.asset_manager.deps, self.asset_manager.layers)
 
         face_layer = self.asset_manager.face_layer
-        prefered = self.asset_manager.prefered(face_layer)
+        prefered = face_layer.prefered(self.asset_manager.layers)
         adv_mode = self.config.get_bool("system/AdvancedMode")
         self.tFace.set_data(self.asset_manager.faces, face_layer, prefered, adv_mode)
 
@@ -119,6 +119,7 @@ class AzurLaneTachieHelper(QMainWindow):
                 if self.tPainting.load(file):
                     flag = True
             if flag:
+                self.preview.refresh()
                 self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onImportFaces(self):
@@ -126,6 +127,7 @@ class AzurLaneTachieHelper(QMainWindow):
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Paintingface Folder"), last)
         if dir:
             if self.tFace.load(dir):
+                self.preview.refresh()
                 self.mEdit.aEncodeTexture.setEnabled(True)
 
     def import_icon(self, files: list[str]):
@@ -134,6 +136,7 @@ class AzurLaneTachieHelper(QMainWindow):
             if self.tIcon.load(file):
                 flag = True
         if flag:
+            self.preview.refresh()
             self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onImportIcons(self):

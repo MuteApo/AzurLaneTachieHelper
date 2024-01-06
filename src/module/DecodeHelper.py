@@ -10,22 +10,20 @@ from tqdm import tqdm
 from ..base import FaceLayer, Layer, Vector2
 
 
-def ps_layer(size: Vector2, name: str, img: Image.Image, x: int, y: int, visible: bool) -> nested_layers.Layer:
+def ps_layer(name: str, pos: Vector2, size: Vector2, img: Image.Image, visible: bool) -> nested_layers.Layer:
     """
     Generate a single psd layer.
 
     Parameters
     ----------
-    size: str
-        Width and height of the canvas.
     name: str
         Name of the psd layer.
+    pos: Vector2
+        Position of the canvas.
+    size: Vector2
+        Width and height of the canvas.
     img: Image.Image
         A Pillow Image to put on.
-    x: int
-        Horizonal position.
-    y: int
-        Vertical position.
     visible: bool
         Whether initialized as visible.
 
@@ -35,11 +33,12 @@ def ps_layer(size: Vector2, name: str, img: Image.Image, x: int, y: int, visible
         A psd layer satisfying settings given above.
     """
 
+    x, y = pos
     w, h = img.size
     r, g, b, a = img.split()
     channels = {i - 1: np.array(x) for i, x in enumerate([a, r, g, b])}
     layer = nested_layers.Image(
-        name=name, visible=visible, top=size.Y - y - h, left=x, bottom=size.Y - y, right=x + w, channels=channels
+        name, visible, top=size.Y - y - h, left=x, bottom=size.Y - y, right=x + w, channels=channels
     )
     return layer
 
@@ -69,22 +68,20 @@ class DecodeHelper:
 
         face = []
         for k, v in tqdm(sorted(faces.items()), "[INFO] Decoding paintingface"):
+            pos = layers["face"].posBiased.round()
             tex = v.decode().transpose(Image.FLIP_TOP_BOTTOM)
-            x, y = layers["face"].posMin + layers["face"].meta.bias
-            alias = f"face [{k}]"
-            face += [ps_layer(layers["face"].meta.size, alias, tex, round(x), round(y), False)]
+            face += [ps_layer(f"face[{k}]", pos, layers["face"].meta.size, tex, False)]
 
         painting = []
         for k, v in tqdm(layers.items(), "[INFO] Decoding painting"):
             if k == "face":
                 painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
             else:
+                pos = v.posBiased.round()
                 tex = v.decode().transpose(Image.FLIP_TOP_BOTTOM)
                 if is_dump:
                     tex.save(f"{os.path.join(dir, k)}.png")
-                tex = ImageOps.contain(tex, v.canvasSize.round().tuple())
-                x, y = v.posMin + v.meta.bias
-                alias = f"{v.name} [{v.texture2D.name}]"
-                painting += [ps_layer(v.meta.size, alias, tex, round(x), round(y), True)]
+                tex = ImageOps.contain(tex, v.sizeDelta.round().tuple())
+                painting += [ps_layer(f"{v.name}[{v.texture2D.name}]", pos, v.meta.size, tex, True)]
 
         return nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)
