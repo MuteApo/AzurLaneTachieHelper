@@ -2,7 +2,7 @@ nuitka
 numpy
 ordered-set
 pillow
-pyinstaller
+pyqtdarktheme
 pyside6
 pytoshop
 six

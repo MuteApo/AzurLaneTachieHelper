@@ -4,37 +4,45 @@ import struct
 import UnityPy
 from PIL import Image
 from tqdm import tqdm
-from UnityPy.classes import Mesh, Sprite, Texture2D
-from UnityPy.enums import TextureFormat
+from UnityPy.classes import Sprite, Texture2D
+from UnityPy.enums import ClassIDType, TextureFormat
 
 from ..base import FaceLayer, IconLayer, Layer
-from ..utility import check_dir, filter_env
+from ..utility import check_dir
+
+
+def set_sprite(sprite: Sprite, img: Image.Image):
+    sprite.m_Rect.width, sprite.m_Rect.height = img.size
+    sprite.m_RD.textureRect.width, sprite.m_RD.textureRect.height = img.size
+    sprite.save()
+
+
+def set_tex2d(tex2d: Texture2D, img: Image.Image):
+    tex2d.m_Width, tex2d.m_Height = img.size
+    tex2d.set_image(img.transpose(Image.FLIP_TOP_BOTTOM), TextureFormat.RGBA32)
+    tex2d.save()
 
 
 def replace_painting(dir: str, layer: Layer) -> str:
     path = layer.path if layer.path != "Not Found" else layer.meta.path
     env = UnityPy.load(path)
 
-    for _ in filter_env(env, Texture2D):
-        tex2d: Texture2D = _.read()
-        img = layer.repl
-        tex2d.m_Width, tex2d.m_Height = img.size
-        tex2d.set_image(img.transpose(Image.FLIP_TOP_BOTTOM), TextureFormat.RGBA32)
-        tex2d.save()
+    for x in env.objects:
+        if x.type == ClassIDType.Texture2D:
+            set_tex2d(x.read(), layer.repl)
+        elif x.type == ClassIDType.Mesh:
+            mesh = x.read_typetree()
 
-    for _ in filter_env(env, Mesh, False):
-        mesh = _.read_typetree()
+            mesh["m_SubMeshes"][0]["indexCount"] = 6
+            mesh["m_SubMeshes"][0]["vertexCount"] = 4
+            mesh["m_IndexBuffer"] = [0, 0, 1, 0, 2, 0, 2, 0, 3, 0, 0, 0]
+            mesh["m_VertexData"]["m_VertexCount"] = 4
+            w, h = layer.repl.size
+            buf = [0, 0, 0, 0, 0, 0, h, 0, 0, 1, w, h, 0, 1, 1, w, 0, 0, 1, 0]
+            data_size = struct.pack(x.reader.endian + "f" * 20, *buf)
+            mesh["m_VertexData"]["m_DataSize"] = memoryview(data_size)
 
-        mesh["m_SubMeshes"][0]["indexCount"] = 6
-        mesh["m_SubMeshes"][0]["vertexCount"] = 4
-        mesh["m_IndexBuffer"] = [0, 0, 1, 0, 2, 0, 2, 0, 3, 0, 0, 0]
-        mesh["m_VertexData"]["m_VertexCount"] = 4
-        w, h = layer.repl.size
-        buf = [0, 0, 0, 0, 0, 0, h, 0, 0, 1, w, h, 0, 1, 1, w, 0, 0, 1, 0]
-        data_size = struct.pack(_.reader.endian + "f" * 20, *buf)
-        mesh["m_VertexData"]["m_DataSize"] = memoryview(data_size)
-
-        _.save_typetree(mesh)
+            x.save_typetree(mesh)
 
     check_dir(dir, "output", "painting")
     output = os.path.join(dir, "output", "painting", os.path.basename(path))
@@ -77,17 +85,11 @@ def replace_face(dir: str, faces: dict[str, FaceLayer]) -> list[str]:
     path = os.path.join(os.path.dirname(layer.meta.path), "paintingface", base)
     env = UnityPy.load(path)
 
-    valid: list[Sprite] = [x for x in filter_env(env, Sprite) if x.name in faces]
-    for sprite in tqdm(valid, "[INFO] Encoding paintingface"):
+    sprites: list[Sprite] = [x.read() for x in env.objects if x.type == ClassIDType.Sprite]
+    for sprite in tqdm(filter(lambda x: x.name in faces, sprites), "[INFO] Encoding paintingface"):
         img = faces[sprite.name].repl
-        sprite.m_Rect.width, sprite.m_Rect.height = img.size
-        sprite.m_RD.textureRect.width, sprite.m_RD.textureRect.height = img.size
-        sprite.save()
-
-        tex2d: Texture2D = sprite.m_RD.texture.read()
-        tex2d.m_Width, tex2d.m_Height = img.size
-        tex2d.set_image(img.transpose(Image.FLIP_TOP_BOTTOM), TextureFormat.RGBA32)
-        tex2d.save()
+        set_sprite(sprite, img)
+        set_tex2d(sprite.m_RD.texture.read(), img)
 
     check_dir(dir, "output", "paintingface")
     output = os.path.join(dir, "output", "paintingface", base)
@@ -103,10 +105,7 @@ def replace_face(dir: str, faces: dict[str, FaceLayer]) -> list[str]:
 def replace_icon(dir: str, kind: str, icon: IconLayer):
     env = UnityPy.load(icon.path)
     for v in env.container.values():
-        sprite: Sprite = v.read()
-        tex2d: Texture2D = sprite.m_RD.texture.read()
-        tex2d.set_image(icon.repl.transpose(Image.FLIP_TOP_BOTTOM), TextureFormat.RGBA32)
-        tex2d.save()
+        set_tex2d(v.read().m_RD.texture.read(), icon.repl)
 
     check_dir(dir, "output", kind)
     outdir = os.path.join(dir, "output", kind)
@@ -120,19 +119,18 @@ def replace_icon(dir: str, kind: str, icon: IconLayer):
 class EncodeHelper:
     @staticmethod
     def exec(dir: str, layers: dict[str, Layer], faces: dict[str, FaceLayer], icons: dict[str, IconLayer]) -> list[str]:
-        painting = []
+        result = []
+
         valid = [v for v in layers.values() if v.repl is not None]
         if valid != []:
-            painting += [replace_painting(dir, x) for x in tqdm(valid, "[INFO] Encoding painting")]
+            result += [replace_painting(dir, x) for x in tqdm(valid, "[INFO] Encoding painting")]
 
-        face = []
-        valid = dict(filter(lambda x: x[1].repl is not None, faces.items()))
+        valid = {k: v for k, v in faces.items() if v.repl is not None}
         if valid != {}:
-            face += replace_face(dir, valid)
+            result += replace_face(dir, valid)
 
-        icon = []
-        valid = dict(filter(lambda x: x[1].repl is not None and os.path.exists(x[1].path), icons.items()))
+        valid = {k: v for k, v in icons.items() if v.repl is not None and os.path.exists(v.path)}
         if valid != {}:
-            icon += [replace_icon(dir, k, v) for k, v in tqdm(valid.items(), "[INFO] Encoding icons")]
+            result += [replace_icon(dir, k, v) for k, v in tqdm(valid.items(), "[INFO] Encoding icons")]
 
-        return painting + face + icon
+        return result

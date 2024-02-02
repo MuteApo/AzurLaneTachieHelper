@@ -1,3 +1,4 @@
+import math
 import os
 
 import numpy as np
@@ -17,9 +18,9 @@ def ps_layer(name: str, pos: Vector2, size: Vector2, img: Image.Image, visible: 
     Parameters
     ----------
     name: str
-        Name of the psd layer.
+        Name of the layer.
     pos: Vector2
-        Position of the canvas.
+        Position of the image.
     size: Vector2
         Width and height of the canvas.
     img: Image.Image
@@ -38,7 +39,13 @@ def ps_layer(name: str, pos: Vector2, size: Vector2, img: Image.Image, visible: 
     r, g, b, a = img.split()
     channels = {i - 1: np.array(x) for i, x in enumerate([a, r, g, b])}
     layer = nested_layers.Image(
-        name, visible, top=size.Y - y - h, left=x, bottom=size.Y - y, right=x + w, channels=channels
+        name=name,
+        visible=visible,
+        top=math.floor(size.Y - y - h),
+        left=math.floor(x),
+        bottom=math.floor(size.Y - y),
+        right=math.floor(x + w),
+        channels=channels,
     )
     return layer
 
@@ -68,20 +75,18 @@ class DecodeHelper:
 
         face = []
         for k, v in tqdm(sorted(faces.items()), "[INFO] Decoding paintingface"):
-            pos = layers["face"].posBiased.round()
             tex = v.decode().transpose(Image.FLIP_TOP_BOTTOM)
-            face += [ps_layer(f"face[{k}]", pos, layers["face"].meta.size, tex, False)]
+            face += [ps_layer(f"face #{k}", layers["face"].posBiased, layers["face"].meta.size, tex, False)]
 
         painting = []
         for k, v in tqdm(layers.items(), "[INFO] Decoding painting"):
             if k == "face":
                 painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
             else:
-                pos = v.posBiased.round()
                 tex = v.decode().transpose(Image.FLIP_TOP_BOTTOM)
                 if is_dump:
                     tex.save(f"{os.path.join(dir, k)}.png")
-                tex = ImageOps.contain(tex, v.sizeDelta.round().tuple())
-                painting += [ps_layer(f"{v.name}[{v.texture2D.name}]", pos, v.meta.size, tex, True)]
+                tex = ImageOps.contain(tex, v.sizeDelta.round())
+                painting += [ps_layer(f"{v.name} [{v.texture2D.name}]", v.posBiased, v.meta.size, tex, True)]
 
         return nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)

@@ -6,9 +6,9 @@ import numpy as np
 import UnityPy
 from PIL import Image
 from UnityPy.classes import AssetBundle, GameObject, RectTransform, Texture2D
+from UnityPy.enums import ClassIDType
 
 from ..base import FaceLayer, IconLayer, IconPreset, Layer, MetaInfo, Vector2
-from ..utility import filter_env
 from .DecodeHelper import DecodeHelper
 from .EncodeHelper import EncodeHelper
 
@@ -34,7 +34,6 @@ class AssetManager:
         path = os.path.join(dir, self.meta.name + ".psd")
         with open(path, "wb") as f:
             psd.write(f)
-
         return path
 
     def encode(self, dir: str) -> str:
@@ -44,7 +43,7 @@ class AssetManager:
         self.init()
 
         env = UnityPy.load(file)
-        abs: list[AssetBundle] = filter_env(env, AssetBundle)
+        abs: list[AssetBundle] = [x.read() for x in env.objects if x.type == ClassIDType.AssetBundle]
         for dep in abs[0].m_Dependencies:
             path = os.path.join(os.path.dirname(file) + "/", dep)
             assert os.path.exists(path), f"Dependency not found: {dep}"
@@ -63,27 +62,21 @@ class AssetManager:
             self.layers["face"] = base_layer.get_child("face")
         [print(_) for _ in self.layers.values()]
 
-        base = os.path.basename(file).removesuffix("_ex").removesuffix("_n")
+        base = os.path.basename(file).removesuffix("_n")
         path = os.path.join(os.path.dirname(file), "paintingface", base)
         if os.path.exists(path):
-            env.load_file(path)
-            self.faces = {
-                x.name: FaceLayer(x.name, path, x.image.transpose(Image.FLIP_TOP_BOTTOM))
-                for x in filter_env(env, Texture2D)
-                if re.match(r"^0|([1-9]\d*)$", x.name)
-            }
+            env = UnityPy.load(path)
+            tex2ds: list[Texture2D] = [x.read() for x in env.objects if x.type == ClassIDType.Texture2D]
+            self.faces = {x.name: FaceLayer(x, path) for x in tex2ds if re.match(r"^0|([1-9]\d*)$", x.name)}
 
         for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
             path = os.path.join(os.path.dirname(file), kind, base)
             if not os.path.exists(path):
                 path += ".ys"
             if os.path.exists(path):
-                env.load_file(path)
-                self.icons |= {
-                    kind: IconLayer(kind, path, x.image.transpose(Image.FLIP_TOP_BOTTOM))
-                    for x in filter_env(env, Texture2D)
-                    if re.match(f"^(?i){base}$", x.name)
-                }
+                env = UnityPy.load(path)
+                tex2ds: list[Texture2D] = [x.read() for x in env.objects if x.type == ClassIDType.Texture2D]
+                self.icons |= {kind: IconLayer(x, path) for x in tex2ds if re.match(f"^(?i){base}$", x.name)}
 
         x_min = min([_.posMin.X for _ in self.layers.values()])
         x_max = max([_.posMax.X for _ in self.layers.values()])

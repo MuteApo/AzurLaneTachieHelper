@@ -3,15 +3,7 @@ from typing import Optional
 
 from PIL import Image
 from typing_extensions import Self
-from UnityPy.classes import (
-    GameObject,
-    Mesh,
-    MonoBehaviour,
-    PPtr,
-    RectTransform,
-    Sprite,
-    Texture2D,
-)
+from UnityPy.classes import GameObject, Mesh, MonoBehaviour, PPtr, RectTransform, Sprite, Texture2D
 from UnityPy.enums import ClassIDType
 
 from .Data import IconPreset, MetaInfo
@@ -29,7 +21,7 @@ class Layer:
         self.meta: MetaInfo = None
 
     def __repr__(self) -> str:
-        attrs = ["texture2D", "rawMesh", "meshSize", "rawSpriteSize", "sizeDelta", "posPivot", "posMin", "posMax"]
+        attrs = ["texture2D", "mesh", "meshSize", "rawSpriteSize", "sizeDelta"]
         items = [""]
         for x in attrs:
             if hasattr(self, x):
@@ -92,48 +84,30 @@ class Layer:
 
     @property
     def sprite(self) -> Optional[Sprite]:
-        if not hasattr(self, "m_Sprite"):
-            if self.monoBehaviour is not None:
-                if hasattr(self.monoBehaviour, "m_Sprite"):
-                    x = getattr(self.monoBehaviour, "m_Sprite")
-                    y = x.read() if x.get_obj() is not None else None
-                    setattr(self, "m_Sprite", y)
-                    return getattr(self, "m_Sprite")
-            setattr(self, "m_Sprite", None)
-        return getattr(self, "m_Sprite")
+        if self.monoBehaviour is None or not hasattr(self.monoBehaviour, "m_Sprite"):
+            return None
+        x = getattr(self.monoBehaviour, "m_Sprite")
+        return x.read() if x.get_obj() is not None else None
 
     @property
     def texture2D(self) -> Optional[Texture2D]:
-        if not hasattr(self, "m_Texture2D"):
-            if self.sprite is not None:
-                x = self.sprite.m_RD.texture.read()
-                setattr(self, "m_Texture2D", x)
-                return getattr(self, "m_Texture2D")
-            setattr(self, "m_Texture2D", None)
-        return getattr(self, "m_Texture2D")
+        if self.sprite is None:
+            return None
+        return self.sprite.m_RD.texture.read()
 
     @property
-    def rawMesh(self) -> Optional[Mesh]:
-        if not hasattr(self, "m_Mesh"):
-            if self.monoBehaviour is not None:
-                if hasattr(self.monoBehaviour, "mMesh"):
-                    x = getattr(self.monoBehaviour, "mMesh")
-                    y = x.read() if x.get_obj() is not None else None
-                    setattr(self, "m_Mesh", y)
-                    return getattr(self, "m_Mesh")
-            setattr(self, "m_Mesh", None)
-        return getattr(self, "m_Mesh")
+    def mesh(self) -> Optional[Mesh]:
+        if self.monoBehaviour is None or not hasattr(self.monoBehaviour, "mMesh"):
+            return None
+        x = getattr(self.monoBehaviour, "mMesh")
+        return x.read() if x.get_obj() is not None else None
 
     @property
     def rawSpriteSize(self) -> Optional[Vector2]:
-        if not hasattr(self, "m_RawSpriteSize"):
-            if self.monoBehaviour is not None:
-                if hasattr(self.monoBehaviour, "mRawSpriteSize"):
-                    x = getattr(self.monoBehaviour, "mRawSpriteSize")
-                    setattr(self, "m_RawSpriteSize", Vector2(x.x, x.y))
-                    return getattr(self, "m_RawSpriteSize")
-            setattr(self, "m_RawSpriteSize", None)
-        return getattr(self, "m_RawSpriteSize")
+        if self.monoBehaviour is None or not hasattr(self.monoBehaviour, "mRawSpriteSize"):
+            return None
+        x = getattr(self.monoBehaviour, "mRawSpriteSize")
+        return Vector2(x.x, x.y)
 
     @property
     def localRotation(self) -> Vector2:
@@ -198,21 +172,21 @@ class Layer:
         return self.posMin + self.meta.bias
 
     @property
-    def mesh(self) -> list[tuple]:
+    def buffer(self) -> list[tuple]:
         if not hasattr(self, "_mesh"):
             if self.texture2D is None:
                 setattr(self, "_mesh", None)
             else:
                 w, h = self.texture2D.image.size
                 val = []
-                if self.rawMesh is None:
+                if self.mesh is None:
                     val += [((0, 0, w, h), (0, 0, 0, h, w, h, w, 0))]
                 else:
-                    v = self.rawMesh.m_Vertices
+                    v = self.mesh.m_Vertices
                     v = [(round(v[i]), round(v[i + 1])) for i in range(0, len(v), 3)]
-                    t = self.rawMesh.m_UV0
+                    t = self.mesh.m_UV0
                     t = [(t[i] * w, t[i + 1] * h) for i in range(0, len(t), 2)]
-                    f = self.rawMesh.m_Indices
+                    f = self.mesh.m_Indices
                     for i in range(0, len(f), 6):
                         pos = (*v[f[i]], *v[f[i + 3]])
                         quad = (*t[f[i]], *t[f[i + 1]], *t[f[i + 3]], *t[f[i + 4]])
@@ -230,10 +204,10 @@ class Layer:
     @property
     def meshSize(self) -> Vector2:
         if not hasattr(self, "_mesh_size"):
-            if self.mesh is None:
+            if self.buffer is None:
                 setattr(self, "_mesh_size", None)
             else:
-                v = [x[0] for x in self.mesh]
+                v = [x[0] for x in self.buffer]
                 w = max([x[2] for x in v])
                 h = max([x[3] for x in v])
                 if w < 2048 and h < 2048:
@@ -252,7 +226,7 @@ class Layer:
     def decode(self) -> Image.Image:
         if not hasattr(self, "_dec_tex"):
             size = self.meshSize.round().tuple()
-            dec = self.tex.transform(size, Image.MESH, self.mesh)
+            dec = self.tex.transform(size, Image.MESH, self.buffer)
             setattr(self, "_dec_tex", dec)
         return getattr(self, "_dec_tex")
 
@@ -263,7 +237,7 @@ class Layer:
 
     def crop(self, img: Image.Image, resize: bool = True) -> Image.Image:
         if resize:
-            return img.crop(self.box()).resize(self.spriteSize)
+            return img.crop(self.box()).resize(self.spriteSize.round())
         else:
             return img.crop(self.box(self.meshSize))
 
@@ -276,16 +250,18 @@ class Layer:
         return True
 
 
-class FaceLayer:
-    def __init__(self, name: str, path: str, orig: Image.Image):
-        self.name = name
+class BaseLayer:
+    def __init__(self, tex2d: Texture2D, path: str):
+        self.orig = tex2d.image.transpose(Image.FLIP_TOP_BOTTOM)
+        self.name = tex2d.name
         self.path = path
-        self.orig = orig
         self.repl: Image.Image = None
 
     def decode(self):
         return self.orig
 
+
+class FaceLayer(BaseLayer):
     def set_data(self, layer: Layer, prefered: Layer, adv_mode: bool, is_clip: bool):
         self.layer = layer
         self.prefered = prefered
@@ -316,16 +292,7 @@ class FaceLayer:
             return img.crop(self.layer.box())
 
 
-class IconLayer:
-    def __init__(self, name: str, path: str, orig: Image.Image):
-        self.name = name
-        self.path = path
-        self.orig = orig
-        self.repl: Image.Image = None
-
-    def decode(self):
-        return self.orig
-
+class IconLayer(BaseLayer):
     def set_data(self, layer: Layer, prefered: Layer):
         self.layer = layer
         self.prefered = prefered

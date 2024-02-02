@@ -1,19 +1,18 @@
 name: alth
 channels:
-  - conda-forge
   - defaults
 dependencies:
   - python=3.10
-  - nuitka
-  - ordered-set
   - pip
-  - pillow
-  - pyinstaller
-  - six
-  - tqdm
-  - typing_extensions
   - pip:
-    - numpy
-    - pyside6
-    - pytoshop
-    - unitypy
+      - nuitka
+      - numpy
+      - ordered-set
+      - pillow
+      - pyqtdarktheme
+      - pyside6
+      - pytoshop
+      - six
+      - tqdm
+      - typing_extensions
+      - unitypy

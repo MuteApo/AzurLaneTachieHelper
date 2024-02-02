@@ -16,20 +16,14 @@
   - Pytoshop
   - UnityPy
 - Or with given env spec:
-  - Conda
-    ```shell
-    conda env create -f environment.yml
-    ```
-  - Pypi
-    ```shell
-    pip install -r requirements.txt
-    ```
-- Build app
-  - pyinstaller
-    ```shell
-    python build.py --pyinstaller/-p
-    ```
-  - nuitka (C++ compiler required, eg. msvc, gcc, clang, etc.)
-    ```shell
-    python build.py --nuitka/-n
-    ```
+  ```shell
+  # Conda
+  conda env create -f environment.yml
+
+  # Pypi
+  pip install -r requirements.txt
+  ```
+- Build app (C++ compiler required, eg. msvc, gcc, clang, etc.)
+  ```shell
+  python build.py
+  ```
