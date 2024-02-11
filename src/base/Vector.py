@@ -69,9 +69,13 @@ class Vector2:
         other = Vector2(other)
         return Vector2(self.X // other.X, self.Y // other.Y)
 
-    def __pow__(self, other):
+    def __pow__(self, other) -> Self:
         other = Vector2(other)
         return Vector2(self.X**other.X, self.Y**other.Y)
+
+    def cross(self, other) -> float:
+        other = Vector2(other)
+        return self.X * other.Y - other.Y * self.X
 
     def sum(self):
         return self.X + self.Y
@@ -99,10 +103,6 @@ class Vector2:
 
     def ceil(self):
         return Vector2(math.ceil(self.X), math.ceil(self.Y))
-
-    @staticmethod
-    def cross(a: Self, b: Self) -> float:
-        return a.X * b.Y - a.Y * b.X
 
     @staticmethod
     def zero():

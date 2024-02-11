@@ -96,7 +96,7 @@ class Icon(QWidget):
     def calc_angle(self, u: QPoint, v: QPoint) -> float:
         a = Vector2(u.x(), -u.y())
         b = Vector2(v.x(), -v.y())
-        return math.degrees(math.asin(Vector2.cross(a, b) / a.norm() / b.norm()))
+        return math.degrees(math.asin(a.cross(b) / a.norm() / b.norm()))
 
     def texrect(self) -> tuple[float, float, float, float]:
         w, h = self.preset.tex2d / self.preset.scale

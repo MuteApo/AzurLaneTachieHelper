@@ -188,9 +188,12 @@ class Layer:
                     t = [(t[i] * w, t[i + 1] * h) for i in range(0, len(t), 2)]
                     f = self.mesh.m_Indices
                     for i in range(0, len(f), 6):
-                        pos = (*v[f[i]], *v[f[i + 3]])
-                        quad = (*t[f[i]], *t[f[i + 1]], *t[f[i + 3]], *t[f[i + 4]])
-                        val += [(pos, quad)]
+                        x1, y1 = v[f[i]]
+                        x2, y2 = v[f[i + 3]]
+                        if x1 != x2 and y1 != y2:
+                            pos = (x1, y1, x2, y2)
+                            quad = (*t[f[i]], *t[f[i + 1]], *t[f[i + 3]], *t[f[i + 4]])
+                            val += [(pos, quad)]
                 setattr(self, "_mesh", val)
         return getattr(self, "_mesh")
 

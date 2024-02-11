@@ -37,20 +37,20 @@ class Edit(QMenu):
 
 
 class Option(QMenu):
-    def __init__(self, config: Config, *cbs: list[Callable]):
+    def __init__(self, *cbs: list[Callable]):
         super().__init__()
         self.setTitle(self.tr("Option"))
 
         self.aDumpLayer = QAction(
             self.tr("Dump Intermediate Layers"),
             checkable=True,
-            checked=config.get_bool("system/DumpLayer"),
+            checked=Config.get_bool("system/DumpLayer"),
             triggered=cbs[0],
         )
         self.aAdvMode = QAction(
             self.tr("Advanced Paintingface Mode"),
             checkable=True,
-            checked=config.get_bool("system/AdvancedMode"),
+            checked=Config.get_bool("system/AdvancedMode"),
             triggered=cbs[1],
         )
 
