@@ -1,6 +1,4 @@
-nuitka
 numpy
-ordered-set
 pillow
 pyqtdarktheme
 pyside6

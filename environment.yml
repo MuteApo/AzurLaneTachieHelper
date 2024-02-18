@@ -5,9 +5,7 @@ dependencies:
   - python=3.10
   - pip
   - pip:
-      - nuitka
       - numpy
-      - ordered-set
       - pillow
       - pyqtdarktheme
       - pyside6

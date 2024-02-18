@@ -1,0 +1,59 @@
+on:
+  push:
+    tags:
+      - "*.*.*"
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check-out Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          architecture: "x64"
+          cache: "pip"
+
+      - name: Install Dependencies
+        id: prepare
+        run: |
+          pip install -r requirements.txt
+          git clone https://github.com/mdboom/pytoshop.git
+          cd pytoshop
+          python setup.py install
+          cd ..
+          python build.py --prepare
+
+      - name: Build Executable
+        uses: Nuitka/Nuitka-Action@main
+        with:
+          nuitka-version: main
+          script-name: app.py
+          standalone: true
+          onefile: false
+          mingw64: true
+          enable-plugins: pyside6
+          nofollow-import-to: tkinter
+          windows-icon-from-ico: ico/cheshire.ico
+          include-data-dir: ${{steps.prepare.outputs.tpk_folder}}=UnityPy/resources/
+          include-data-files: i18n/*.qm=i18n/
+          output-file: AzurLaneTachieHelper
+    
+      - name: Pack Files
+        run: |
+          cd build
+          mv app.dist AzurLaneTachieHelper
+          7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on AzurLaneTachieHelper-${{github.ref_name}}.7z AzurLaneTachieHelper
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AzurLaneTachieHelper-${{github.ref_name}}-x86_64
+          path: build/AzurLaneTachieHelper-${{github.ref_name}}.7z
+          retention-days: 14
