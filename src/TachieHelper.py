@@ -65,7 +65,7 @@ class AzurLaneTachieHelper(QMainWindow):
     def _init_menu(self):
         self.mFile = Menu.File(self.onOpenMetadata, self.onImportPainting, self.onImportFaces, self.onImportIcons)
         self.mEdit = Menu.Edit(self.onEditClip, self.onEditDecode, self.onEditEncode)
-        self.mOption = Menu.Option(self.onOption, self.onOption)
+        self.mOption = Menu.Option(self.onOption)
 
         self.menuBar().addMenu(self.mFile)
         self.menuBar().addMenu(self.mEdit)

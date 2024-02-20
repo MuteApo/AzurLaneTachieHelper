@@ -213,8 +213,8 @@ class Layer:
                 v = [x[0] for x in self.buffer]
                 w = max([x[2] for x in v])
                 h = max([x[3] for x in v])
-                if w < 2048 and h < 2048:
-                    w, h = w + 1, h + 1
+                # if w < 2048 and h < 2048:
+                #     w, h = w + 1, h + 1
                 setattr(self, "_mesh_size", Vector2(w, h))
         return getattr(self, "_mesh_size")
 

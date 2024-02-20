@@ -79,6 +79,7 @@ class DecodeHelper:
             face += [ps_layer(f"face #{k}", layers["face"].posBiased, layers["face"].meta.size, tex, False)]
 
         painting = []
+        max_depth = max([v.depth for k, v in layers.items() if k != "face"])
         for k, v in tqdm(layers.items(), "[INFO] Decoding painting"):
             if k == "face":
                 painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
@@ -86,7 +87,8 @@ class DecodeHelper:
                 tex = v.decode().transpose(Image.FLIP_TOP_BOTTOM)
                 if is_dump:
                     tex.save(f"{os.path.join(dir, k)}.png")
-                tex = ImageOps.contain(tex, v.sizeDelta.round())
+                if v.depth < max_depth:
+                    tex = ImageOps.contain(tex, v.sizeDelta.round())
                 painting += [ps_layer(f"{v.name} [{v.texture2D.name}]", v.posBiased, v.meta.size, tex, True)]
 
         return nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)

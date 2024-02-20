@@ -31,7 +31,12 @@ class AssetManager:
     def decode(self, dir: str, dump: bool) -> str:
         faces = {int(k): v for k, v in self.faces.items()}
         psd = DecodeHelper.exec(dir, self.layers, faces, dump)
-        path = os.path.join(dir, self.meta.name + ".psd")
+        path = os.path.join(dir, f"{self.meta.name}.psd")
+        if os.path.exists(path):
+            old = [x for x in os.listdir(dir) if re.match(f"{self.meta.name}\.bak_\d+\.psd", x)]
+            num = sorted([eval(re.search(r"bak_(\d+).psd", x).group(1)) for x in old])
+            last = 1 if old == [] else num[-1] + 1
+            os.rename(path, os.path.join(dir, f"{self.meta.name}.bak_{last}.psd"))
         with open(path, "wb") as f:
             psd.write(f)
         return path
