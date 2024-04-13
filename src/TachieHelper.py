@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from .base import Config
+from .logger import logger
 from .module import AssetManager
 from .ui import IconViewer, Menu, Previewer, Table
 
@@ -80,8 +81,10 @@ class AzurLaneTachieHelper(QMainWindow):
 
     def open_metadata(self, file: str):
         Config.set("system/RecentPath", file)
-        self.message.setText(f"({os.path.basename(file)}) {QDir.toNativeSeparators(file)}")
-        print("[INFO] Metadata:", file)
+        name = os.path.basename(file)
+        self.message.setText(f"({name}) {QDir.toNativeSeparators(file)}")
+        logger.hr(name, 1)
+        logger.attr("Metadata", f"'{file}'")
 
         self.tPainting.table.clearContents()
         self.tFace.table.clearContents()

@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QSizePolicy, QV
 from typing_extensions import Self
 
 from ..base import IconLayer, IconPreset, Vector2
-
+from ..logger import logger
 
 class Icon(QWidget):
     def __init__(
@@ -158,7 +158,7 @@ class IconViewer(QDialog):
 
     def onClickClip(self):
         for k, v in self.presets.items():
-            print(f"[INFO] {k}: {v}")
+            logger.attr(k, v)
         self.accept()
 
     def setLast(self, icon: Icon):

@@ -10,6 +10,7 @@ dependencies:
       - pyqtdarktheme
       - pyside6
       - pytoshop
+      - rich
       - six
       - tqdm
       - typing_extensions

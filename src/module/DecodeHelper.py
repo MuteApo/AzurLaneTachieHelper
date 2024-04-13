@@ -73,12 +73,12 @@ class DecodeHelper:
         """
 
         face = []
-        for k, v in tqdm(sorted(faces.items()), "[INFO] Decoding paintingface"):
+        for k, v in tqdm(sorted(faces.items()), "Decode paintingface"):
             tex = v.decode().transpose(Image.FLIP_TOP_BOTTOM)
             face += [ps_layer(f"face #{k}", layers["face"].posBiased, layers["face"].meta.size, tex, False)]
 
         painting = []
-        for k, v in tqdm(layers.items(), "[INFO] Decoding painting"):
+        for k, v in tqdm(layers.items(), "Decode painting"):
             if k == "face":
                 painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
             else:

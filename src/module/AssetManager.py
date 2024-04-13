@@ -9,6 +9,7 @@ from UnityPy.classes import AssetBundle, GameObject, RectTransform, Texture2D
 from UnityPy.enums import ClassIDType
 
 from ..base import FaceLayer, IconLayer, IconPreset, Layer, MetaInfo, Vector2
+from ..logger import logger
 from .DecodeHelper import DecodeHelper
 from .EncodeHelper import EncodeHelper
 
@@ -55,8 +56,7 @@ class AssetManager:
             self.deps[dep] = path
             env.load_file(path)
 
-        print("[INFO] Dependencies:")
-        [print("      ", _) for _ in self.deps.keys()]
+        logger.attr("Dependencies", list(self.deps.keys()))
 
         base_go: GameObject = list(env.container.values())[0].read()
         base_rt: RectTransform = base_go.m_Transform.read()
@@ -65,7 +65,7 @@ class AssetManager:
         self.layers = base_layer.flatten()
         if "face" not in [x.name for x in self.layers.values()]:
             self.layers["face"] = base_layer.get_child("face")
-        [print(_) for _ in self.layers.values()]
+        [logger.attr(layer.__repr__(), layer.__str__()) for layer in self.layers.values()]
 
         base = os.path.basename(file).removesuffix("_n")
         path = os.path.join(os.path.dirname(file), "paintingface", base)

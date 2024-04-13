@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 
 from ..base import FaceLayer, IconLayer, IconPreset, Layer
 from .Previewer import Previewer
-
+from ..logger import logger
 
 class Painting(QVBoxLayout):
     def __init__(self, preview: Previewer):
@@ -111,8 +111,7 @@ class Paintingface(QVBoxLayout):
         if not os.path.isdir(path):
             return False
 
-        print("[INFO] Paintingface folder:")
-        print("      ", QDir.toNativeSeparators(path))
+        logger.attr("Paintingface folder", f"'{QDir.toNativeSeparators(path)}'")
 
         tasks: list[threading.Thread] = []
         files = [x for x in os.listdir(path) if x.endswith(".png")]

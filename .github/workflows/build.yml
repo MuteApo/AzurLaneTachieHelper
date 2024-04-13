@@ -2,6 +2,8 @@ on:
   push:
     tags:
       - "*.*.*"
+    branches:
+      - "dev"
 
   workflow_dispatch:
 
@@ -48,12 +50,12 @@ jobs:
       - name: Pack Files
         run: |
           cd build
-          mv app.dist AzurLaneTachieHelper
-          7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on AzurLaneTachieHelper-${{github.ref_name}}.7z AzurLaneTachieHelper
+          mv app.dist AzurLaneTachieHelper-${{github.ref_name}}
+          7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on AzurLaneTachieHelper-${{github.ref_name}}.7z AzurLaneTachieHelper-${{github.ref_name}}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: AzurLaneTachieHelper-${{github.ref_name}}-x86_64
           path: build/AzurLaneTachieHelper-${{github.ref_name}}.7z
-          retention-days: 14
+          retention-days: 30

@@ -86,7 +86,7 @@ def replace_face(dir: str, faces: dict[str, FaceLayer]) -> list[str]:
     env = UnityPy.load(path)
 
     sprites: list[Sprite] = [x.read() for x in env.objects if x.type == ClassIDType.Sprite]
-    for sprite in tqdm(filter(lambda x: x.name in faces, sprites), "[INFO] Encoding paintingface"):
+    for sprite in tqdm(filter(lambda x: x.name in faces, sprites), "Encode paintingface"):
         img = faces[sprite.name].repl
         set_sprite(sprite, img)
         set_tex2d(sprite.m_RD.texture.read(), img)
@@ -123,7 +123,7 @@ class EncodeHelper:
 
         valid = [v for v in layers.values() if v.repl is not None]
         if valid != []:
-            result += [replace_painting(dir, x) for x in tqdm(valid, "[INFO] Encoding painting")]
+            result += [replace_painting(dir, x) for x in tqdm(valid, "Encode painting")]
 
         valid = {k: v for k, v in faces.items() if v.repl is not None}
         if valid != {}:
@@ -131,6 +131,6 @@ class EncodeHelper:
 
         valid = {k: v for k, v in icons.items() if v.repl is not None and os.path.exists(v.path)}
         if valid != {}:
-            result += [replace_icon(dir, k, v) for k, v in tqdm(valid.items(), "[INFO] Encoding icons")]
+            result += [replace_icon(dir, k, v) for k, v in tqdm(valid.items(), "Encode icons")]
 
         return result

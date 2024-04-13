@@ -2,12 +2,26 @@ import os
 from typing import Optional
 
 from PIL import Image
+from PySide6.QtCore import QDir
 from typing_extensions import Self
-from UnityPy.classes import GameObject, Mesh, MonoBehaviour, PPtr, RectTransform, Sprite, Texture2D
+from UnityPy.classes import (
+    GameObject,
+    Mesh,
+    MonoBehaviour,
+    PPtr,
+    RectTransform,
+    Sprite,
+    Texture2D,
+)
 from UnityPy.enums import ClassIDType
 
+from ..logger import logger
 from .Data import IconPreset, MetaInfo
 from .Vector import Vector2
+
+
+def open_and_transpose(path: str) -> Image.Image:
+    return Image.open(path).transpose(Image.FLIP_TOP_BOTTOM)
 
 
 class Layer:
@@ -21,6 +35,9 @@ class Layer:
         self.meta: MetaInfo = None
 
     def __repr__(self) -> str:
+        return f"Layer@{self.depth} {self.name}"
+
+    def __str__(self) -> str:
         attrs = ["texture2D", "mesh", "meshSize", "rawSpriteSize", "sizeDelta"]
         items = [""]
         for x in attrs:
@@ -28,11 +45,7 @@ class Layer:
                 y = getattr(self, x)
                 if y is not None:
                     items += [f"{x[0].capitalize()}{x[1:]}: {y}"]
-        txt = "\n       ".join(items)
-        return f"Layer@{self.depth} {self.name} {txt}"
-
-    def __str__(self) -> str:
-        return f"[INFO] {self.__repr__()}"
+        return "\n".join(items)
 
     def __contains__(self, other: Self) -> bool:
         if self.posMin[0] > other.posMin[0] or self.posMin[1] > other.posMin[1]:
@@ -229,7 +242,7 @@ class Layer:
     def decode(self) -> Image.Image:
         if not hasattr(self, "_dec_tex"):
             size = self.spriteSize.round().tuple()
-            dec = self.tex.transform(size, Image.MESH, self.buffer)
+            dec = self.tex.transform(size, Image.MESH, self.buffer, Image.Resampling.BICUBIC)
             setattr(self, "_dec_tex", dec)
         return getattr(self, "_dec_tex")
 
@@ -240,7 +253,7 @@ class Layer:
 
     def crop(self, img: Image.Image, resize: bool = True) -> Image.Image:
         if resize:
-            return img.crop(self.box()).resize(self.spriteSize.round())
+            return img.crop(self.box()).resize(self.spriteSize.round(), Image.Resampling.BICUBIC)
         else:
             return img.crop(self.box(self.meshSize))
 
@@ -248,8 +261,8 @@ class Layer:
         name, _ = os.path.splitext(os.path.basename(path))
         if self.name != name:
             return False
-        self.repl = self.crop(Image.open(path).transpose(Image.FLIP_TOP_BOTTOM))
-        print("[INFO] Painting:", path)
+        self.repl = self.crop(open_and_transpose(path))
+        logger.attr("Painting", f"'{QDir.toNativeSeparators(path)}'")
         return True
 
 
@@ -271,13 +284,10 @@ class FaceLayer(BaseLayer):
         self.adv_mode = adv_mode
         self.is_clip = is_clip
 
-    def load_face(self, path: str) -> bool:
-        if not os.path.isdir(path):
-            return False
-        self.full = Image.open(path).transpose(Image.FLIP_TOP_BOTTOM)
+    def load_face(self, path: str):
+        self.full = open_and_transpose(path)
         self.repl = self.crop_face()
-        print("[INFO] Paintingface:", path)
-        return True
+        logger.attr("Paintingface", f"'{QDir.toNativeSeparators(path)}'")
 
     def update_clip(self, is_clip: bool):
         self.is_clip = is_clip
@@ -307,6 +317,6 @@ class IconLayer(BaseLayer):
         name, _ = os.path.splitext(os.path.basename(path))
         if name not in ["shipyardicon", "squareicon", "herohrzicon"]:
             return False
-        self.repl = Image.open(path).transpose(Image.FLIP_TOP_BOTTOM).resize(preset.tex2d)
-        print("[INFO] Icon:", path)
+        self.repl = open_and_transpose(path).resize(preset.tex2d, Image.Resampling.BICUBIC)
+        logger.attr("Icon", f"'{QDir.toNativeSeparators(path)}'")
         return True
