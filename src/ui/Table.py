@@ -108,6 +108,9 @@ class Paintingface(QVBoxLayout):
                 self.faces[idx].update_clip(val)
 
     def load(self, path: str) -> bool:
+        if not os.path.isdir(path):
+            return False
+
         print("[INFO] Paintingface folder:")
         print("      ", QDir.toNativeSeparators(path))
 
@@ -168,6 +171,6 @@ class Icon(QVBoxLayout):
     def load(self, path: str) -> bool:
         kind, _ = os.path.splitext(os.path.basename(path))
         if kind in self.icons:
-            self.icons[kind].load_icon(path, IconPreset.defaults()[kind])
-            return True
+            if self.icons[kind].load_icon(path, IconPreset.defaults()[kind]):
+                return True
         return False

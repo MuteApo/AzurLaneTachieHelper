@@ -97,10 +97,12 @@ class AzurLaneTachieHelper(QMainWindow):
 
         self.tIcon.set_data(self.asset_manager.icons, face_layer, prefered)
 
+        self.preview.setAcceptDrops(True)
         self.mFile.aImportPainting.setEnabled(True)
         self.mFile.aImportFaces.setEnabled(True)
         self.mFile.aImportIcons.setEnabled(True)
         self.mEdit.aDecodeTexture.setEnabled(True)
+        self.mEdit.aEncodeTexture.setEnabled(False)
         self.mEdit.aClipIcons.setEnabled(True)
 
     def onOpenMetadata(self):
@@ -190,9 +192,11 @@ class AzurLaneTachieHelper(QMainWindow):
     def dropEvent(self, event: QDropEvent):
         if event.mimeData().hasUrls():
             event.setDropAction(Qt.DropAction.CopyAction)
-            self.open_metadata(event.mimeData().urls()[0].toLocalFile())
-            self.preview.setAcceptDrops(True)
-            if event.isAccepted():
-                self.mEdit.aEncodeTexture.setEnabled(True)
-            else:
+            links = [x.toLocalFile() for x in event.mimeData().urls()]
+            files = [x for x in links if os.path.isfile(x)]
+            metadatas = [x for x in files if "." not in os.path.basename(x)]
+            if metadatas != []:
+                self.open_metadata(metadatas[0])
                 event.accept()
+            else:
+                self.preview.dropEvent(event)

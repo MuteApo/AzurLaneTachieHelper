@@ -58,29 +58,18 @@ class Previewer(QWidget):
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():
-            event.accept()
+            event.clone().accept()
 
     def dropEvent(self, event: QDropEvent):
-        urls = event.mimeData().urls()
-        if len(urls) == 1:
-            link = urls[0].toLocalFile()
-            if os.path.isdir(link):
-                if self.load_face(link):
-                    self.aEncodeTexture.setEnabled(True)
-                    self.refresh()
-                    event.accept()
-                    return
-        links = [x.toLocalFile() for x in urls]
-        files = [x for x in links if x.endswith(".png")]
-        for file in files:
-            name, _ = os.path.splitext(file)
-            if os.path.basename(name) in ["shipyardicon", "squareicon", "herohrzicon"]:
-                if self.load_icon(file):
-                    self.aEncodeTexture.setEnabled(True)
-                    self.refresh()
-                    event.accept()
-            else:
-                if self.load_painting(file):
-                    self.aEncodeTexture.setEnabled(True)
-                    self.refresh()
-                    event.accept()
+        flag = False
+        for link in [x.toLocalFile() for x in event.mimeData().urls()]:
+            if os.path.isdir(link) and self.load_face(link):
+                flag = True
+            elif link.endswith(".png"):
+                if self.load_icon(link) or self.load_painting(link):
+                    flag = True
+        if flag:
+            self.aEncodeTexture.setEnabled(True)
+            self.refresh()
+            event.accept()
+            

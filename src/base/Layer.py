@@ -47,14 +47,14 @@ class Layer:
                 return x
         return None
 
-    def flatten(self):
+    def flatten(self) -> dict[str, Self]:
         res = {}
         if self.sprite is not None:
             name = self.sprite.name if self.name in ["part"] else self.name
             res[name] = self
         for x in self.child:
             res |= x.flatten()
-        return res
+        return {k: v for k, v in sorted(res.items(), key=lambda x: x[1].depth)}
 
     @property
     def name(self) -> str:
@@ -213,7 +213,7 @@ class Layer:
                 v = [x[0] for x in self.buffer]
                 w = max([x[2] for x in v])
                 h = max([x[3] for x in v])
-                # if w < 2048 and h < 2048:
+                # if w == 2047 or h == 2047:
                 #     w, h = w + 1, h + 1
                 setattr(self, "_mesh_size", Vector2(w, h))
         return getattr(self, "_mesh_size")
@@ -228,7 +228,7 @@ class Layer:
 
     def decode(self) -> Image.Image:
         if not hasattr(self, "_dec_tex"):
-            size = self.meshSize.round().tuple()
+            size = self.spriteSize.round().tuple()
             dec = self.tex.transform(size, Image.MESH, self.buffer)
             setattr(self, "_dec_tex", dec)
         return getattr(self, "_dec_tex")
@@ -271,10 +271,13 @@ class FaceLayer(BaseLayer):
         self.adv_mode = adv_mode
         self.is_clip = is_clip
 
-    def load_face(self, path: str):
+    def load_face(self, path: str) -> bool:
+        if not os.path.isdir(path):
+            return False
         self.full = Image.open(path).transpose(Image.FLIP_TOP_BOTTOM)
         self.repl = self.crop_face()
         print("[INFO] Paintingface:", path)
+        return True
 
     def update_clip(self, is_clip: bool):
         self.is_clip = is_clip
@@ -300,6 +303,10 @@ class IconLayer(BaseLayer):
         self.layer = layer
         self.prefered = prefered
 
-    def load_icon(self, path: str, preset: IconPreset):
+    def load_icon(self, path: str, preset: IconPreset) -> bool:
+        name, _ = os.path.splitext(os.path.basename(path))
+        if name not in ["shipyardicon", "squareicon", "herohrzicon"]:
+            return False
         self.repl = Image.open(path).transpose(Image.FLIP_TOP_BOTTOM).resize(preset.tex2d)
         print("[INFO] Icon:", path)
+        return True

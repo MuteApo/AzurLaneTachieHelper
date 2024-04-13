@@ -1,4 +1,3 @@
-import math
 import os
 
 import numpy as np
@@ -41,10 +40,10 @@ def ps_layer(name: str, pos: Vector2, size: Vector2, img: Image.Image, visible: 
     layer = nested_layers.Image(
         name=name,
         visible=visible,
-        top=math.floor(size.Y - y - h),
-        left=math.floor(x),
-        bottom=math.floor(size.Y - y),
-        right=math.floor(x + w),
+        top=round(size.Y - y - h),
+        left=round(x),
+        bottom=round(size.Y - y),
+        right=round(x + w),
         channels=channels,
     )
     return layer
@@ -79,7 +78,6 @@ class DecodeHelper:
             face += [ps_layer(f"face #{k}", layers["face"].posBiased, layers["face"].meta.size, tex, False)]
 
         painting = []
-        max_depth = max([v.depth for k, v in layers.items() if k != "face"])
         for k, v in tqdm(layers.items(), "[INFO] Decoding painting"):
             if k == "face":
                 painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
@@ -87,8 +85,7 @@ class DecodeHelper:
                 tex = v.decode().transpose(Image.FLIP_TOP_BOTTOM)
                 if is_dump:
                     tex.save(f"{os.path.join(dir, k)}.png")
-                if v.depth < max_depth:
-                    tex = ImageOps.contain(tex, v.sizeDelta.round())
+                tex = ImageOps.contain(tex, v.sizeDelta.round())
                 painting += [ps_layer(f"{v.name} [{v.texture2D.name}]", v.posBiased, v.meta.size, tex, True)]
 
         return nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)

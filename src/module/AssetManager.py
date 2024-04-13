@@ -62,7 +62,7 @@ class AssetManager:
         base_rt: RectTransform = base_go.m_Transform.read()
         base_layer = Layer(base_rt)
 
-        self.layers: dict[str, Layer] = base_layer.flatten()
+        self.layers = base_layer.flatten()
         if "face" not in [x.name for x in self.layers.values()]:
             self.layers["face"] = base_layer.get_child("face")
         [print(_) for _ in self.layers.values()]
@@ -95,7 +95,8 @@ class AssetManager:
         for k, v in self.layers.items():
             v.meta = self.meta
             if k != "face":
-                v.path = self.deps[f"painting/{v.texture2D.name}_tex".lower()]
+                dep = f"painting/{v.texture2D.name}_tex".lower()
+                v.path = self.deps[dep] if dep in self.deps else file
 
     def clip_icons(self, workload: str, presets: dict[str, IconPreset]) -> list[str]:
         def clip(kind: str, preset: IconPreset):
