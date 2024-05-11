@@ -53,7 +53,7 @@ class Previewer(QWidget):
         else:
             img = self.layer.repl.copy()
         img.thumbnail((512, 512))
-        self.lImage.setPixmap(img.transpose(Image.FLIP_TOP_BOTTOM).toqpixmap())
+        self.lImage.setPixmap(img.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         self.update()
 
     def dragEnterEvent(self, event: QDragEnterEvent):
@@ -72,4 +72,3 @@ class Previewer(QWidget):
             self.aEncodeTexture.setEnabled(True)
             self.refresh()
             event.accept()
-            

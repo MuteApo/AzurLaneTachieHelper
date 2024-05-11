@@ -5,13 +5,13 @@ dependencies:
   - python=3.10
   - pip
   - pip:
-      - numpy
-      - pillow
-      - pyqtdarktheme
-      - pyside6
-      - pytoshop
-      - rich
-      - six
-      - tqdm
-      - typing_extensions
-      - unitypy
+    - numpy
+    - pillow
+    - pyqtdarktheme
+    - pyside6<6.7
+    - pytoshop
+    - rich
+    - six
+    - tqdm
+    - typing_extensions
+    - unitypy

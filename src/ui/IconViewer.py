@@ -3,12 +3,27 @@ from typing import Callable
 
 from PIL import Image, ImageChops
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QWheelEvent
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtGui import (
+    QKeyEvent,
+    QMouseEvent,
+    QPainter,
+    QPaintEvent,
+    QPixmap,
+    QWheelEvent,
+)
+from PySide6.QtWidgets import (
+    QDialog,
+    QHBoxLayout,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 from typing_extensions import Self
 
 from ..base import IconLayer, IconPreset, Vector2
 from ..logger import logger
+
 
 class Icon(QWidget):
     def __init__(
@@ -90,7 +105,7 @@ class Icon(QWidget):
         if self.display:
             sub = self.img.rotate(self.preset.angle, center=(x + w / 2, y + h / 2))
             sub = sub.crop((x, y, x + w, y + h)).resize(self.preset.tex2d)
-            painter.drawPixmap(0, 0, sub.transpose(Image.FLIP_TOP_BOTTOM).toqpixmap())
+            painter.drawPixmap(0, 0, sub.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         painter.drawRect(1, 1, *(self.preset.tex2d - 1))
 
     def calc_angle(self, u: QPoint, v: QPoint) -> float:
@@ -119,7 +134,7 @@ class IconViewer(QDialog):
         self.icons: dict[str, Icon] = {}
         for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
             if kind in refs:
-                ref = refs[kind].decode().transpose(Image.FLIP_TOP_BOTTOM)
+                ref = refs[kind].decode().transpose(Image.Transpose.FLIP_TOP_BOTTOM)
             else:
                 ref = Image.new("RGBA", self.presets[kind].tex2d.tuple())
             self.icons[kind] = Icon(img, ref, self.presets[kind], center, self.setLast)

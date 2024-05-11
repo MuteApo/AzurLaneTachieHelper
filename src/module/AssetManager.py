@@ -5,11 +5,12 @@ import threading
 import numpy as np
 import UnityPy
 from PIL import Image
-from UnityPy.classes import AssetBundle, GameObject, RectTransform, Texture2D
+from UnityPy.classes import GameObject, MonoBehaviour, RectTransform, Texture2D
 from UnityPy.enums import ClassIDType
 
 from ..base import FaceLayer, IconLayer, IconPreset, Layer, MetaInfo, Vector2
 from ..logger import logger
+from ..utility import open_and_transpose
 from .DecodeHelper import DecodeHelper
 from .EncodeHelper import EncodeHelper
 
@@ -45,12 +46,19 @@ class AssetManager:
     def encode(self, dir: str) -> str:
         return EncodeHelper.exec(dir, self.layers, self.faces, self.icons)
 
+    def dependency(self, file: str) -> list[str]:
+        path = os.path.join(os.path.dirname(file), "dependencies")
+        assert os.path.exists(path), f"Please put AssetBundles/dependencies in {os.path.dirname(file)}"
+        env = UnityPy.load(path)
+        mb: MonoBehaviour = [x.read() for x in env.objects if x.type == ClassIDType.MonoBehaviour][0]
+        idx = mb.m_Keys.index(f"painting/{os.path.basename(file)}")
+        return mb.m_Values[idx].m_Dependencies
+
     def analyze(self, file: str):
         self.init()
 
         env = UnityPy.load(file)
-        abs: list[AssetBundle] = [x.read() for x in env.objects if x.type == ClassIDType.AssetBundle]
-        for dep in abs[0].m_Dependencies:
+        for dep in self.dependency(file):
             path = os.path.join(os.path.dirname(file) + "/", dep)
             assert os.path.exists(path), f"Dependency not found: {dep}"
             self.deps[dep] = path
@@ -81,7 +89,7 @@ class AssetManager:
             if os.path.exists(path):
                 env = UnityPy.load(path)
                 tex2ds: list[Texture2D] = [x.read() for x in env.objects if x.type == ClassIDType.Texture2D]
-                self.icons |= {kind: IconLayer(x, path) for x in tex2ds if re.match(f"^(?i){base}$", x.name)}
+                self.icons |= {kind: IconLayer(x, path) for x in tex2ds if re.match(f"(?i)^{base}$", x.name)}
 
         x_min = min([_.posMin.X for _ in self.layers.values()])
         x_max = max([_.posMax.X for _ in self.layers.values()])
@@ -114,7 +122,7 @@ class AssetManager:
                 data[..., 3] = np.where(data[..., 3] > 76, 76, data[..., 3])
                 img = Image.fromarray(data)
                 img.paste(sub, mask=sub)
-            img.crop((x, y, x + w, y + h)).transpose(Image.FLIP_TOP_BOTTOM).save(path)
+            img.crop((x, y, x + w, y + h)).transpose(Image.Transpose.FLIP_TOP_BOTTOM).save(path)
             output.append(path)
 
         full, center = self.prepare_icon(workload)
@@ -127,6 +135,6 @@ class AssetManager:
 
     def prepare_icon(self, file: str) -> tuple[Image.Image, Vector2]:
         prefered = self.face_layer.prefered(self.layers)
-        full = Image.open(file).transpose(Image.FLIP_TOP_BOTTOM).crop(prefered.box())
+        full = open_and_transpose(file).crop(prefered.box())
         center = self.face_layer.posMin - prefered.posMin + self.face_layer.sizeDelta / 2
         return full.resize(prefered.spriteSize.round()), center

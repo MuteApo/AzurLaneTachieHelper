@@ -1,7 +1,5 @@
 on:
   push:
-    tags:
-      - "*.*.*"
     branches:
       - "dev"
 
@@ -58,4 +56,4 @@ jobs:
         with:
           name: AzurLaneTachieHelper-${{github.ref_name}}-x86_64
           path: build/AzurLaneTachieHelper-${{github.ref_name}}.7z
-          retention-days: 30
+          retention-days: 21

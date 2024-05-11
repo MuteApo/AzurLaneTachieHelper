@@ -1,7 +1,7 @@
 numpy
 pillow
 pyqtdarktheme
-pyside6
+pyside6<6.7
 pytoshop
 rich
 six

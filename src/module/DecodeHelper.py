@@ -74,7 +74,7 @@ class DecodeHelper:
 
         face = []
         for k, v in tqdm(sorted(faces.items()), "Decode paintingface"):
-            tex = v.decode().transpose(Image.FLIP_TOP_BOTTOM)
+            tex = v.decode().transpose(Image.Transpose.FLIP_TOP_BOTTOM)
             face += [ps_layer(f"face #{k}", layers["face"].posBiased, layers["face"].meta.size, tex, False)]
 
         painting = []
@@ -82,7 +82,7 @@ class DecodeHelper:
             if k == "face":
                 painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
             else:
-                tex = v.decode().transpose(Image.FLIP_TOP_BOTTOM)
+                tex = v.decode().transpose(Image.Transpose.FLIP_TOP_BOTTOM)
                 if is_dump:
                     tex.save(f"{os.path.join(dir, k)}.png")
                 tex = ImageOps.contain(tex, v.sizeDelta.round())

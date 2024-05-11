@@ -19,7 +19,7 @@ def set_sprite(sprite: Sprite, img: Image.Image):
 
 def set_tex2d(tex2d: Texture2D, img: Image.Image):
     tex2d.m_Width, tex2d.m_Height = img.size
-    tex2d.set_image(img.transpose(Image.FLIP_TOP_BOTTOM), TextureFormat.RGBA32)
+    tex2d.set_image(img.transpose(Image.Transpose.FLIP_TOP_BOTTOM), TextureFormat.RGBA32)
     tex2d.save()
 
 
@@ -59,8 +59,8 @@ def replace_meta(dir: str, layer: Layer, prefered: Layer) -> str:
     face = face_rt.read_typetree()
     w, h = prefered.sizeDelta
     px, py = prefered.pivot
-    x1, y1 = prefered.posPivot - layer.parent.posPivot
-    x2, y2 = prefered.posPivot - layer.posAnchor + layer.meta.bias
+    x1, y1 = prefered.pivotPosition - layer.parent.pivotPosition
+    x2, y2 = prefered.pivotPosition - layer.anchorPosition + layer.meta.bias
     face["m_SizeDelta"] = {"x": w, "y": h}
     face["m_Pivot"] = {"x": px, "y": py}
     face["m_LocalPosition"] = {"x": x1, "y": y1, "z": 0.0}

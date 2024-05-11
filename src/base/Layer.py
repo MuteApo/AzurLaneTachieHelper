@@ -16,12 +16,9 @@ from UnityPy.classes import (
 from UnityPy.enums import ClassIDType
 
 from ..logger import logger
+from ..utility import open_and_transpose
 from .Data import IconPreset, MetaInfo
 from .Vector import Vector2
-
-
-def open_and_transpose(path: str) -> Image.Image:
-    return Image.open(path).transpose(Image.FLIP_TOP_BOTTOM)
 
 
 class Layer:
@@ -44,7 +41,7 @@ class Layer:
             if hasattr(self, x):
                 y = getattr(self, x)
                 if y is not None:
-                    items += [f"{x[0].capitalize()}{x[1:]}: {y}"]
+                    items += [f"{x[0].capitalize()}{x[1:]}: {y.__repr__()}"]
         return "\n".join(items)
 
     def __contains__(self, other: Self) -> bool:
@@ -163,22 +160,31 @@ class Layer:
         return Vector2(val.x, val.y)
 
     @property
-    def posAnchor(self) -> Vector2:
-        return self.parent.sizeDelta * (self.anchorMin + self.anchorMax) / 2
+    def size(self) -> Vector2:
+        val = self.sizeDelta
+        if self.parent is not None:
+            val += self.parent.sizeDelta * (self.anchorMax - self.anchorMin)
+        return val
 
     @property
-    def posPivot(self) -> Vector2:
+    def anchorPosition(self) -> Vector2:
         if self.parent is None:
             return Vector2.zero()
-        return self.parent.posPivot + self.localPosition
+        anchorMin = self.parent.size * self.anchorMin
+        anchorMax = self.parent.size * self.anchorMax
+        return self.parent.posMin + anchorMin * (Vector2.one() - self.pivot) + anchorMax * self.pivot
+
+    @property
+    def pivotPosition(self) -> Vector2:
+        return self.anchorPosition + self.anchoredPosition
 
     @property
     def posMin(self) -> Vector2:
-        return self.posPivot - self.sizeDelta * self.pivot
+        return self.pivotPosition - self.size * self.pivot
 
     @property
     def posMax(self) -> Vector2:
-        return self.posMin + self.sizeDelta
+        return self.posMin + self.size
 
     @property
     def posBiased(self) -> Vector2:
@@ -213,7 +219,7 @@ class Layer:
     @property
     def tex(self) -> Image.Image:
         if not hasattr(self, "_tex"):
-            img = self.texture2D.image.transpose(Image.FLIP_TOP_BOTTOM)
+            img = self.texture2D.image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
             setattr(self, "_tex", img)
         return getattr(self, "_tex")
 
@@ -268,7 +274,7 @@ class Layer:
 
 class BaseLayer:
     def __init__(self, tex2d: Texture2D, path: str):
-        self.orig = tex2d.image.transpose(Image.FLIP_TOP_BOTTOM)
+        self.orig = tex2d.image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         self.name = tex2d.name
         self.path = path
         self.repl: Image.Image = None
