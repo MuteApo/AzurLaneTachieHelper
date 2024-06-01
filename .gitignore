@@ -2,6 +2,7 @@ __pycache__
 .DS_Store
 build
 char
+dependencies
 dist
 node_modules
 out
@@ -9,5 +10,6 @@ test
 tools
 *.bat
 *.ini
+*.qm
 *.spec
 *.txt

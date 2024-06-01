@@ -2,6 +2,7 @@ import os
 import threading
 
 from PySide6.QtCore import QDir, Qt
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
@@ -12,8 +13,10 @@ from PySide6.QtWidgets import (
 )
 
 from ..base import FaceLayer, IconLayer, IconPreset, Layer
-from .Previewer import Previewer
 from ..logger import logger
+from .Previewer import Previewer
+
+BOLD_FONT = QFont("Microsoft YaHei UI", weight=QFont.Weight.Bold)
 
 class Painting(QVBoxLayout):
     def __init__(self, preview: Previewer):
@@ -37,9 +40,11 @@ class Painting(QVBoxLayout):
         self.layers = layers
         self.num = len(self.layers) - 1
         self.table.setRowCount(self.num)
+        self.index = {}
         for i, k in enumerate(layers.keys()):
             if k != "face":
                 self.table.setItem(i, 0, QTableWidgetItem(k))
+                self.index[k] = i
         self.onCellClicked(0, 0)
 
     def get_text(self, row: int) -> str:
@@ -50,8 +55,9 @@ class Painting(QVBoxLayout):
         self.preview.display_painting(self.layers[dep.removesuffix("_tex")])
 
     def load(self, path: str) -> bool:
-        for layer in self.layers.values():
-            if layer.load(path):
+        for k, v in self.layers.items():
+            if v.load(path):
+                self.table.item(self.index[k], 0).setFont(BOLD_FONT)
                 return True
         return False
 
@@ -120,17 +126,16 @@ class Paintingface(QVBoxLayout):
             name, _ = os.path.splitext(file)
             img = QDir.toNativeSeparators(os.path.join(path, file))
             tasks += [threading.Thread(target=self.faces[name].load_face, args=(img,))]
+            self.table.item(int(name) - 1, 1).setFont(BOLD_FONT)
             check_box = self.check_box[name]
             if self.adv_mode:
                 check_box.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
             check_box.setCheckState(Qt.CheckState.Checked)
 
-        if tasks == []:
-            return False
-
         [_.start() for _ in tasks]
         [_.join() for _ in tasks]
-        return True
+
+        return tasks != []
 
 
 class Icon(QVBoxLayout):
@@ -156,9 +161,11 @@ class Icon(QVBoxLayout):
         self.prefered = prefered
         self.num = len(icons)
         self.table.setRowCount(self.num)
+        self.index = {}
         for i, (k, v) in enumerate(icons.items()):
             v.set_data(face_layer, prefered)
             self.table.setItem(i, 0, QTableWidgetItem(k))
+            self.index[k] = i
 
     def get_text(self, row: int) -> str:
         return self.table.item(row, 0).text()
@@ -171,5 +178,6 @@ class Icon(QVBoxLayout):
         kind, _ = os.path.splitext(os.path.basename(path))
         if kind in self.icons:
             if self.icons[kind].load_icon(path, IconPreset.defaults()[kind]):
+                self.table.item(self.index[kind], 0).setFont(BOLD_FONT)
                 return True
         return False

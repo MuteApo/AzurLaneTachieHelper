@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 from PySide6.QtCore import QDir, Qt
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
@@ -64,7 +65,7 @@ class AzurLaneTachieHelper(QMainWindow):
         self.setCentralWidget(central_widget)
 
     def _init_menu(self):
-        self.mFile = Menu.File(self.onOpenMetadata, self.onImportPainting, self.onImportFaces, self.onImportIcons)
+        self.mFile = Menu.File(self.onPullDependency, self.onOpenMetadata, self.onImportPainting, self.onImportFaces, self.onImportIcons)
         self.mEdit = Menu.Edit(self.onEditClip, self.onEditDecode, self.onEditEncode)
         self.mOption = Menu.Option(self.onOption)
 
@@ -107,6 +108,15 @@ class AzurLaneTachieHelper(QMainWindow):
         self.mEdit.aDecodeTexture.setEnabled(True)
         self.mEdit.aEncodeTexture.setEnabled(False)
         self.mEdit.aClipIcons.setEnabled(True)
+
+    def onPullDependency(self):
+        adb = Config.get_str("system/AdbPath", "3rdparty/adb.exe")
+        pkg = Config.get_str("system/Package", "com.bilibili.azurlane")
+        devices = subprocess.check_output([adb, "devices"]).decode("utf-8").split("\r\n")[1:-2]
+        for line in devices:
+            addr, name = line.split("\t")
+            logger.attr(name, addr)
+        subprocess.check_output([adb, "pull", f"/sdcard/Android/data/{pkg}/files/AssetBundles/dependencies"])
 
     def onOpenMetadata(self):
         last = Config.get_str("system/RecentPath")

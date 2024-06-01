@@ -1,8 +1,0 @@
-{
-  "dependencies": {
-    "types-for-adobe": "^7.0.12"
-  },
-  "devDependencies": {
-    "typescript": "^5.1.6"
-  }
-}

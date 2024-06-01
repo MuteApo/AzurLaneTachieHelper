@@ -59,12 +59,10 @@ def replace_meta(dir: str, layer: Layer, prefered: Layer) -> str:
     face = face_rt.read_typetree()
     w, h = prefered.sizeDelta
     px, py = prefered.pivot
-    x1, y1 = prefered.pivotPosition - layer.parent.pivotPosition
-    x2, y2 = prefered.pivotPosition - layer.anchorPosition + layer.meta.bias
+    x, y = prefered.pivotPosition - layer.anchorPosition + layer.meta.bias
     face["m_SizeDelta"] = {"x": w, "y": h}
     face["m_Pivot"] = {"x": px, "y": py}
-    face["m_LocalPosition"] = {"x": x1, "y": y1, "z": 0.0}
-    face["m_AnchoredPosition"] = {"x": x2, "y": y2}
+    face["m_AnchoredPosition"] = {"x": x, "y": y}
     face_rt.save_typetree(face)
 
     check_dir(dir, "output", "painting")
@@ -88,7 +86,7 @@ def replace_face(dir: str, faces: dict[str, FaceLayer]) -> list[str]:
     sprites: list[Sprite] = [x.read() for x in env.objects if x.type == ClassIDType.Sprite]
     for sprite in tqdm(filter(lambda x: x.name in faces, sprites), "Encode paintingface"):
         img = faces[sprite.name].repl
-        set_sprite(sprite, img)
+        # set_sprite(sprite, img)
         set_tex2d(sprite.m_RD.texture.read(), img)
 
     check_dir(dir, "output", "paintingface")

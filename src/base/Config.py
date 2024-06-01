@@ -14,7 +14,10 @@ class Config:
 
     @staticmethod
     def get_str(key: str, default: str = "") -> str:
-        return settings.value(key, default)
+        value = settings.value(key, default)
+        if value == default:
+            Config.set(key, value)
+        return value
 
     @staticmethod
     def get_vec2(key: str, default: Vector2 = Vector2(0, 0)) -> Vector2:

@@ -47,9 +47,8 @@ class AssetManager:
         return EncodeHelper.exec(dir, self.layers, self.faces, self.icons)
 
     def dependency(self, file: str) -> list[str]:
-        path = os.path.join(os.path.dirname(file), "dependencies")
-        assert os.path.exists(path), f"Please put AssetBundles/dependencies in {os.path.dirname(file)}"
-        env = UnityPy.load(path)
+        assert os.path.exists("dependencies"), f"AssetBundles/dependencies not found"
+        env = UnityPy.load("dependencies")
         mb: MonoBehaviour = [x.read() for x in env.objects if x.type == ClassIDType.MonoBehaviour][0]
         idx = mb.m_Keys.index(f"painting/{os.path.basename(file)}")
         return mb.m_Values[idx].m_Dependencies
@@ -81,6 +80,7 @@ class AssetManager:
             env = UnityPy.load(path)
             tex2ds: list[Texture2D] = [x.read() for x in env.objects if x.type == ClassIDType.Texture2D]
             self.faces = {x.name: FaceLayer(x, path) for x in tex2ds if re.match(r"^0|([1-9]\d*)$", x.name)}
+            self.faces = {k: v for k, v in sorted(self.faces.items(), key=lambda x: int(x[0]))}
 
         for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
             path = os.path.join(os.path.dirname(file), kind, base)
