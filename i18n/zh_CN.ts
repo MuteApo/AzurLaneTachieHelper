@@ -4,7 +4,7 @@
 <context>
     <name>AzurLaneTachieHelper</name>
     <message>
-        <location filename="../src/TachieHelper.py" line="27"/>
+        <location filename="../src/TachieHelper.py" line="26"/>
         <location filename="../src/TachieHelper.py" line="78"/>
         <source>AzurLane Tachie Helper</source>
         <translation>碧蓝航线立绘助手</translation>
@@ -20,27 +20,27 @@
         <translation>成功导出到：</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="123"/>
+        <location filename="../src/TachieHelper.py" line="121"/>
         <source>Select Metadata</source>
         <translation>选择元数据</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="129"/>
+        <location filename="../src/TachieHelper.py" line="127"/>
         <source>Select Paintings</source>
         <translation>选择立绘</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="141"/>
+        <location filename="../src/TachieHelper.py" line="139"/>
         <source>Select Paintingface Folder</source>
         <translation>选择表情差分</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="158"/>
+        <location filename="../src/TachieHelper.py" line="156"/>
         <source>Select Icons</source>
         <translation>选择图标</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="164"/>
+        <location filename="../src/TachieHelper.py" line="162"/>
         <source>Select Reference</source>
         <translation>选择参照图</translation>
     </message>
@@ -52,22 +52,22 @@
 <context>
     <name>Edit</name>
     <message>
-        <location filename="../src/ui/Menu.py" line="30"/>
+        <location filename="../src/ui/Menu.py" line="31"/>
         <source>Edit</source>
         <translation>编辑</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="32"/>
+        <location filename="../src/ui/Menu.py" line="33"/>
         <source>Clip Icons</source>
         <translation>截取图标</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="33"/>
+        <location filename="../src/ui/Menu.py" line="34"/>
         <source>Decode Texture</source>
         <translation>解包立绘</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="34"/>
+        <location filename="../src/ui/Menu.py" line="35"/>
         <source>Encode Texture</source>
         <translation>封包立绘</translation>
     </message>
@@ -80,27 +80,27 @@
         <translation>文件</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="14"/>
+        <location filename="../src/ui/Menu.py" line="18"/>
         <source>Pull Dependencies</source>
         <translation>拉取依赖</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="15"/>
+        <location filename="../src/ui/Menu.py" line="14"/>
         <source>Open Metadata</source>
         <translation>打开元数据</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="16"/>
+        <location filename="../src/ui/Menu.py" line="15"/>
         <source>Import Painting</source>
         <translation>导入立绘</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="17"/>
+        <location filename="../src/ui/Menu.py" line="16"/>
         <source>Import Paintingface</source>
         <translation>导入表情差分</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="18"/>
+        <location filename="../src/ui/Menu.py" line="17"/>
         <source>Import Icons</source>
         <translation>导入图标</translation>
     </message>
@@ -134,17 +134,17 @@
 <context>
     <name>Option</name>
     <message>
-        <location filename="../src/ui/Menu.py" line="44"/>
+        <location filename="../src/ui/Menu.py" line="45"/>
         <source>Option</source>
         <translation>选项</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="47"/>
+        <location filename="../src/ui/Menu.py" line="48"/>
         <source>Dump Intermediate Layers</source>
         <translation>导出中间图层</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="53"/>
+        <location filename="../src/ui/Menu.py" line="54"/>
         <source>Advanced Paintingface Mode</source>
         <translation>高级表情模式</translation>
     </message>

@@ -1,5 +1,4 @@
 import os
-import subprocess
 
 from PySide6.QtCore import QDir, Qt
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
@@ -17,7 +16,7 @@ from PySide6.QtWidgets import (
 
 from .base import Config
 from .logger import logger
-from .module import AssetManager
+from .module import AdbHelper, AssetManager
 from .ui import IconViewer, Menu, Previewer, Table
 
 
@@ -28,6 +27,7 @@ class AzurLaneTachieHelper(QMainWindow):
         self.setAcceptDrops(True)
         self.resize(720, 560)
 
+        Config.init()
         self.asset_manager = AssetManager()
 
         self._init_statusbar()
@@ -65,7 +65,7 @@ class AzurLaneTachieHelper(QMainWindow):
         self.setCentralWidget(central_widget)
 
     def _init_menu(self):
-        self.mFile = Menu.File(self.onPullDependency, self.onOpenMetadata, self.onImportPainting, self.onImportFaces, self.onImportIcons)
+        self.mFile = Menu.File(self.onOpenMetadata, self.onImportPainting, self.onImportFaces, self.onImportIcons, self.onPullDependency)
         self.mEdit = Menu.Edit(self.onEditClip, self.onEditDecode, self.onEditEncode)
         self.mOption = Menu.Option(self.onOption)
 
@@ -81,7 +81,7 @@ class AzurLaneTachieHelper(QMainWindow):
         msg_box.exec()
 
     def open_metadata(self, file: str):
-        Config.set("system/RecentPath", file)
+        Config.set("system", "RecentPath", file)
         name = os.path.basename(file)
         self.message.setText(f"({name}) {QDir.toNativeSeparators(file)}")
         logger.hr(name, 1)
@@ -96,7 +96,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
         face_layer = self.asset_manager.face_layer
         prefered = face_layer.prefered(self.asset_manager.layers)
-        adv_mode = Config.get_bool("system/AdvancedMode")
+        adv_mode = Config.get("system", "AdvancedMode")
         self.tFace.set_data(self.asset_manager.faces, face_layer, prefered, adv_mode)
 
         self.tIcon.set_data(self.asset_manager.icons, face_layer, prefered)
@@ -110,22 +110,20 @@ class AzurLaneTachieHelper(QMainWindow):
         self.mEdit.aClipIcons.setEnabled(True)
 
     def onPullDependency(self):
-        adb = Config.get_str("system/AdbPath", "3rdparty/adb.exe")
-        pkg = Config.get_str("system/Package", "com.bilibili.azurlane")
-        devices = subprocess.check_output([adb, "devices"]).decode("utf-8").split("\r\n")[1:-2]
-        for line in devices:
+        AdbHelper.connect()
+        for line in AdbHelper.devices():
             addr, name = line.split("\t")
             logger.attr(name, addr)
-        subprocess.check_output([adb, "pull", f"/sdcard/Android/data/{pkg}/files/AssetBundles/dependencies"])
+        AdbHelper.pull("dependencies")
 
     def onOpenMetadata(self):
-        last = Config.get_str("system/RecentPath")
+        last = Config.get("system", "RecentPath")
         file, _ = QFileDialog.getOpenFileName(self, self.tr("Select Metadata"), last)
         if file:
             self.open_metadata(file)
 
     def onImportPainting(self):
-        last = os.path.dirname(Config.get_str("system/RecentPath"))
+        last = os.path.dirname(Config.get("system", "RecentPath"))
         files, _ = QFileDialog.getOpenFileNames(self, self.tr("Select Paintings"), last, "Image (*.png)")
         if files:
             flag = False
@@ -137,7 +135,7 @@ class AzurLaneTachieHelper(QMainWindow):
                 self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onImportFaces(self):
-        last = os.path.dirname(Config.get_str("system/RecentPath"))
+        last = os.path.dirname(Config.get("system", "RecentPath"))
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Paintingface Folder"), last)
         if dir:
             if self.tFace.load(dir):
@@ -154,13 +152,13 @@ class AzurLaneTachieHelper(QMainWindow):
             self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onImportIcons(self):
-        last = os.path.dirname(Config.get_str("system/RecentPath"))
+        last = os.path.dirname(Config.get("system", "RecentPath"))
         files, _ = QFileDialog.getOpenFileNames(self, self.tr("Select Icons"), last, "Image (*.png)")
         if files:
             self.import_icon(files)
 
     def onEditClip(self):
-        last = os.path.dirname(Config.get_str("system/RecentPath"))
+        last = os.path.dirname(Config.get("system", "RecentPath"))
         file, _ = QFileDialog.getOpenFileName(self, self.tr("Select Reference"), last, "Image (*.png)")
         if file:
             presets = Config.get_presets(self.asset_manager.meta.name_stem)
@@ -175,7 +173,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
     def onEditDecode(self):
         base = os.path.dirname(self.asset_manager.meta.path)
-        res = self.asset_manager.decode(base, Config.get_bool("system/DumpLayer"))
+        res = self.asset_manager.decode(base, Config.get("system", "DumpLayer"))
         self.show_path(QDir.toNativeSeparators(res))
 
     def onEditEncode(self):
@@ -184,11 +182,11 @@ class AzurLaneTachieHelper(QMainWindow):
         self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
 
     def onOption(self):
-        Config.set("system/DumpLayer", self.mOption.aDumpLayer.isChecked())
+        Config.set("system", "DumpLayer", self.mOption.aDumpLayer.isChecked())
 
         adv_mode = self.mOption.aAdvMode.isChecked()
-        if adv_mode != Config.get_bool("system/AdvancedMode"):
-            Config.set("system/AdvancedMode", adv_mode)
+        if adv_mode != Config.get("system", "AdvancedMode"):
+            Config.set("system", "AdvancedMode", adv_mode)
             if hasattr(self, "num_faces"):
                 for i in range(self.tFace.num):
                     if adv_mode:

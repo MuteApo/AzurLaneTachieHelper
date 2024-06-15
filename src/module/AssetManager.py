@@ -50,8 +50,8 @@ class AssetManager:
         assert os.path.exists("dependencies"), f"AssetBundles/dependencies not found"
         env = UnityPy.load("dependencies")
         mb: MonoBehaviour = [x.read() for x in env.objects if x.type == ClassIDType.MonoBehaviour][0]
-        idx = mb.m_Keys.index(f"painting/{os.path.basename(file)}")
-        return mb.m_Values[idx].m_Dependencies
+        data = {k: v for k, v in zip(mb.m_Keys, mb.m_Values) if k.startswith("painting/")}
+        return data[f"painting/{os.path.basename(file)}"].m_Dependencies
 
     def analyze(self, file: str):
         self.init()

@@ -11,17 +11,18 @@ class File(QMenu):
         super().__init__()
         self.setTitle(self.tr("File"))
 
-        self.aPullDependency = QAction(self.tr("Pull Dependencies"), shortcut="Ctrl+U", enabled=True, triggered=cbs[0])
-        self.aOpenMetadata = QAction(self.tr("Open Metadata"), shortcut="Ctrl+M", enabled=True, triggered=cbs[1])
-        self.aImportPainting = QAction(self.tr("Import Painting"), shortcut="Ctrl+P", enabled=False, triggered=cbs[2])
-        self.aImportFaces = QAction(self.tr("Import Paintingface"), shortcut="Ctrl+F", enabled=False, triggered=cbs[3])
-        self.aImportIcons = QAction(self.tr("Import Icons"), shortcut="Ctrl+I", enabled=False, triggered=cbs[4])
+        self.aOpenMetadata = QAction(self.tr("Open Metadata"), shortcut="Ctrl+W", enabled=True, triggered=cbs[0])
+        self.aImportPainting = QAction(self.tr("Import Painting"), shortcut="Ctrl+Q", enabled=False, triggered=cbs[1])
+        self.aImportFaces = QAction(self.tr("Import Paintingface"), shortcut="Ctrl+A", enabled=False, triggered=cbs[2])
+        self.aImportIcons = QAction(self.tr("Import Icons"), shortcut="Ctrl+Z", enabled=False, triggered=cbs[3])
+        self.aPullDependency = QAction(self.tr("Pull Dependencies"), shortcut="Ctrl+X", enabled=True, triggered=cbs[4])
 
-        self.addAction(self.aPullDependency)
         self.addAction(self.aOpenMetadata)
         self.addAction(self.aImportPainting)
         self.addAction(self.aImportFaces)
         self.addAction(self.aImportIcons)
+        self.addSeparator()
+        self.addAction(self.aPullDependency)
 
 
 class Edit(QMenu):
@@ -46,13 +47,13 @@ class Option(QMenu):
         self.aDumpLayer = QAction(
             self.tr("Dump Intermediate Layers"),
             checkable=True,
-            checked=Config.get_bool("system/DumpLayer"),
+            checked=Config.get("system", "DumpLayer"),
             triggered=cb,
         )
         self.aAdvMode = QAction(
             self.tr("Advanced Paintingface Mode"),
             checkable=True,
-            checked=Config.get_bool("system/AdvancedMode"),
+            checked=Config.get("system", "AdvancedMode"),
             triggered=cb,
         )
 

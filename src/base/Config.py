@@ -1,44 +1,51 @@
 from PySide6.QtCore import QSettings
 
 from .Data import IconPreset
-from .Vector import Vector2
-
-settings = QSettings("./config.ini", QSettings.Format.IniFormat)
 
 
 class Config:
-    @staticmethod
-    def get_bool(key: str, default: bool = False) -> bool:
-        value = {True: "true", False: "false"}[default]
-        return eval(str(settings.value(key, value)).capitalize())
+    _settings = QSettings("./config.ini", QSettings.Format.IniFormat)
+    _default = {
+        "system/AdvancedMode": False,
+        "system/DumpLayer": False,
+        "system/AdbPath": "3rdparty/adb.exe",
+        "system/DeviceAddress": "127.0.0.1",
+        "system/DevicePort": "auto",
+        "system/Package": "com.bilibili.azurlane",
+    }
 
-    @staticmethod
-    def get_str(key: str, default: str = "") -> str:
-        value = settings.value(key, default)
-        if value == default:
-            Config.set(key, value)
-        return value
+    @classmethod
+    def init(cls):
+        for k, v in cls._default.items():
+            if k not in cls._settings.allKeys():
+                cls._settings.setValue(k, v)
 
-    @staticmethod
-    def get_vec2(key: str, default: Vector2 = Vector2(0, 0)) -> Vector2:
-        return settings.value(key, default)
+    @classmethod
+    def get(cls, group: str, key: str) -> str:
+        match value := cls._settings.value(f"{group}/{key}"):
+            case "true":
+                return True
+            case "false":
+                return False
+            case _:
+                return value
 
-    @staticmethod
-    def set(key: str, value):
-        settings.setValue(key, value)
+    @classmethod
+    def set(cls, group: str, key: str, value):
+        cls._settings.setValue(f"{group}/{key}", value)
 
-    @staticmethod
-    def get_presets(prefix: str) -> dict[str, IconPreset]:
-        settings.beginGroup(prefix)
+    @classmethod
+    def get_presets(cls, group: str) -> dict[str, IconPreset]:
         presets = IconPreset.defaults()
-        for k, v in presets.items():
-            v.from_repr(settings.value(k, presets[k].__repr__()))
-        settings.endGroup()
+        cls._settings.beginGroup(group)
+        for k in cls._settings.childKeys():
+            presets[k].from_repr(cls._settings.value(k))
+        cls._settings.endGroup()
         return presets
 
-    @staticmethod
-    def set_presets(prefix: str, presets: dict[str, IconPreset]):
-        settings.beginGroup(prefix)
+    @classmethod
+    def set_presets(cls, group: str, presets: dict[str, IconPreset]):
+        cls._settings.beginGroup(group)
         for k, v in presets.items():
-            settings.setValue(k, v.__repr__())
-        settings.endGroup()
+            cls._settings.setValue(k, v.__repr__())
+        cls._settings.endGroup()
