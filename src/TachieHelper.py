@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 
 from .base import Config
 from .logger import logger
-from .module import AdbHelper, AssetManager
+from .module import AssetManager
 from .ui import IconViewer, Menu, Previewer, Table
 
 
@@ -65,9 +65,9 @@ class AzurLaneTachieHelper(QMainWindow):
         self.setCentralWidget(central_widget)
 
     def _init_menu(self):
-        self.mFile = Menu.File(self.onOpenMetadata, self.onImportPainting, self.onImportFaces, self.onImportIcons, self.onPullDependency)
+        self.mFile = Menu.File(self.onOpenMetadata, self.onImportPainting, self.onImportFaces, self.onImportIcons)
         self.mEdit = Menu.Edit(self.onEditClip, self.onEditDecode, self.onEditEncode)
-        self.mOption = Menu.Option(self.onOption)
+        self.mOption = Menu.Option(self.onToggleAdvMode)
 
         self.menuBar().addMenu(self.mFile)
         self.menuBar().addMenu(self.mEdit)
@@ -108,13 +108,6 @@ class AzurLaneTachieHelper(QMainWindow):
         self.mEdit.aDecodeTexture.setEnabled(True)
         self.mEdit.aEncodeTexture.setEnabled(False)
         self.mEdit.aClipIcons.setEnabled(True)
-
-    def onPullDependency(self):
-        AdbHelper.connect()
-        for line in AdbHelper.devices():
-            addr, name = line.split("\t")
-            logger.attr(name, addr)
-        AdbHelper.pull("dependencies")
 
     def onOpenMetadata(self):
         last = Config.get("system", "RecentPath")
@@ -173,7 +166,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
     def onEditDecode(self):
         base = os.path.dirname(self.asset_manager.meta.path)
-        res = self.asset_manager.decode(base, Config.get("system", "DumpLayer"))
+        res = self.asset_manager.decode(base)
         self.show_path(QDir.toNativeSeparators(res))
 
     def onEditEncode(self):
@@ -181,19 +174,15 @@ class AzurLaneTachieHelper(QMainWindow):
         res = self.asset_manager.encode(base)
         self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
 
-    def onOption(self):
-        Config.set("system", "DumpLayer", self.mOption.aDumpLayer.isChecked())
-
-        adv_mode = self.mOption.aAdvMode.isChecked()
-        if adv_mode != Config.get("system", "AdvancedMode"):
-            Config.set("system", "AdvancedMode", adv_mode)
-            if hasattr(self, "num_faces"):
-                for i in range(self.tFace.num):
-                    if adv_mode:
-                        flag = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable
-                    else:
-                        flag = ~Qt.ItemFlag.ItemIsEnabled
-                    self.tFace.table.item(i, 0).setFlags(flag)
+    def onToggleAdvMode(self, value: bool):
+        Config.set("system", "AdvancedMode", value)
+        if hasattr(self, "num_faces"):
+            for i in range(self.tFace.num):
+                if value:
+                    flag = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable
+                else:
+                    flag = ~Qt.ItemFlag.ItemIsEnabled
+                self.tFace.table.item(i, 0).setFlags(flag)
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():

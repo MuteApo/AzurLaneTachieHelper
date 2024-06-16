@@ -1,3 +1,4 @@
+import os
 import subprocess
 from typing import Optional
 
@@ -15,6 +16,7 @@ def default(v, d):
 
 class AdbHelper:
     _ports = [5555, 7555, 16384, 59865, 62001]
+    _to_pkg = {"CN": "com.bilibili.azurlane", "JP": "com.YoStarJP.AzurLane", "EN": "com.YoStarEN.AzurLane"}
 
     @classmethod
     def adb(cls, *args):
@@ -45,12 +47,21 @@ class AdbHelper:
         return cls.adb("devices").split("\r\n")[1:-2]
 
     @classmethod
-    def pull(cls, *files: list[str]):
-        pkg = Config.get("system", "Package")
+    def pull(cls, *files: list[str], target: str = "."):
+        os.makedirs(target, exist_ok=True)
+        pkg = cls._to_pkg[Config.get("system", "Server").upper()]
         for file in files:
+            folder = os.path.dirname(file)
+            if folder != "":
+                os.makedirs(os.path.join(target, folder), exist_ok=True)
             path = f"/sdcard/Android/data/{pkg}/files/AssetBundles/{file}"
-            logger.attr(file, f'"{path}"')
-            cls.adb("pull", path)
+
+            try:
+                cls.adb("pull", path, os.path.join(target, folder))
+            except:
+                logger.warn(f'Failed on pulling \'{file}\', maybe in apk')
+            else:
+                logger.info(f"Pulled '{path}'")
 
     @classmethod
     def detect(cls):

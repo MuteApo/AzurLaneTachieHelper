@@ -30,9 +30,9 @@ class AssetManager:
     def face_layer(self):
         return self.layers["face"]
 
-    def decode(self, dir: str, dump: bool) -> str:
+    def decode(self, dir: str) -> str:
         faces = {int(k): v for k, v in self.faces.items()}
-        psd = DecodeHelper.exec(dir, self.layers, faces, dump)
+        psd = DecodeHelper.exec(self.layers, faces)
         path = os.path.join(dir, f"{self.meta.name}.psd")
         if os.path.exists(path):
             old = [x for x in os.listdir(dir) if re.match(f"{self.meta.name}\.bak_\d+\.psd", x)]
@@ -50,8 +50,8 @@ class AssetManager:
         assert os.path.exists("dependencies"), f"AssetBundles/dependencies not found"
         env = UnityPy.load("dependencies")
         mb: MonoBehaviour = [x.read() for x in env.objects if x.type == ClassIDType.MonoBehaviour][0]
-        data = {k: v for k, v in zip(mb.m_Keys, mb.m_Values) if k.startswith("painting/")}
-        return data[f"painting/{os.path.basename(file)}"].m_Dependencies
+        idx = mb.m_Keys.index(f"painting/{os.path.basename(file)}")
+        return mb.m_Values[idx].m_Dependencies
 
     def analyze(self, file: str):
         self.init()

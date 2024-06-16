@@ -6,12 +6,12 @@ from .Data import IconPreset
 class Config:
     _settings = QSettings("./config.ini", QSettings.Format.IniFormat)
     _default = {
-        "system/AdvancedMode": False,
-        "system/DumpLayer": False,
         "system/AdbPath": "3rdparty/adb.exe",
         "system/DeviceAddress": "127.0.0.1",
         "system/DevicePort": "auto",
-        "system/Package": "com.bilibili.azurlane",
+        "system/Server": "CN",
+        "system/RecentPath": "",
+        "system/AdvancedMode": False,
     }
 
     @classmethod

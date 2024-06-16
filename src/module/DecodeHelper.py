@@ -51,14 +51,12 @@ def ps_layer(name: str, pos: Vector2, size: Vector2, img: Image.Image, visible: 
 
 class DecodeHelper:
     @staticmethod
-    def exec(dir: str, layers: dict[str, Layer], faces: dict[str, FaceLayer], is_dump: bool) -> PsdFile:
+    def exec(layers: dict[str, Layer], faces: dict[str, FaceLayer]) -> PsdFile:
         """
         Decode layers of a painting along with paintingface and return file path of the dumped psd.
 
         Parameters
         ----------
-        dir: str
-            Directory of the psd to dump on.
         layers: dict[str, Layer]
             A dict containing each of the painting layers.
         faces: dict[int, FaceLayer]
@@ -82,10 +80,7 @@ class DecodeHelper:
             if k == "face":
                 painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
             else:
-                tex = v.decode().transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-                if is_dump:
-                    tex.save(f"{os.path.join(dir, k)}.png")
-                tex = ImageOps.contain(tex, v.sizeDelta.round())
+                tex = ImageOps.contain(v.decode().transpose(Image.Transpose.FLIP_TOP_BOTTOM), v.sizeDelta.round())
                 painting += [ps_layer(f"{v.name} [{v.texture2D.name}]", v.posBiased, v.meta.size, tex, True)]
 
         return nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)
