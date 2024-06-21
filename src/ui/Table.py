@@ -2,7 +2,6 @@ import os
 import threading
 
 from PySide6.QtCore import QDir, Qt
-from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
@@ -16,7 +15,12 @@ from ..base import FaceLayer, IconLayer, IconPreset, Layer
 from ..logger import logger
 from .Previewer import Previewer
 
-BOLD_FONT = QFont("Microsoft YaHei UI", weight=QFont.Weight.Bold)
+
+def set_bold(item: QTableWidgetItem):
+    font = item.font()
+    font.setBold(True)
+    item.setFont(font)
+
 
 class Painting(QVBoxLayout):
     def __init__(self, preview: Previewer):
@@ -41,10 +45,9 @@ class Painting(QVBoxLayout):
         self.num = len(self.layers) - 1
         self.table.setRowCount(self.num)
         self.index = {}
-        for i, k in enumerate(layers.keys()):
-            if k != "face":
-                self.table.setItem(i, 0, QTableWidgetItem(k))
-                self.index[k] = i
+        for i, k in enumerate([x for x in layers.keys() if x != "face"]):
+            self.table.setItem(i, 0, QTableWidgetItem(k))
+            self.index[k] = i
         self.onCellClicked(0, 0)
 
     def get_text(self, row: int) -> str:
@@ -57,7 +60,7 @@ class Painting(QVBoxLayout):
     def load(self, path: str) -> bool:
         for k, v in self.layers.items():
             if v.load(path):
-                self.table.item(self.index[k], 0).setFont(BOLD_FONT)
+                set_bold(self.table.item(self.index[k], 0))
                 return True
         return False
 
@@ -126,7 +129,7 @@ class Paintingface(QVBoxLayout):
             name, _ = os.path.splitext(file)
             img = QDir.toNativeSeparators(os.path.join(path, file))
             tasks += [threading.Thread(target=self.faces[name].load_face, args=(img,))]
-            self.table.item(int(name) - 1, 1).setFont(BOLD_FONT)
+            set_bold(self.table.item(int(name) - 1, 1))
             check_box = self.check_box[name]
             if self.adv_mode:
                 check_box.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
@@ -178,6 +181,6 @@ class Icon(QVBoxLayout):
         kind, _ = os.path.splitext(os.path.basename(path))
         if kind in self.icons:
             if self.icons[kind].load_icon(path, IconPreset.defaults()[kind]):
-                self.table.item(self.index[kind], 0).setFont(BOLD_FONT)
+                set_bold(self.table.item(self.index[kind], 0))
                 return True
         return False

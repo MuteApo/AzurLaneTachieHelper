@@ -64,7 +64,7 @@ class Layer:
             res[name] = self
         for x in self.child:
             res |= x.flatten()
-        return {k: v for k, v in sorted(res.items(), key=lambda x: x[1].depth)}
+        return res
 
     @property
     def name(self) -> str:

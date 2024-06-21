@@ -1,6 +1,5 @@
 import os
 
-from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
@@ -8,9 +7,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QPushButton,
-    QVBoxLayout,
 )
 
 from ..logger import logger
@@ -22,19 +19,22 @@ class TachiePuller(QDialog):
         super().__init__()
         self.setWindowTitle(self.tr("AzurLane Tachie Helper"))
         self.setWindowIcon(QPixmap("ico/cheshire.ico"))
-        self.resize(300, 100)
+        self.resize(300, 50)
 
         self.data = data
+        self.names = sorted([k.removeprefix("painting/") for k in data.keys() if not k.endswith("_tex")])
 
         self.label = QLabel("painting/")
 
-        self.names = sorted([k.removeprefix("painting/") for k in data.keys() if not k.endswith("_tex")])
+        self.completer = QCompleter(self.names)
+        self.completer.setMaxVisibleItems(20)
+
         self.combo_box = QComboBox()
         self.combo_box.addItems(self.names)
         self.combo_box.setEditable(True)
         self.combo_box.setEditText("")
         self.combo_box.setMaxVisibleItems(20)
-        self.combo_box.setCompleter(QCompleter(self.names))
+        self.combo_box.setCompleter(self.completer)
 
         self._init_ui()
 
