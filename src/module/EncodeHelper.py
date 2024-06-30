@@ -34,7 +34,8 @@ def set_mesh(mesh: Mesh, img: Image.Image):
 
 
 def replace_painting(dir: str, layer: Layer) -> str:
-    env = UnityPy.load(layer.path if layer.path != "Not Found" else layer.meta.path)
+    path = layer.path if layer.path != "Not Found" else layer.meta.path
+    env = UnityPy.load(path)
 
     for x in env.objects:
         if x.type == ClassIDType.Texture2D:

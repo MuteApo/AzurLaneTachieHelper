@@ -50,8 +50,12 @@ class TachiePuller(QDialog):
         logger.hr("Pull Tachie", 1)
         name = self.combo_box.currentText()
         logger.attr("Tachie", f"'{name}'")
-        name_stem = name.removesuffix("_n")
         deps = self.data[f"painting/{name}"]
+        name_stem = name.removesuffix("_n")
+        if (face := f"paintingface/{name_stem}") not in deps:
+            deps += [face]
         icons = [f"{icon}/{name_stem}" for icon in ["shipyardicon", "squareicon", "herohrzicon"]]
         AdbHelper.pull(f"painting/{name}", *deps, *icons, target=name)
-        os.rename(f"{name}/painting/{name}", f"{name}/{name}")
+        if os.path.exists(meta := f"{name}/painting/{name}"):
+            os.rename(meta, f"{name}/{name}")
+        self.accept()

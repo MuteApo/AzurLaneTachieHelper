@@ -1,15 +1,11 @@
 import os
-import re
-import threading
 from functools import partial
 from typing import Callable
 
-import numpy as np
 import UnityPy
-from PIL import Image
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu
-from UnityPy.classes import GameObject, MonoBehaviour, RectTransform, Texture2D
+from UnityPy.classes import MonoBehaviour
 from UnityPy.enums import ClassIDType
 
 from ..base import Config

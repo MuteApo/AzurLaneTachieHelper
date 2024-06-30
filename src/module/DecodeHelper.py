@@ -1,4 +1,4 @@
-import os
+from math import floor
 
 import numpy as np
 from PIL import Image, ImageOps
@@ -40,10 +40,10 @@ def ps_layer(name: str, pos: Vector2, size: Vector2, img: Image.Image, visible: 
     layer = nested_layers.Image(
         name=name,
         visible=visible,
-        top=round(size.Y - y - h),
-        left=round(x),
-        bottom=round(size.Y - y),
-        right=round(x + w),
+        top=floor(size.Y - y - h),
+        left=floor(x),
+        bottom=floor(size.Y - y),
+        right=floor(x + w),
         channels=channels,
     )
     return layer

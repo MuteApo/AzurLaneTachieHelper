@@ -69,7 +69,7 @@ class AssetManager:
         base_rt: RectTransform = base_go.m_Transform.read()
         base_layer = Layer(base_rt)
 
-        self.layers = {k: v for k, v in sorted(base_layer.flatten().items(), key=lambda x: x[1].depth)}
+        self.layers = base_layer.flatten()
         if "face" not in [x.name for x in self.layers.values()]:
             self.layers["face"] = base_layer.get_child("face")
         [logger.attr(layer.__repr__(), layer.__str__()) for layer in self.layers.values()]
