@@ -91,10 +91,12 @@ class Paintingface(QVBoxLayout):
         self.adv_mode = adv_mode
         self.check_box: dict[str, QTableWidgetItem] = {}
         self.is_clip: dict[str, bool] = {}
+        self.idx_map: dict[str, int] = {}
         self.table.itemChanged.connect(self.onItemChanged)
         self.table.itemChanged.disconnect()
         for i, (k, v) in enumerate(faces.items()):
             v.set_data(face_layer, prefered, adv_mode, True)
+            self.idx_map[k] = i
             item = QTableWidgetItem("")
             item.setCheckState(Qt.CheckState.Checked)
             item.setFlags(~Qt.ItemFlag.ItemIsEnabled)
@@ -128,14 +130,15 @@ class Paintingface(QVBoxLayout):
         for file in files:
             name, _ = os.path.splitext(file)
             img = QDir.toNativeSeparators(os.path.join(path, file))
-            tasks += [threading.Thread(target=self.faces[name].load_face, args=(img,))]
-            set_bold(self.table.item(int(name) - 1, 1))
+            task = threading.Thread(target=self.faces[name].load_face, args=(img,))
+            task.start()
+            tasks += [task]
+            set_bold(self.table.item(self.idx_map[name], 1))
             check_box = self.check_box[name]
             if self.adv_mode:
                 check_box.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
             check_box.setCheckState(Qt.CheckState.Checked)
 
-        [_.start() for _ in tasks]
         [_.join() for _ in tasks]
 
         return tasks != []

@@ -80,7 +80,7 @@ class DecodeHelper:
             if k == "face":
                 painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
             else:
-                tex = ImageOps.contain(v.decode().transpose(Image.Transpose.FLIP_TOP_BOTTOM), v.sizeDelta.round())
+                tex = ImageOps.contain(v.decode().transpose(Image.Transpose.FLIP_TOP_BOTTOM), v.sizeDelta.round().tuple())
                 painting += [ps_layer(f"{v.name} [{v.texture2D.name}]", v.posBiased, v.meta.size, tex, True)]
 
         return nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)

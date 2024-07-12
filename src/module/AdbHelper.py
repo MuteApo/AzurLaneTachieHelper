@@ -47,7 +47,7 @@ class AdbHelper:
         return cls.adb("devices").split("\r\n")[1:-2]
 
     @classmethod
-    def pull(cls, *files: list[str], target: str = "."):
+    def pull(cls, *files: list[str], target: str = ".", addr: Optional[str] = None, port: Optional[int] = None):
         os.makedirs(target, exist_ok=True)
         pkg = cls._to_pkg[Config.get("system", "Server").upper()]
         for file in files:
@@ -55,10 +55,14 @@ class AdbHelper:
             if folder != "":
                 os.makedirs(os.path.join(target, folder), exist_ok=True)
             path = f"/sdcard/Android/data/{pkg}/files/AssetBundles/{file}"
+            
+            addr = default(addr, Config.get("system", "DeviceAddress"))
+            port = default(port, Config.get("system", "DevicePort"))
 
             try:
-                cls.adb("pull", path, os.path.join(target, folder))
+                msg = cls.adb("-s", f"{addr}:{port}", "pull", path, os.path.join(target, folder))
             except:
+                logger.error(msg)
                 logger.warn(f'Failed on pulling \'{file}\', maybe in apk')
             else:
                 logger.info(f"Pulled '{path}'")

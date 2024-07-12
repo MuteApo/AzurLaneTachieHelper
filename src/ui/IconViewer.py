@@ -32,7 +32,7 @@ class Icon(QWidget):
         super().__init__()
         self.img = img
         bg = Image.new("RGBA", ref.size, (255, 255, 255, 0))
-        self.ref = ImageChops.blend(ref, bg, 0.5).resize(preset.tex2d).toqpixmap()
+        self.ref = ImageChops.blend(ref, bg, 0.5).resize(preset.tex2d.tuple()).toqpixmap()
         self.preset = preset
         self.center = center
         self.set_last = callback
@@ -104,7 +104,7 @@ class Icon(QWidget):
         x, y, w, h = self.texrect()
         if self.display:
             sub = self.img.rotate(self.preset.angle, center=(x + w / 2, y + h / 2))
-            sub = sub.crop((x, y, x + w, y + h)).resize(self.preset.tex2d)
+            sub = sub.crop((x, y, x + w, y + h)).resize(self.preset.tex2d.tuple())
             painter.drawPixmap(0, 0, sub.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         painter.drawRect(1, 1, *(self.preset.tex2d - 1))
 

@@ -55,6 +55,8 @@ class TachiePuller(QDialog):
         if (face := f"paintingface/{name_stem}") not in deps:
             deps += [face]
         icons = [f"{icon}/{name_stem}" for icon in ["shipyardicon", "squareicon", "herohrzicon"]]
+        if len(AdbHelper.devices()) == []:
+            AdbHelper.connect()
         AdbHelper.pull(f"painting/{name}", *deps, *icons, target=name)
         if os.path.exists(meta := f"{name}/painting/{name}"):
             os.rename(meta, f"{name}/{name}")

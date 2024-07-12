@@ -257,7 +257,7 @@ class Layer:
 
     def crop(self, img: Image.Image, resize: bool = True) -> Image.Image:
         if resize:
-            return img.crop(self.box()).resize(self.spriteSize.round(), Image.Resampling.BICUBIC)
+            return img.crop(self.box()).resize(self.spriteSize.round().tuple(), Image.Resampling.BICUBIC)
         else:
             return img.crop(self.box(self.meshSize))
 
@@ -321,6 +321,6 @@ class IconLayer(BaseLayer):
         name, _ = os.path.splitext(os.path.basename(path))
         if name not in ["shipyardicon", "squareicon", "herohrzicon"]:
             return False
-        self.repl = open_and_transpose(path).resize(preset.tex2d, Image.Resampling.BICUBIC)
+        self.repl = open_and_transpose(path).resize(preset.tex2d.tuple(), Image.Resampling.BICUBIC)
         logger.attr("Icon", f"'{QDir.toNativeSeparators(path)}'")
         return True
