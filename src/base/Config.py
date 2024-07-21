@@ -21,7 +21,7 @@ class Config:
                 cls._settings.setValue(k, v)
 
     @classmethod
-    def get(cls, group: str, key: str) -> str:
+    def get(cls, group: str, key: str):
         match value := cls._settings.value(f"{group}/{key}"):
             case "true":
                 return True

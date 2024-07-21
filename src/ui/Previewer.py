@@ -48,10 +48,7 @@ class Previewer(QWidget):
         self.refresh()
 
     def refresh(self):
-        if self.layer.repl is None:
-            img = self.layer.decode().copy()
-        else:
-            img = self.layer.repl.copy()
+        img = self.layer.decode().copy() if self.layer.repl is None else self.layer.repl.copy()
         img.thumbnail((512, 512))
         self.lImage.setPixmap(img.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         self.update()

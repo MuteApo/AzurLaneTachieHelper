@@ -169,10 +169,10 @@ class Layer:
     @property
     def anchorPosition(self) -> Vector2:
         if self.parent is None:
-            return Vector2.zero()
+            return Vector2(0)
         anchorMin = self.parent.size * self.anchorMin
         anchorMax = self.parent.size * self.anchorMax
-        return self.parent.posMin + anchorMin * (Vector2.one() - self.pivot) + anchorMax * self.pivot
+        return self.parent.posMin + anchorMin * (1 - self.pivot) + anchorMax * self.pivot
 
     @property
     def pivotPosition(self) -> Vector2:
