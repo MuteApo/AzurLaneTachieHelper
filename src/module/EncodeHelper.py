@@ -11,6 +11,12 @@ from ..base import FaceLayer, IconLayer, Layer
 from ..utility import check_and_save
 
 
+def set_sprite(sprite: Sprite, img: Image.Image):
+    sprite.m_Rect.width, sprite.m_Rect.height = img.size
+    sprite.m_RD.textureRect.width, sprite.m_RD.textureRect.height = img.size
+    sprite.save()
+
+
 def set_tex2d(tex2d: Texture2D, img: Image.Image):
     tex2d.m_Width, tex2d.m_Height = img.size
     tex2d.set_image(img.transpose(Image.Transpose.FLIP_TOP_BOTTOM), TextureFormat.RGBA32)
@@ -54,12 +60,9 @@ def replace_meta(dir: str, layer: Layer, prefered: Layer) -> str:
     cab = list(env.cabs.values())[0]
     face_rt: RectTransform = cab.objects[layer.pathId]
     data = face_rt.read_typetree()
-    w, h = prefered.sizeDelta
-    data["m_SizeDelta"] = {"x": w, "y": h}
-    px, py = prefered.pivot
-    data["m_Pivot"] = {"x": px, "y": py}
-    x, y = prefered.pivotPosition - layer.anchorPosition + layer.meta.bias
-    data["m_AnchoredPosition"] = {"x": x, "y": y}
+    data["m_SizeDelta"] = prefered.sizeDelta.dict()
+    data["m_Pivot"] = prefered.pivot.dict()
+    data["m_AnchoredPosition"] = (prefered.pivotPosition - layer.anchorPosition).dict()
     face_rt.save_typetree(data)
 
     path = os.path.join(dir, "output", "painting", os.path.basename(layer.meta.path))
@@ -81,6 +84,7 @@ def replace_face(dir: str, faces: dict[str, FaceLayer]) -> list[str]:
     sprites: list[Sprite] = [x.read() for x in env.objects if x.type == ClassIDType.Sprite]
     for sprite in tqdm(filter(lambda x: x.name in faces, sprites), "Encode paintingface"):
         img = faces[sprite.name].repl
+        set_sprite(sprite, img)
         set_tex2d(sprite.m_RD.texture.read(), img)
 
     path = os.path.join(dir, "output", "paintingface", base)

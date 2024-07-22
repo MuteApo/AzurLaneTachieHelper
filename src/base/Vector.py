@@ -125,3 +125,6 @@ class Vector2(Generic[T]):
 
     def tuple(self) -> tuple[T, T]:
         return self.X, self.Y
+
+    def dict(self) -> dict[str, T]:
+        return {"x": self.X, "y": self.Y}

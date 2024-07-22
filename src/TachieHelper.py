@@ -176,7 +176,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
     def onToggleAdvMode(self, value: bool):
         Config.set("system", "AdvancedMode", value)
-        if hasattr(self, "num_faces"):
+        if self.tFace.table.rowCount() > 0:
             for i in range(self.tFace.num):
                 if value:
                     flag = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable

@@ -15,12 +15,16 @@ def default(v, d):
 
 
 class AdbHelper:
+    _verbose = False
+    _connected = False
     _ports = [5555, 7555, 16384, 59865, 62001]
     _to_pkg = {"CN": "com.bilibili.azurlane", "JP": "com.YoStarJP.AzurLane", "EN": "com.YoStarEN.AzurLane"}
 
     @classmethod
     def adb(cls, *args):
         adb = Config.get("system", "AdbPath")
+        if cls._verbose:
+            logger.attr("AdbHelper", " ".join(args))
         return subprocess.check_output([adb, *args]).decode("utf-8")
 
     @classmethod
@@ -33,14 +37,18 @@ class AdbHelper:
 
     @classmethod
     def connect(cls, addr: Optional[str] = None, port: Optional[int] = None):
-        logger.info("Initializing adb")
         cls.kill_server()
         cls.start_server()
         addr = default(addr, Config.get("system", "DeviceAddress"))
         port = default(port, Config.get("system", "DevicePort"))
         if port == "auto":
             port = cls.detect()
-        cls.adb("connect", f"{addr}:{port}")
+        try:
+            cls.adb("connect", f"{addr}:{port}")
+        except Exception as e:
+            logger.error(e)
+        else:
+            cls._connected = True
 
     @classmethod
     def devices(cls):
@@ -48,6 +56,10 @@ class AdbHelper:
 
     @classmethod
     def pull(cls, *files: list[str], target: str = ".", addr: Optional[str] = None, port: Optional[int] = None):
+        if not cls._connected:
+            cls.connect()
+        cls.devices()
+        
         os.makedirs(target, exist_ok=True)
         pkg = cls._to_pkg[Config.get("system", "Server").upper()]
         for file in files:
@@ -60,10 +72,9 @@ class AdbHelper:
             port = default(port, Config.get("system", "DevicePort"))
 
             try:
-                msg = cls.adb("-s", f"{addr}:{port}", "pull", path, os.path.join(target, folder))
+                cls.adb("-s", f"{addr}:{port}", "pull", path, os.path.join(target, folder))
             except:
-                logger.error(msg)
-                logger.warn(f'Failed on pulling \'{file}\', maybe in apk')
+                logger.warn(f'Failed on \'{file}\', maybe in apk')
             else:
                 logger.info(f"Pulled '{path}'")
 

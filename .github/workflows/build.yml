@@ -1,9 +1,9 @@
 on:
   push:
-    branches:
-        - "dev"
-    # tags:
-    #   - "*.*.*"
+    # branches:
+    #     - "dev"
+    tags:
+      - "*.*.*"
 
   workflow_dispatch:
 
@@ -42,9 +42,9 @@ jobs:
           mingw64: true
           enable-plugins: pyside6
           nofollow-import-to: tkinter
-          windows-icon-from-ico: ico/cheshire.ico
-          include-data-dir: ${{steps.prepare.outputs.tpk}}=UnityPy/resources/
-          include-data-files: i18n/*.qm=i18n/
+          windows-icon-from-ico: ico\cheshire.ico
+          include-data-dir: ${{steps.prepare.outputs.tpk}}=UnityPy\resources
+          include-data-files: i18n\*.qm=i18n
           output-file: AzurLaneTachieHelper
     
       - name: Pack Files

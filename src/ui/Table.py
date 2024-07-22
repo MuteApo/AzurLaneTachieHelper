@@ -89,7 +89,6 @@ class Paintingface(QVBoxLayout):
         self.num = len(faces)
         self.table.setRowCount(self.num)
         self.adv_mode = adv_mode
-        self.check_box: dict[str, QTableWidgetItem] = {}
         self.is_clip: dict[str, bool] = {}
         self.idx_map: dict[str, int] = {}
         self.table.itemChanged.connect(self.onItemChanged)
@@ -99,10 +98,12 @@ class Paintingface(QVBoxLayout):
             self.idx_map[k] = i
             item = QTableWidgetItem("")
             item.setCheckState(Qt.CheckState.Checked)
-            item.setFlags(~Qt.ItemFlag.ItemIsEnabled)
+            if self.adv_mode:
+                item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
+            else:
+                item.setFlags(~Qt.ItemFlag.ItemIsEnabled)
             self.table.setItem(i, 0, item)
             self.table.setItem(i, 1, QTableWidgetItem(f"paintingface/{k}"))
-            self.check_box[k] = item
             self.is_clip[i] = True
         self.table.itemChanged.connect(self.onItemChanged)
 
@@ -134,10 +135,6 @@ class Paintingface(QVBoxLayout):
             task.start()
             tasks += [task]
             set_bold(self.table.item(self.idx_map[name], 1))
-            check_box = self.check_box[name]
-            if self.adv_mode:
-                check_box.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
-            check_box.setCheckState(Qt.CheckState.Checked)
 
         [_.join() for _ in tasks]
 

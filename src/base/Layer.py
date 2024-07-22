@@ -35,7 +35,20 @@ class Layer:
         return f"Layer@{self.depth} {self.name}"
 
     def __str__(self) -> str:
-        attrs = ["texture2D", "mesh", "meshSize", "rawSpriteSize", "sizeDelta"]
+        attrs = [
+            "texture2D",
+            "mesh",
+            "meshSize",
+            "rawSpriteSize",
+            "sizeDelta",
+            "localRotation",
+            "localPosition",
+            "localScale",
+            "anchorMin",
+            "anchorMax",
+            "anchoredPosition",
+            "pivot",
+        ]
         items = [""]
         for x in attrs:
             if hasattr(self, x):
@@ -275,6 +288,7 @@ class BaseLayer:
         self.orig = tex2d.image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         self.name = tex2d.name
         self.path = path
+        self.full: Image.Image = None
         self.repl: Image.Image = None
 
     def decode(self):
@@ -295,7 +309,8 @@ class FaceLayer(BaseLayer):
 
     def update_clip(self, is_clip: bool):
         self.is_clip = is_clip
-        self.repl = self.crop_face()
+        if self.full is not None:
+            self.repl = self.crop_face()
 
     def crop_face(self):
         img = self.full
