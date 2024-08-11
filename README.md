@@ -2,13 +2,12 @@
 
 #### Features
 
-- Unpack/pack painting
-- Merge/split paintingface
-- Clip shipyardicon/herohrzicon/squareicon
-- Support multiple layers
-- Dump as photoshop document
+- Decode painting from texture atlas and back
+- Paste paintingface onto painting and back
+- Crop shipyardicon/herohrzicon/squareicon
+- Dump as photoshop document, i.e. PSD
 
-#### Building Dependencies
+#### Installation
 
 - Python 3.10 with following libraries:
   - NumPy
@@ -17,13 +16,5 @@
   - UnityPy
 - Or with given env spec:
   ```shell
-  # Conda
-  conda env create -f environment.yml
-
-  # Pypi
-  pip install -r requirements.txt
-  ```
-- Build app (C++ compiler required, eg. msvc, gcc, clang, etc.)
-  ```shell
-  python build.py
+  pip install -r requirements.txt --ignore-requires-python
   ```

@@ -1,3 +1,4 @@
+import ctypes
 import locale
 import os
 import sys
@@ -14,7 +15,13 @@ if __name__ == "__main__":
     app.setWindowIcon(QIcon("ico/cheshire.ico"))
     qdarktheme.setup_theme("auto")
 
-    path = os.path.join("i18n", locale.getdefaultlocale()[0] + ".qm")
+    if sys.platform == "win32":
+        code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+        lang = locale.windows_locale[code]
+    else:
+        lang = locale.getlocale()[0]
+
+    path = os.path.join("i18n", f"{lang}.qm")
     if os.path.exists(path):
         trans = QTranslator(app)
         trans.load(path)

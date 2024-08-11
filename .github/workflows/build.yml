@@ -1,9 +1,9 @@
 on:
   push:
-    # branches:
-    #     - "dev"
-    tags:
-      - "*.*.*"
+    branches:
+        - "dev"
+    # tags:
+    #   - "*.*.*"
 
   workflow_dispatch:
 
@@ -18,14 +18,14 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.12"
           architecture: "x64"
           cache: "pip"
 
       - name: Install Dependencies
         id: prepare
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements.txt --ignore-requires-python
           git clone https://github.com/mdboom/pytoshop.git
           cd pytoshop
           python setup.py install
@@ -43,8 +43,8 @@ jobs:
           enable-plugins: pyside6
           nofollow-import-to: tkinter
           windows-icon-from-ico: ico\cheshire.ico
-          include-data-dir: ${{steps.prepare.outputs.tpk}}=UnityPy\resources
-          include-data-files: i18n\*.qm=i18n
+          include-data-dir: ${{steps.prepare.outputs.tpk}}=UnityPy\resources\
+          include-data-files: i18n\*.qm=i18n\
           output-file: AzurLaneTachieHelper
     
       - name: Pack Files

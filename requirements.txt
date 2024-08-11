@@ -1,9 +1,10 @@
 numpy
 pillow
-pyqtdarktheme
+pyqtdarktheme @ git+https://github.com/5yutan5/PyQtDarkTheme.git
 pyside6
 pytoshop
 rich
+setuptools
 six
 tqdm
 typing_extensions
