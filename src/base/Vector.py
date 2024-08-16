@@ -1,4 +1,4 @@
-from math import ceil, cos, floor, radians, sin, sqrt
+from math import ceil, cos, floor, sin, sqrt
 
 from typing_extensions import Generic, TypeVar
 
@@ -110,15 +110,7 @@ class Vector2(Generic[T]):
     def prod(self) -> float:
         return self.X * self.Y
 
-    def norm(self) -> float:
-        return (self**2).sqrt().sum()
-
-    def cross(self, other) -> float:
-        other = Vector2(other)
-        return self.X * other.Y - other.Y * self.X
-
-    def rotate(self, theta: float):
-        rad = radians(theta)
+    def rotate(self, rad: float):
         x = self.X * cos(rad) - self.Y * sin(rad)
         y = self.X * sin(rad) + self.Y * cos(rad)
         return Vector2[float](x, y)

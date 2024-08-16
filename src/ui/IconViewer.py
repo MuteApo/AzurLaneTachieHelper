@@ -1,24 +1,9 @@
-import math
 from typing import Callable
 
 from PIL import Image, ImageChops
-from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import (
-    QKeyEvent,
-    QMouseEvent,
-    QPainter,
-    QPaintEvent,
-    QPixmap,
-    QWheelEvent,
-)
-from PySide6.QtWidgets import (
-    QDialog,
-    QHBoxLayout,
-    QPushButton,
-    QSizePolicy,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QWheelEvent
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 from typing_extensions import Self
 
 from ..base import IconLayer, IconPreset, Vector2
@@ -58,21 +43,17 @@ class Icon(QWidget):
         if not self.pressed:
             return
         current_pos = event.globalPos()
-        if self.rotate:
-            w, h = self.preset.tex2d
-            center = QPoint(w / 2, h / 2)
-            cur = self.mapFromGlobal(current_pos) - center
-            prev = self.mapFromGlobal(self.prev_pos) - center
-            self.apply(angle=self.calc_angle(cur, prev))
-        else:
-            diff = current_pos - self.prev_pos
-            self.apply(pivot=Vector2(diff.x(), -diff.y()))
+        diff = current_pos - self.prev_pos
+        self.apply(pivot=Vector2(diff.x(), -diff.y()))
         self.prev_pos = current_pos
         self.set_last(self)
 
     def wheelEvent(self, event: QWheelEvent):
         diff = event.angleDelta()
-        self.apply(scale=diff.y() / 24000)
+        if self.rotate:
+            self.apply(angle=-diff.y() / 600)
+        else:
+            self.apply(scale=diff.y() / 24000)
         self.set_last(self)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
@@ -108,18 +89,13 @@ class Icon(QWidget):
             painter.drawPixmap(0, 0, sub.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         painter.drawRect(1, 1, *(self.preset.tex2d - 1))
 
-    def calc_angle(self, u: QPoint, v: QPoint) -> float:
-        a = Vector2(u.x(), -u.y())
-        b = Vector2(v.x(), -v.y())
-        return math.degrees(math.asin(a.cross(b) / a.norm() / b.norm()))
-
     def texrect(self) -> tuple[float, float, float, float]:
         w, h = self.preset.tex2d / self.preset.scale
         x, y = self.center - Vector2(w, h) * self.preset.pivot
         return x, y, w, h
 
     def apply(self, pivot: Vector2 = Vector2(0), scale: float = 0, angle: float = 0):
-        self.preset.apply(pivot.rotate(self.preset.angle) / self.preset.tex2d, scale, angle)
+        self.preset.apply(pivot / self.preset.tex2d, scale, angle)
         self.update()
 
 

@@ -1,14 +1,7 @@
 import os
 
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import (
-    QComboBox,
-    QCompleter,
-    QDialog,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-)
+from PySide6.QtWidgets import QComboBox, QCompleter, QDialog, QHBoxLayout, QLabel, QPushButton
 
 from ..logger import logger
 from ..module import AdbHelper
@@ -22,7 +15,8 @@ class TachiePuller(QDialog):
         self.resize(300, 50)
 
         self.data = data
-        self.names = sorted([k.removeprefix("painting/") for k in data.keys() if not k.endswith("_tex")])
+        self.metas = sorted([k.removeprefix("painting/") for k in data.keys() if not k.endswith("_tex")])
+        self.names = list(filter(lambda x: not x.endswith("_n") and not x.endswith("_hx"), self.metas))
 
         self.label = QLabel("painting/")
 
@@ -50,11 +44,12 @@ class TachiePuller(QDialog):
         logger.hr("Pull Tachie", 1)
         name = self.combo_box.currentText()
         logger.attr("Tachie", f"'{name}'")
-        deps = self.data[f"painting/{name}"]
-        name_stem = name.removesuffix("_n")
-        if (face := f"paintingface/{name_stem}") not in deps:
-            deps += [face]
-        icons = [f"{icon}/{name_stem}" for icon in ["shipyardicon", "squareicon", "herohrzicon"]]
+        deps = self.data.get(f"painting/{name}", []) + self.data.get(f"painting/{name}_n", [])
+        if f"{name}_n" in self.metas:
+            deps += [f"painting/{name}_n"]
+        if f"paintingface/{name}" not in deps:
+            deps += [f"paintingface/{name}"]
+        icons = [f"{icon}/{name}" for icon in ["shipyardicon", "squareicon", "herohrzicon"]]
         if len(AdbHelper.devices()) == []:
             AdbHelper.connect()
         AdbHelper.pull(f"painting/{name}", *deps, *icons, target=name)

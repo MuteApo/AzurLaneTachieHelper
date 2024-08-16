@@ -2,14 +2,7 @@ import os
 import threading
 
 from PySide6.QtCore import QDir, Qt
-from PySide6.QtWidgets import (
-    QHeaderView,
-    QLabel,
-    QSizePolicy,
-    QTableWidget,
-    QTableWidgetItem,
-    QVBoxLayout,
-)
+from PySide6.QtWidgets import QHeaderView, QLabel, QSizePolicy, QTableWidget, QTableWidgetItem, QVBoxLayout
 
 from ..base import FaceLayer, IconLayer, IconPreset, Layer
 from ..logger import logger

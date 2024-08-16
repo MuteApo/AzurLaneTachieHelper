@@ -39,9 +39,9 @@ class IconPreset:
 
     def from_repr(self, repr: str) -> Self:
         num = r"-?\d+\.\d+|-?\d+"
-        self.angle = eval(re.search(f"angle=({num})", repr).group(1))
-        self.scale = eval(re.search(f"scale=({num})", repr).group(1))
-        pivot = re.search(f"pivot=\(({num}),\s*({num})\)", repr)
+        self.angle = eval(re.search(rf"angle=({num})", repr).group(1))
+        self.scale = eval(re.search(rf"scale=({num})", repr).group(1))
+        pivot = re.search(rf"pivot=\(({num}),\s*({num})\)", repr)
         self.pivot = Vector2(eval(pivot.group(1)), eval(pivot.group(2)))
         return self
 

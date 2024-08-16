@@ -3,7 +3,7 @@ import struct
 
 import UnityPy
 from PIL import Image
-from tqdm import tqdm
+from rich.progress import Progress
 from UnityPy.classes import Mesh, RectTransform, Sprite, Texture2D
 from UnityPy.enums import ClassIDType, TextureFormat
 
@@ -82,10 +82,13 @@ def replace_face(dir: str, faces: dict[str, FaceLayer]) -> list[str]:
     env = UnityPy.load(path)
 
     sprites: list[Sprite] = [x.read() for x in env.objects if x.type == ClassIDType.Sprite]
-    for sprite in tqdm(filter(lambda x: x.name in faces, sprites), "Encode paintingface"):
-        img = faces[sprite.name].repl
-        set_sprite(sprite, img)
-        set_tex2d(sprite.m_RD.texture.read(), img)
+    with Progress() as progress:
+        task = progress.add_task("Encode paintingface", total=len(sprites))
+        for sprite in sprites:
+            img = faces[sprite.name].repl
+            set_sprite(sprite, img)
+            set_tex2d(sprite.m_RD.texture.read(), img)
+            progress.update(task, advance=1)
 
     path = os.path.join(dir, "output", "paintingface", base)
     check_and_save(path, env.file.save("original"))
@@ -114,7 +117,11 @@ class EncodeHelper:
 
         valid = [v for v in layers.values() if v.repl is not None]
         if valid != []:
-            result += [replace_painting(dir, x) for x in tqdm(valid, "Encode painting")]
+            with Progress() as progress:
+                task = progress.add_task("Encode painting", total=len(valid))
+                for x in valid:
+                    result += [replace_painting(dir, x)]
+                    progress.update(task, advance=1)
 
         valid = {k: v for k, v in faces.items() if v.repl is not None}
         if valid != {}:
@@ -122,6 +129,10 @@ class EncodeHelper:
 
         valid = {k: v for k, v in icons.items() if v.repl is not None and os.path.exists(v.path)}
         if valid != {}:
-            result += [replace_icon(dir, k, v) for k, v in tqdm(valid.items(), "Encode icons")]
+            with Progress() as progress:
+                task = progress.add_task("Encode icons", total=len(valid))
+                for k, v in valid.items():
+                    result += [replace_icon(dir, k, v)]
+                    progress.update(task, advance=1)
 
         return result

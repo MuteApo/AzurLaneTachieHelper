@@ -5,7 +5,7 @@ from PIL import Image, ImageOps
 from pytoshop import PsdFile
 from pytoshop.enums import ColorMode
 from pytoshop.user import nested_layers
-from tqdm import tqdm
+from rich.progress import Progress
 
 from ..base import FaceLayer, Layer, Vector2
 
@@ -71,16 +71,23 @@ class DecodeHelper:
         """
 
         face = []
-        for k, v in tqdm(sorted(faces.items()), "Decode paintingface"):
-            tex = v.decode().transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-            face += [ps_layer(f"face #{k}", layers["face"].posBiased, layers["face"].meta.size, tex, False)]
+        with Progress() as progress:
+            task = progress.add_task("Decode paintingface", total=len(faces))
+            for k, v in sorted(faces.items()):
+                tex = v.decode().transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+                face += [ps_layer(f"face #{k}", layers["face"].posBiased, layers["face"].meta.size, tex, False)]
+                progress.update(task, advance=1)
 
         painting = []
-        for k, v in tqdm(layers.items(), "Decode painting"):
-            if k == "face":
-                painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
-            else:
-                tex = ImageOps.contain(v.decode().transpose(Image.Transpose.FLIP_TOP_BOTTOM), v.sizeDelta.round().tuple())
-                painting += [ps_layer(f"{v.name} [{v.texture2D.name}]", v.posBiased, v.meta.size, tex, True)]
+        with Progress() as progress:
+            task = progress.add_task("Decode painting", total=len(layers))
+            for k, v in sorted(layers.items()):
+                if k == "face":
+                    painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
+                else:
+                    tex = v.decode().transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+                    tex = ImageOps.contain(tex, v.sizeDelta.round().tuple())
+                    painting += [ps_layer(f"{v.name} [{v.texture2D.name}]", v.posBiased, v.meta.size, tex, True)]
+                progress.update(task, advance=1)
 
         return nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)

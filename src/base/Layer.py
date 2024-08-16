@@ -35,20 +35,7 @@ class Layer:
         return f"Layer@{self.depth} {self.name}"
 
     def __str__(self) -> str:
-        attrs = [
-            "texture2D",
-            "mesh",
-            "meshSize",
-            "rawSpriteSize",
-            "sizeDelta",
-            "localRotation",
-            "localPosition",
-            "localScale",
-            "anchorMin",
-            "anchorMax",
-            "anchoredPosition",
-            "pivot",
-        ]
+        attrs = ["texture2D", "mesh", "meshSize", "rawSpriteSize", "sizeDelta"]
         items = [""]
         for x in attrs:
             if hasattr(self, x):
