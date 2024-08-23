@@ -27,7 +27,7 @@ class Painting(QVBoxLayout):
         self.table.setColumnCount(1)
         self.table.setHorizontalHeaderLabels([self.tr("Layers")])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.table.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.MinimumExpanding)
+        self.table.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         self.addWidget(label)
         self.addWidget(self.table)
@@ -36,6 +36,7 @@ class Painting(QVBoxLayout):
         self.deps = deps
         self.layers = layers
         self.num = len(self.layers) - 1
+        self.table.setFixedHeight((self.num + 1) * 30)
         self.table.setRowCount(self.num)
         self.index = {}
         for i, k in enumerate([x for x in layers.keys() if x != "face"]):
@@ -80,6 +81,7 @@ class Paintingface(QVBoxLayout):
         self.faces = faces
         self.layer = face_layer
         self.num = len(faces)
+        self.table.setMinimumHeight(min(self.num + 1, 9) * 30)
         self.table.setRowCount(self.num)
         self.adv_mode = adv_mode
         self.is_clip: dict[str, bool] = {}
@@ -146,7 +148,8 @@ class Icon(QVBoxLayout):
         self.table.setColumnCount(1)
         self.table.setHorizontalHeaderLabels([self.tr("Layers")])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.table.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.MinimumExpanding)
+        self.table.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.table.setFixedHeight(120)
 
         self.addWidget(label)
         self.addWidget(self.table)

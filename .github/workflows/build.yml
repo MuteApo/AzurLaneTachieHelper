@@ -1,9 +1,9 @@
 on:
   push:
-    branches:
-        - "dev"
-    # tags:
-    #   - "*.*.*"
+    # branches:
+    #     - "dev"
+    tags:
+      - "*.*.*"
 
   workflow_dispatch:
 
@@ -39,7 +39,7 @@ jobs:
           script-name: app.py
           standalone: true
           onefile: false
-          mingw64: true
+          mingw64: false
           enable-plugins: pyside6
           nofollow-import-to: tkinter
           windows-icon-from-ico: ico\cheshire.ico

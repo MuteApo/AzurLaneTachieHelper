@@ -7,7 +7,7 @@ from PySide6.QtGui import QAction, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from ..base import FaceLayer, IconLayer, Layer
-
+from ..utility import exists
 
 class Previewer(QWidget):
     def __init__(self, aEncodeTexture: QAction):
@@ -28,12 +28,8 @@ class Previewer(QWidget):
 
         self.setLayout(layout)
 
-    def set_callback(
-        self, load_painting: Callable[[str], bool], load_face: Callable[[str], bool], load_icon: Callable[[str], bool]
-    ):
-        self.load_painting = load_painting
-        self.load_face = load_face
-        self.load_icon = load_icon
+    def set_callback(self, *cbs: list[Callable[[str], bool]]):
+        self.load_painting, self.load_face, self.load_icon = cbs
 
     def display_painting(self, layer: Layer):
         self.layer = layer
@@ -48,7 +44,7 @@ class Previewer(QWidget):
         self.refresh()
 
     def refresh(self):
-        img = self.layer.decode().copy() if self.layer.repl is None else self.layer.repl.copy()
+        img = self.layer.repl.copy() if exists(self.layer.repl) else self.layer.decode().copy()
         img.thumbnail((512, 512))
         self.lImage.setPixmap(img.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         self.update()

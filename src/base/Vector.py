@@ -1,6 +1,5 @@
 from math import ceil, cos, floor, sin, sqrt
-
-from typing_extensions import Generic, TypeVar
+from typing import Generic, TypeVar
 
 T = TypeVar("T", float, int)
 

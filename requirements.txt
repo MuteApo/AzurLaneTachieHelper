@@ -6,6 +6,4 @@ pytoshop
 rich
 setuptools
 six
-tqdm
-typing_extensions
 unitypy

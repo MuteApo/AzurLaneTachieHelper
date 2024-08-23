@@ -1,18 +1,9 @@
 import os
-from typing import Optional
+from typing import Optional, Self
 
-from PIL import Image
+from PIL import Image, ImageOps
 from PySide6.QtCore import QDir
-from typing_extensions import Self
-from UnityPy.classes import (
-    GameObject,
-    Mesh,
-    MonoBehaviour,
-    PPtr,
-    RectTransform,
-    Sprite,
-    Texture2D,
-)
+from UnityPy.classes import GameObject, Mesh, MonoBehaviour, PPtr, RectTransform, Sprite, Texture2D
 from UnityPy.enums import ClassIDType
 
 from ..logger import logger
@@ -35,7 +26,7 @@ class Layer:
         return f"Layer@{self.depth} {self.name}"
 
     def __str__(self) -> str:
-        attrs = ["texture2D", "mesh", "meshSize", "rawSpriteSize", "sizeDelta"]
+        attrs = ["texture2D", "mesh", "sizeDelta"]
         items = [""]
         for x in attrs:
             if hasattr(self, x):
@@ -118,21 +109,6 @@ class Layer:
             return None
         x = getattr(self.monoBehaviour, "mRawSpriteSize")
         return Vector2(x.x, x.y)
-
-    @property
-    def localRotation(self) -> Vector2:
-        val = self.rt.m_LocalRotation
-        return Vector2(val.X, val.Y)
-
-    @property
-    def localPosition(self) -> Vector2:
-        val = self.rt.m_LocalPosition
-        return Vector2(val.X, val.Y)
-
-    @property
-    def localScale(self) -> Vector2:
-        val = self.rt.m_LocalScale
-        return Vector2(val.X, val.Y)
 
     @property
     def anchorMin(self) -> Vector2:
@@ -243,12 +219,18 @@ class Layer:
         expands = [x for x in layers.values() if self in x and x.name != "face"]
         return sorted(expands, key=lambda v: v.sizeDelta.prod())[0]
 
-    def decode(self) -> Image.Image:
+    def decode(self, transpose: bool = False, resize: bool = False) -> Image.Image:
         if not hasattr(self, "_dec_tex"):
             size = self.spriteSize.round().tuple()
             dec = self.tex.transform(size, Image.MESH, self.buffer, Image.Resampling.BICUBIC)
             setattr(self, "_dec_tex", dec)
-        return getattr(self, "_dec_tex")
+        else:
+            dec: Image.Image = getattr(self, "_dec_tex")
+        if transpose:
+            dec = dec.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        if resize:
+            dec = ImageOps.contain(dec, self.sizeDelta.round().tuple())
+        return dec
 
     def box(self, size: Optional[Vector2] = None) -> tuple[float, float, float, float]:
         x, y = self.posBiased
@@ -278,8 +260,11 @@ class BaseLayer:
         self.full: Image.Image = None
         self.repl: Image.Image = None
 
-    def decode(self):
-        return self.orig
+    def decode(self, transpose: bool = False):
+        dec = self.orig
+        if transpose:
+            dec = dec.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        return dec
 
 
 class FaceLayer(BaseLayer):

@@ -43,7 +43,7 @@ class TachiePuller(QDialog):
     def pull(self):
         logger.hr("Pull Tachie", 1)
         name = self.combo_box.currentText()
-        logger.attr("Tachie", f"'{name}'")
+        logger.attr("Metadata", f"'{name}'")
         deps = self.data.get(f"painting/{name}", []) + self.data.get(f"painting/{name}_n", [])
         if f"{name}_n" in self.metas:
             deps += [f"painting/{name}_n"]
@@ -55,4 +55,6 @@ class TachiePuller(QDialog):
         AdbHelper.pull(f"painting/{name}", *deps, *icons, target=name)
         if os.path.exists(meta := f"{name}/painting/{name}"):
             os.rename(meta, f"{name}/{name}")
+        if os.path.exists(meta := f"{name}/painting/{name}_n"):
+            os.rename(meta, f"{name}/{name}_n")
         self.accept()

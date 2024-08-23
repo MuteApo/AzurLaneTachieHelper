@@ -35,7 +35,7 @@ class AssetManager:
         psd = DecodeHelper.exec(self.layers, faces)
         path = os.path.join(dir, f"{self.meta.name}.psd")
         if os.path.exists(path):
-            old = [x for x in os.listdir(dir) if re.match(f"{self.meta.name}\.bak_\d+\.psd", x)]
+            old = [x for x in os.listdir(dir) if re.match(rf"{self.meta.name}\.bak_\d+\.psd", x)]
             num = sorted([eval(re.search(r"bak_(\d+).psd", x).group(1)) for x in old])
             last = 1 if old == [] else num[-1] + 1
             os.rename(path, os.path.join(dir, f"{self.meta.name}.bak_{last}.psd"))
@@ -47,7 +47,7 @@ class AssetManager:
         return EncodeHelper.exec(dir, self.layers, self.faces, self.icons)
 
     def dependency(self, file: str) -> list[str]:
-        assert os.path.exists("dependencies"), f"AssetBundles/dependencies not found"
+        assert os.path.exists("dependencies"), 'file "dependencies" not found'
         env = UnityPy.load("dependencies")
         mb: MonoBehaviour = [x.read() for x in env.objects if x.type == ClassIDType.MonoBehaviour][0]
         idx = mb.m_Keys.index(f"painting/{os.path.basename(file)}")

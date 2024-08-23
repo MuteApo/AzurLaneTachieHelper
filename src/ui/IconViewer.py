@@ -1,10 +1,9 @@
-from typing import Callable
+from typing import Callable, Self
 
 from PIL import Image, ImageChops
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QWheelEvent
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QSizePolicy, QVBoxLayout, QWidget
-from typing_extensions import Self
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from ..base import IconLayer, IconPreset, Vector2
 from ..logger import logger
@@ -15,6 +14,9 @@ class Icon(QWidget):
         self, img: Image.Image, ref: Image.Image, preset: IconPreset, center: Vector2, callback: Callable[[Self], None]
     ):
         super().__init__()
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.setFixedSize(*preset.tex2d.tuple())
+
         self.img = img
         bg = Image.new("RGBA", ref.size, (255, 255, 255, 0))
         self.ref = ImageChops.blend(ref, bg, 0.5).resize(preset.tex2d.tuple()).toqpixmap()
@@ -25,8 +27,6 @@ class Icon(QWidget):
         self.pressed = False
         self.display = True
         self.rotate = False
-
-        self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -104,32 +104,40 @@ class IconViewer(QDialog):
         super().__init__()
         self.setWindowTitle(self.tr("AzurLane Tachie Helper"))
         self.setWindowIcon(QPixmap("ico/cheshire.ico"))
-        self.resize(700, 350)
+        self.resize(600, 300)
 
         self.presets = presets
         self.icons: dict[str, Icon] = {}
         for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
             if kind in refs:
-                ref = refs[kind].decode().transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+                ref = refs[kind].decode(transpose=True)
             else:
                 ref = Image.new("RGBA", self.presets[kind].tex2d.tuple())
             self.icons[kind] = Icon(img, ref, self.presets[kind], center, self.setLast)
         self.last: Icon = None
 
+        self.confirm = QPushButton(self.tr("Clip"), clicked=self.onClickClip)
+
+        translation = self.tr("Translation: WASD or drag muouse with left button")
+        scale = self.tr("Scale: scroll mouse wheel")
+        rotation = self.tr("Rotation: Hold Ctrl and scroll mouse wheel")
+        self.hint = QLabel("; ".join([translation, scale, rotation]))
+
         self._init_ui()
 
     def _init_ui(self):
-        layout1 = QHBoxLayout()
-        layout1.addWidget(self.icons["squareicon"], 5)
-        layout1.addWidget(QPushButton(self.tr("Clip"), self, clicked=self.onClickClip), 10)
-
-        layout2 = QVBoxLayout()
-        layout2.addWidget(self.icons["herohrzicon"])
+        layout1 = QVBoxLayout()
+        layout1.addWidget(self.icons["herohrzicon"])
+        layout1.addWidget(self.icons["squareicon"])
+        
+        layout2 = QHBoxLayout()
+        layout2.addWidget(self.icons["shipyardicon"])
         layout2.addLayout(layout1)
 
-        layout = QHBoxLayout()
-        layout.addWidget(self.icons["shipyardicon"], 5)
-        layout.addLayout(layout2, 10)
+        layout = QVBoxLayout()
+        layout.addWidget(self.hint)
+        layout.addLayout(layout2)
+        layout.addWidget(self.confirm)
 
         self.setLayout(layout)
 

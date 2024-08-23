@@ -71,7 +71,7 @@ def replace_meta(dir: str, layer: Layer, prefered: Layer) -> str:
     return [path]
 
 
-def replace_face(dir: str, faces: dict[str, FaceLayer]) -> list[str]:
+def replace_face(dir: str, faces: dict[str, FaceLayer], progress: Progress) -> list[str]:
     first = list(faces.values())[0]
     layer = first.layer
     prefered = first.prefered
@@ -82,13 +82,12 @@ def replace_face(dir: str, faces: dict[str, FaceLayer]) -> list[str]:
     env = UnityPy.load(path)
 
     sprites: list[Sprite] = [x.read() for x in env.objects if x.type == ClassIDType.Sprite]
-    with Progress() as progress:
-        task = progress.add_task("Encode paintingface", total=len(sprites))
-        for sprite in sprites:
-            img = faces[sprite.name].repl
-            set_sprite(sprite, img)
-            set_tex2d(sprite.m_RD.texture.read(), img)
-            progress.update(task, advance=1)
+    task = progress.add_task("Encode paintingface", total=len(sprites))
+    for sprite in sprites:
+        img = faces[sprite.name].repl
+        set_sprite(sprite, img)
+        set_tex2d(sprite.m_RD.texture.read(), img)
+        progress.update(task, advance=1)
 
     path = os.path.join(dir, "output", "paintingface", base)
     check_and_save(path, env.file.save("original"))
@@ -114,23 +113,21 @@ class EncodeHelper:
     @staticmethod
     def exec(dir: str, layers: dict[str, Layer], faces: dict[str, FaceLayer], icons: dict[str, IconLayer]) -> list[str]:
         result = []
-
-        valid = [v for v in layers.values() if v.repl is not None]
-        if valid != []:
-            with Progress() as progress:
+        with Progress() as progress:
+            valid = [v for v in layers.values() if v.repl is not None]
+            if valid != []:
                 task = progress.add_task("Encode painting", total=len(valid))
                 for x in valid:
                     result += [replace_painting(dir, x)]
                     progress.update(task, advance=1)
 
-        valid = {k: v for k, v in faces.items() if v.repl is not None}
-        if valid != {}:
-            result += replace_face(dir, valid)
+            valid = {k: v for k, v in faces.items() if v.repl is not None}
+            if valid != {}:
+                result += replace_face(dir, valid, progress)
 
-        valid = {k: v for k, v in icons.items() if v.repl is not None and os.path.exists(v.path)}
-        if valid != {}:
-            with Progress() as progress:
-                task = progress.add_task("Encode icons", total=len(valid))
+            valid = {k: v for k, v in icons.items() if v.repl is not None and os.path.exists(v.path)}
+            if valid != {}:
+                task = progress.add_task("Encode icon", total=len(valid))
                 for k, v in valid.items():
                     result += [replace_icon(dir, k, v)]
                     progress.update(task, advance=1)
