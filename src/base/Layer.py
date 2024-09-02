@@ -1,4 +1,5 @@
 import os
+from math import ceil, floor
 from typing import Optional, Self
 
 from PIL import Image, ImageOps
@@ -232,10 +233,10 @@ class Layer:
             dec = ImageOps.contain(dec, self.sizeDelta.round().tuple())
         return dec
 
-    def box(self, size: Optional[Vector2] = None) -> tuple[float, float, float, float]:
+    def box(self, size: Optional[Vector2] = None) -> tuple[int, int, int, int]:
         x, y = self.posBiased
         w, h = self.sizeDelta if size is None else size
-        return x, y, x + w, y + h
+        return floor(x), ceil(y), floor(x + w), ceil(y + h)
 
     def crop(self, img: Image.Image, resize: bool = True) -> Image.Image:
         if resize:
@@ -290,9 +291,9 @@ class FaceLayer(BaseLayer):
             if self.is_clip:
                 x1, y1, x2, y2 = self.layer.box()
                 rgb = Image.new("RGBA", img.size)
-                rgb.paste(img.crop((x1, y1, x2 + 1, y2 + 1)), (round(x1), round(y1)))
+                rgb.paste(img.crop((x1, y1, x2 + 1, y2 + 1)), (x1, y1))
                 a = Image.new("RGBA", img.size)
-                a.paste(img.crop((x1 + 1, y1 + 1, x2, y2)), (round(x1 + 1), round(y1 + 1)))
+                a.paste(img.crop((x1 + 1, y1 + 1, x2, y2)), (x1 + 1, y1 + 1))
                 img = Image.merge("RGBA", [*rgb.split()[:3], a.split()[-1]])
             return img.crop(self.prefered.box())
         else:

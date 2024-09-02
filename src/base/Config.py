@@ -6,12 +6,12 @@ from .Data import IconPreset
 class Config:
     _settings = QSettings("./config.ini", QSettings.Format.IniFormat)
     _default = {
+        "system/AdvancedMode": False,
         "system/AdbPath": "3rdparty/adb.exe",
         "system/DeviceAddress": "127.0.0.1",
         "system/DevicePort": "auto",
         "system/Server": "CN",
         "system/RecentPath": "",
-        "system/AdvancedMode": False,
     }
 
     @classmethod
@@ -33,6 +33,7 @@ class Config:
     @classmethod
     def set(cls, group: str, key: str, value):
         cls._settings.setValue(f"{group}/{key}", value)
+        return cls.get(group, key)
 
     @classmethod
     def get_presets(cls, group: str) -> dict[str, IconPreset]:

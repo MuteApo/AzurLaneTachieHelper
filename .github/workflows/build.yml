@@ -1,11 +1,14 @@
 on:
   push:
-    # branches:
-    #     - "dev"
-    tags:
-      - "*.*.*"
+    branches:
+        - "dev"
+    # tags:
+    #   - "*.*.*"
 
   workflow_dispatch:
+
+env:
+  app_name: AzurLaneTachieHelper-${{github.ref_name}}
 
 jobs:
   build:
@@ -21,6 +24,7 @@ jobs:
           python-version: "3.12"
           architecture: "x64"
           cache: "pip"
+          cache-dependency-path: "requirements.txt"
 
       - name: Install Dependencies
         id: prepare
@@ -43,20 +47,21 @@ jobs:
           enable-plugins: pyside6
           nofollow-import-to: tkinter
           windows-icon-from-ico: ico\cheshire.ico
-          include-data-dir: ${{steps.prepare.outputs.tpk}}=UnityPy\resources\
-          include-data-files: i18n\*.qm=i18n\
+          include-data-files: |
+            ${{steps.prepare.outputs.tpk}}=UnityPy\resources\
+            i18n\*.qm=i18n\
           output-file: AzurLaneTachieHelper
     
       - name: Pack Files
         run: |
           cd build
           mv ../3rdparty app.dist/
-          mv app.dist AzurLaneTachieHelper-${{github.ref_name}}
-          7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on AzurLaneTachieHelper-${{github.ref_name}}.7z AzurLaneTachieHelper-${{github.ref_name}}
+          mv app.dist ${{env.app_name}}
+          7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on ${{env.app_name}}.7z ${{env.app_name}}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AzurLaneTachieHelper-${{github.ref_name}}-x86_64
-          path: build/AzurLaneTachieHelper-${{github.ref_name}}.7z
+          name: ${{env.app_name}}-x86_64
+          path: build/${{env.app_name}}.7z
           retention-days: 21

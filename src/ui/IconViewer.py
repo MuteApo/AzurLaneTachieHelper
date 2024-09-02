@@ -53,31 +53,32 @@ class Icon(QWidget):
         if self.rotate:
             self.apply(angle=-diff.y() / 600)
         else:
-            self.apply(scale=diff.y() / 24000)
+            self.apply(scale=diff.y() / 30000)
         self.set_last(self)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
-        fine_tune = {
-            Qt.Key.Key_A: Vector2(-1, 0),
-            Qt.Key.Key_D: Vector2(1, 0),
-            Qt.Key.Key_W: Vector2(0, 1),
-            Qt.Key.Key_S: Vector2(0, -1),
-        }
-        if event.key() == Qt.Key.Key_Alt:
-            self.display = False
-            self.update()
-        elif event.key() == Qt.Key.Key_Control:
-            self.rotate = True
-        elif event.key() in fine_tune:
-            self.apply(pivot=fine_tune[event.key()])
-            self.update()
+        match event.key():
+            case Qt.Key.Key_Alt:
+                self.display = False
+            case Qt.Key.Key_Control:
+                self.rotate = True
+            case Qt.Key.Key_A:
+                self.apply(pivot=Vector2(-1, 0))
+            case Qt.Key.Key_D:
+                self.apply(pivot=Vector2(1, 0))
+            case Qt.Key.Key_W:
+                self.apply(pivot=Vector2(0, 1))
+            case Qt.Key.Key_S:
+                self.apply(pivot=Vector2(0, -1))
+        self.update()
 
     def keyReleaseEvent(self, event: QKeyEvent) -> None:
-        if event.key() == Qt.Key.Key_Alt:
-            self.display = True
-            self.update()
-        elif event.key() == Qt.Key.Key_Control:
-            self.rotate = False
+        match event.key():
+            case Qt.Key.Key_Alt:
+                self.display = True
+            case Qt.Key.Key_Control:
+                self.rotate = False
+        self.update()
 
     def paintEvent(self, event: QPaintEvent):
         painter = QPainter(self)
@@ -87,7 +88,7 @@ class Icon(QWidget):
             sub = self.img.rotate(self.preset.angle, center=(x + w / 2, y + h / 2))
             sub = sub.crop((x, y, x + w, y + h)).resize(self.preset.tex2d.tuple())
             painter.drawPixmap(0, 0, sub.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
-        painter.drawRect(1, 1, *(self.preset.tex2d - 1))
+        painter.drawRect(0, 0, *(self.preset.tex2d - 1))
 
     def texrect(self) -> tuple[float, float, float, float]:
         w, h = self.preset.tex2d / self.preset.scale
@@ -129,7 +130,7 @@ class IconViewer(QDialog):
         layout1 = QVBoxLayout()
         layout1.addWidget(self.icons["herohrzicon"])
         layout1.addWidget(self.icons["squareicon"])
-        
+
         layout2 = QHBoxLayout()
         layout2.addWidget(self.icons["shipyardicon"])
         layout2.addLayout(layout1)

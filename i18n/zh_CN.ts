@@ -122,27 +122,27 @@
 <context>
     <name>IconViewer</name>
     <message>
-        <location filename="../src/ui/IconViewer.py" line="105"/>
+        <location filename="../src/ui/IconViewer.py" line="106"/>
         <source>AzurLane Tachie Helper</source>
         <translation>碧蓝航线立绘助手</translation>
     </message>
     <message>
-        <location filename="../src/ui/IconViewer.py" line="119"/>
+        <location filename="../src/ui/IconViewer.py" line="120"/>
         <source>Clip</source>
         <translation>裁剪</translation>
     </message>
     <message>
-        <location filename="../src/ui/IconViewer.py" line="122"/>
+        <location filename="../src/ui/IconViewer.py" line="123"/>
         <source>Translation: WASD or drag muouse with left button</source>
         <translation>平移: WASD 或长按左键拖动鼠标</translation>
     </message>
     <message>
-        <location filename="../src/ui/IconViewer.py" line="123"/>
+        <location filename="../src/ui/IconViewer.py" line="124"/>
         <source>Scale: scroll mouse wheel</source>
         <translation>缩放: 滚动鼠标滚轮</translation>
     </message>
     <message>
-        <location filename="../src/ui/IconViewer.py" line="124"/>
+        <location filename="../src/ui/IconViewer.py" line="125"/>
         <source>Rotation: Hold Ctrl and scroll mouse wheel</source>
         <translation>旋转: 长按 Ctrl 滚动鼠标滚轮</translation>
     </message>

@@ -47,7 +47,7 @@ class AssetManager:
         return EncodeHelper.exec(dir, self.layers, self.faces, self.icons)
 
     def dependency(self, file: str) -> list[str]:
-        assert os.path.exists("dependencies"), 'file "dependencies" not found'
+        assert os.path.exists("dependencies"), "file 'dependencies' not found"
         env = UnityPy.load("dependencies")
         mb: MonoBehaviour = [x.read() for x in env.objects if x.type == ClassIDType.MonoBehaviour][0]
         idx = mb.m_Keys.index(f"painting/{os.path.basename(file)}")

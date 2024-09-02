@@ -8,6 +8,7 @@ node_modules
 out
 test
 tools
+src/spine
 *.bat
 *.ini
 *.qm

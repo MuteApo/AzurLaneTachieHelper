@@ -54,7 +54,7 @@ class TachiePuller(QDialog):
             AdbHelper.connect()
         AdbHelper.pull(f"painting/{name}", *deps, *icons, target=name)
         if os.path.exists(meta := f"{name}/painting/{name}"):
-            os.rename(meta, f"{name}/{name}")
+            os.replace(meta, f"{name}/{name}")
         if os.path.exists(meta := f"{name}/painting/{name}_n"):
-            os.rename(meta, f"{name}/{name}_n")
+            os.replace(meta, f"{name}/{name}_n")
         self.accept()

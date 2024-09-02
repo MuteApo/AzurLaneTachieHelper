@@ -14,14 +14,6 @@ from ..module import AdbHelper
 from ..ui import TachiePuller
 
 
-def pull_deps():
-    AdbHelper.connect()
-    for line in AdbHelper.devices():
-        addr, name = line.split("\t")
-        logger.attr(name, addr)
-    AdbHelper.pull("dependencies")
-
-
 def pull_tachie():
     assert os.path.exists("dependencies"), f"AssetBundles/dependencies not found"
     env = UnityPy.load("dependencies")
@@ -41,7 +33,12 @@ class File(QMenu):
         self.aImportPainting = QAction(self.tr("Import Painting"), shortcut="Ctrl+W", enabled=False, triggered=cbs[1])
         self.aImportFaces = QAction(self.tr("Import Paintingface"), shortcut="Ctrl+Q", enabled=False, triggered=cbs[2])
         self.aImportIcons = QAction(self.tr("Import Icons"), shortcut="Ctrl+A", enabled=False, triggered=cbs[3])
-        self.aPullDeps = QAction(self.tr("Pull Dependencies"), shortcut="Ctrl+Z", enabled=True, triggered=pull_deps)
+        self.aPullDeps = QAction(
+            self.tr("Pull Dependencies"),
+            shortcut="Ctrl+Z",
+            enabled=True,
+            triggered=lambda: AdbHelper.pull("dependencies"),
+        )
         self.aPullTachie = QAction(self.tr("Pull Tachie"), shortcut="Ctrl+X", enabled=True, triggered=pull_tachie)
 
         self.addActions([self.aOpenMetadata, self.aImportPainting, self.aImportFaces, self.aImportIcons])
