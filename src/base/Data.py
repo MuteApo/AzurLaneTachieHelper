@@ -29,25 +29,66 @@ class IconPreset:
     angle: float
 
     def __repr__(self) -> str:
-        return f"<IconPreset angle={self.angle}, scale={self.scale}, pivot={self.pivot}>"
+        return f"<angle={self.angle}, scale={self.scale}, pivot={self.pivot}>"
 
     def apply(self, pivot: Vector2, scale: float, angle: float):
         self.pivot += pivot
         self.scale += scale
         self.angle += angle
 
-    def from_repr(self, repr: str) -> Self:
+    @classmethod
+    def from_config(cls, kind: str, repr: str) -> Self:
         num = r"-?\d+\.\d+|-?\d+"
-        self.angle = eval(re.search(rf"angle=({num})", repr).group(1))
-        self.scale = eval(re.search(rf"scale=({num})", repr).group(1))
         pivot = re.search(rf"pivot=\(({num}),\s*({num})\)", repr)
-        self.pivot = Vector2(eval(pivot.group(1)), eval(pivot.group(2)))
-        return self
+        pivot = Vector2(eval(pivot.group(1)), eval(pivot.group(2)))
+        scale = eval(re.search(rf"scale=({num})", repr).group(1))
+        angle = eval(re.search(rf"angle=({num})", repr).group(1))
+        return cls.kind2cls(kind)(pivot=pivot, scale=scale, angle=angle)
 
     @classmethod
-    def defaults(cls) -> dict[str, Self]:
+    def kind2cls(cls, kind: str) -> Self:
         return {
-            "shipyardicon": IconPreset(Vector2(192, 256), Vector2(192, 256), Vector2(0.5, 0.7), 0.6, 0),
-            "squareicon": IconPreset(Vector2(116, 116), Vector2(116, 116), Vector2(0.5, 0.6), 0.6, 0),
-            "herohrzicon": IconPreset(Vector2(272, 80), Vector2(360, 80), Vector2(0.2, 0.6), 0.6, 0),
-        }
+            "shipyardicon": ShipyardiconPreset,
+            "squareicon": SquareiconPreset,
+            "herohrzicon": HerohrziconPreset,
+        }[kind.lower()]
+
+    @classmethod
+    def default(cls, kind: str) -> Self:
+        return cls.kind2cls(kind)()
+
+
+class ShipyardiconPreset(IconPreset):
+    def __init__(
+        self,
+        sprite: Vector2 = Vector2(192, 256),
+        tex2d: Vector2 = Vector2(192, 256),
+        pivot: Vector2 = Vector2(0.5, 0.7),
+        scale: float = 0.6,
+        angle: float = 0,
+    ):
+        super().__init__(sprite, tex2d, pivot, scale, angle)
+
+
+class SquareiconPreset(IconPreset):
+    def __init__(
+        self,
+        sprite: Vector2 = Vector2(116, 116),
+        tex2d: Vector2 = Vector2(116, 116),
+        pivot: Vector2 = Vector2(0.5, 0.6),
+        scale: float = 0.6,
+        angle: float = 0,
+    ):
+        super().__init__(sprite, tex2d, pivot, scale, angle)
+
+
+class HerohrziconPreset(IconPreset):
+    def __init__(
+        self,
+        sprite: Vector2 = Vector2(272, 80),
+        tex2d: Vector2 = Vector2(360, 80),
+        pivot: Vector2 = Vector2(0.2, 0.6),
+        scale: float = 0.6,
+        angle: float = 0,
+    ):
+        super().__init__(sprite, tex2d, pivot, scale, angle)

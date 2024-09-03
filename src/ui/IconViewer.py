@@ -18,8 +18,9 @@ class Icon(QWidget):
         self.setFixedSize(*preset.tex2d.tuple())
 
         self.img = img
-        bg = Image.new("RGBA", ref.size, (255, 255, 255, 0))
-        self.ref = ImageChops.blend(ref, bg, 0.5).resize(preset.tex2d.tuple()).toqpixmap()
+        ref = ref.transpose(Image.Transpose.FLIP_TOP_BOTTOM).resize(preset.tex2d.tuple())
+        bg = Image.new("RGBA", preset.tex2d.tuple(), (255, 255, 255, 0))
+        self.ref = ImageChops.blend(ref, bg, 0.5).toqpixmap()
         self.preset = preset
         self.center = center
         self.set_last = callback
@@ -110,10 +111,7 @@ class IconViewer(QDialog):
         self.presets = presets
         self.icons: dict[str, Icon] = {}
         for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
-            if kind in refs:
-                ref = refs[kind].decode(transpose=True)
-            else:
-                ref = Image.new("RGBA", self.presets[kind].tex2d.tuple())
+            ref = refs[kind].decode() if kind in refs else Image.new("RGBA", self.presets[kind].tex2d.tuple())
             self.icons[kind] = Icon(img, ref, self.presets[kind], center, self.setLast)
         self.last: Icon = None
 

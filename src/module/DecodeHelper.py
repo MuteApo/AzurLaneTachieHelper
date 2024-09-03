@@ -33,7 +33,7 @@ def ps_layer(name: str, layer: Layer, img: Image.Image, visible: bool) -> nested
 
     w, h = img.size
     x, y = layer.posBiased
-    r, g, b, a = img.split()
+    r, g, b, a = img.transpose(Image.Transpose.FLIP_TOP_BOTTOM).split()
     channels = {i - 1: np.array(x) for i, x in enumerate([a, r, g, b])}
     return nested_layers.Image(
         name=name,
@@ -73,13 +73,11 @@ class DecodeHelper:
                     face = []
                     subtask = progress.add_task("Decode paintingface", total=len(faces))
                     for kk, vv in sorted(faces.items()):
-                        tex = vv.decode(transpose=True)
-                        face += [ps_layer(f"face #{kk}", v, tex, visible=False)]
+                        face += [ps_layer(f"face #{kk}", v, vv.decode(), visible=False)]
                         progress.update(subtask, advance=1)
                     painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
                 else:
-                    tex = v.decode(transpose=True, resize=True)
-                    painting += [ps_layer(f"{v.name} [{v.texture2D.name}]", v, tex, visible=True)]
+                    painting += [ps_layer(f"{v.name} [{v.texture2D.name}]", v, v.decode(), visible=True)]
                 progress.update(task, advance=1)
 
         return nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)

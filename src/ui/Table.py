@@ -176,7 +176,7 @@ class Icon(QVBoxLayout):
     def load(self, path: str) -> bool:
         kind, _ = os.path.splitext(os.path.basename(path))
         if kind in self.icons:
-            if self.icons[kind].load_icon(path, IconPreset.defaults()[kind]):
+            if self.icons[kind].load_icon(path, IconPreset.default(kind)):
                 set_bold(self.table.item(self.index[kind], 0))
                 return True
         return False

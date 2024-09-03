@@ -213,6 +213,10 @@ class Layer:
         return getattr(self, "_mesh_size")
 
     @property
+    def maxSize(self) -> Vector2:
+        return self.meshSize if self.meshSize.prod() > self.sizeDelta.prod() else self.sizeDelta
+
+    @property
     def spriteSize(self) -> Vector2:
         return self.meshSize if self.rawSpriteSize is None else self.rawSpriteSize
 
@@ -220,29 +224,20 @@ class Layer:
         expands = [x for x in layers.values() if self in x and x.name != "face"]
         return sorted(expands, key=lambda v: v.sizeDelta.prod())[0]
 
-    def decode(self, transpose: bool = False, resize: bool = False) -> Image.Image:
+    def decode(self) -> Image.Image:
         if not hasattr(self, "_dec_tex"):
-            size = self.spriteSize.round().tuple()
-            dec = self.tex.transform(size, Image.MESH, self.buffer, Image.Resampling.BICUBIC)
-            setattr(self, "_dec_tex", dec)
-        else:
-            dec: Image.Image = getattr(self, "_dec_tex")
-        if transpose:
-            dec = dec.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        if resize:
-            dec = ImageOps.contain(dec, self.sizeDelta.round().tuple())
-        return dec
+            size = self.meshSize.round().tuple()
+            dec = self.tex.transform(size, Image.Transform.MESH, self.buffer, Image.Resampling.BICUBIC)
+            setattr(self, "_dec_tex", ImageOps.contain(dec, self.maxSize.round().tuple()))
+        return getattr(self, "_dec_tex")
 
     def box(self, size: Optional[Vector2] = None) -> tuple[int, int, int, int]:
         x, y = self.posBiased
         w, h = self.sizeDelta if size is None else size
         return floor(x), ceil(y), floor(x + w), ceil(y + h)
 
-    def crop(self, img: Image.Image, resize: bool = True) -> Image.Image:
-        if resize:
-            return img.crop(self.box()).resize(self.spriteSize.round().tuple(), Image.Resampling.BICUBIC)
-        else:
-            return img.crop(self.box(self.meshSize))
+    def crop(self, img: Image.Image) -> Image.Image:
+        return img.crop(self.box(self.maxSize)).resize(self.meshSize.round().tuple(), Image.Resampling.BICUBIC)
 
     def load(self, path: str) -> bool:
         name, _ = os.path.splitext(os.path.basename(path))
@@ -261,11 +256,8 @@ class BaseLayer:
         self.full: Image.Image = None
         self.repl: Image.Image = None
 
-    def decode(self, transpose: bool = False):
-        dec = self.orig
-        if transpose:
-            dec = dec.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        return dec
+    def decode(self):
+        return self.orig
 
 
 class FaceLayer(BaseLayer):

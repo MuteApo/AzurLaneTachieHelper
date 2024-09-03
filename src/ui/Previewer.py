@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from ..base import FaceLayer, IconLayer, Layer
 from ..utility import exists
 
+
 class Previewer(QWidget):
     def __init__(self, aEncodeTexture: QAction):
         super().__init__()
@@ -44,7 +45,9 @@ class Previewer(QWidget):
         self.refresh()
 
     def refresh(self):
-        img = self.layer.repl.copy() if exists(self.layer.repl) else self.layer.decode().copy()
+        if not exists(self.layer.repl):
+            self.layer.repl = self.layer.decode()
+        img = self.layer.repl.copy()
         img.thumbnail((512, 512))
         self.lImage.setPixmap(img.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         self.update()
