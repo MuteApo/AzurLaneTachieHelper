@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from typing import Self
+from typing import Optional, Self
 
 from .Vector import Vector2
 
@@ -37,7 +37,9 @@ class IconPreset:
         self.angle += angle
 
     @classmethod
-    def from_config(cls, kind: str, repr: str) -> Self:
+    def from_config(cls, kind: str, repr: Optional[str] = None) -> Self:
+        if repr is None:
+            return cls.default(kind)
         num = r"-?\d+\.\d+|-?\d+"
         pivot = re.search(rf"pivot=\(({num}),\s*({num})\)", repr)
         pivot = Vector2(eval(pivot.group(1)), eval(pivot.group(2)))

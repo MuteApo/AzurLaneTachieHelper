@@ -27,7 +27,7 @@ class Layer:
         return f"Layer@{self.depth} {self.name}"
 
     def __str__(self) -> str:
-        attrs = ["texture2D", "mesh", "sizeDelta"]
+        attrs = ["texture2D", "mesh", "sizeDelta", "meshSize", "rawSpriteSize"]
         items = [""]
         for x in attrs:
             if hasattr(self, x):
@@ -218,15 +218,15 @@ class Layer:
 
     @property
     def spriteSize(self) -> Vector2:
-        return self.meshSize if self.rawSpriteSize is None else self.rawSpriteSize
+        return self.meshSize if self.meshSize.prod() > self.rawSpriteSize.prod() else self.rawSpriteSize
 
     def prefered(self, layers: dict[str, Self]) -> Self:
         expands = [x for x in layers.values() if self in x and x.name != "face"]
-        return sorted(expands, key=lambda v: v.sizeDelta.prod())[0]
+        return sorted(expands, key=lambda v: v.maxSize.prod())[0]
 
     def decode(self) -> Image.Image:
         if not hasattr(self, "_dec_tex"):
-            size = self.meshSize.round().tuple()
+            size = self.spriteSize.round().tuple()
             dec = self.tex.transform(size, Image.Transform.MESH, self.buffer, Image.Resampling.BICUBIC)
             setattr(self, "_dec_tex", ImageOps.contain(dec, self.maxSize.round().tuple()))
         return getattr(self, "_dec_tex")

@@ -154,9 +154,8 @@ class AzurLaneTachieHelper(QMainWindow):
         last = os.path.dirname(Config.get("system", "RecentPath"))
         file, _ = QFileDialog.getOpenFileName(self, self.tr("Select Reference"), last, "Image (*.png)")
         if file:
-            presets = Config.get_presets(self.asset_manager.meta.name_stem)
             full, center = self.asset_manager.prepare_icon(file)
-            viewer = IconViewer(self.asset_manager.icons, presets, full, center)
+            viewer = IconViewer(self.asset_manager.meta.name_stem, self.asset_manager.icons, full, center)
             if viewer.exec():
                 Config.set_presets(self.asset_manager.meta.name_stem, viewer.presets)
                 res = self.asset_manager.clip_icons(file, viewer.presets)

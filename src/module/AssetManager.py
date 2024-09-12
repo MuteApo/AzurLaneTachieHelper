@@ -137,4 +137,4 @@ class AssetManager:
         prefered = self.face_layer.prefered(self.layers)
         full = open_and_transpose(file).crop(prefered.box())
         center = self.face_layer.posMin - prefered.posMin + self.face_layer.sizeDelta / 2
-        return full.resize(prefered.spriteSize.round().tuple()), center
+        return full.resize(prefered.maxSize.round().tuple()), center

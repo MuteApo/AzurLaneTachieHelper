@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QWheelEvent
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
-from ..base import IconLayer, IconPreset, Vector2
+from ..base import IconLayer, IconPreset, Vector2, Config
 from ..logger import logger
 
 
@@ -102,13 +102,13 @@ class Icon(QWidget):
 
 
 class IconViewer(QDialog):
-    def __init__(self, refs: dict[str, IconLayer], presets: dict[str, IconPreset], img: Image.Image, center: Vector2):
+    def __init__(self, name: str, refs: dict[str, IconLayer], img: Image.Image, center: Vector2):
         super().__init__()
         self.setWindowTitle(self.tr("AzurLane Tachie Helper"))
         self.setWindowIcon(QPixmap("ico/cheshire.ico"))
         self.resize(600, 300)
 
-        self.presets = presets
+        self.presets = Config.get_presets(name)
         self.icons: dict[str, Icon] = {}
         for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
             ref = refs[kind].decode() if kind in refs else Image.new("RGBA", self.presets[kind].tex2d.tuple())
