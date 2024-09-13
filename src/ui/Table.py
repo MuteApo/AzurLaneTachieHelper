@@ -36,7 +36,7 @@ class Painting(QVBoxLayout):
         self.deps = deps
         self.layers = layers
         self.num = len(self.layers) - 1
-        self.table.setFixedHeight((self.num + 1) * 30)
+        self.table.setFixedHeight(max(self.num + 1, 4) * 30)
         self.table.setRowCount(self.num)
         self.index = {}
         for i, k in enumerate([x for x in layers.keys() if x != "face"]):
@@ -81,7 +81,7 @@ class Paintingface(QVBoxLayout):
         self.faces = faces
         self.layer = face_layer
         self.num = len(faces)
-        self.table.setMinimumHeight(min(self.num + 1, 9) * 30)
+        self.table.setMinimumHeight(max(min(self.num + 1, 9), 6) * 30)
         self.table.setRowCount(self.num)
         self.adv_mode = adv_mode
         self.is_clip: dict[str, bool] = {}

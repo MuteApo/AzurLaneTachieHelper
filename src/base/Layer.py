@@ -228,7 +228,7 @@ class Layer:
         if not hasattr(self, "_dec_tex"):
             size = self.spriteSize.round().tuple()
             dec = self.tex.transform(size, Image.Transform.MESH, self.buffer, Image.Resampling.BICUBIC)
-            setattr(self, "_dec_tex", ImageOps.contain(dec, self.maxSize.round().tuple()))
+            setattr(self, "_dec_tex", ImageOps.contain(dec, self.maxSize.round()))
         return getattr(self, "_dec_tex")
 
     def box(self, size: Optional[Vector2] = None) -> tuple[int, int, int, int]:
@@ -237,7 +237,7 @@ class Layer:
         return floor(x), ceil(y), floor(x + w), ceil(y + h)
 
     def crop(self, img: Image.Image) -> Image.Image:
-        return img.crop(self.box(self.maxSize)).resize(self.meshSize.round().tuple(), Image.Resampling.BICUBIC)
+        return img.crop(self.box(self.maxSize)).resize(self.spriteSize.round(), Image.Resampling.BICUBIC)
 
     def load(self, path: str) -> bool:
         name, _ = os.path.splitext(os.path.basename(path))
@@ -301,6 +301,6 @@ class IconLayer(BaseLayer):
         name, _ = os.path.splitext(os.path.basename(path))
         if name not in ["shipyardicon", "squareicon", "herohrzicon"]:
             return False
-        self.repl = open_and_transpose(path).resize(preset.tex2d.tuple(), Image.Resampling.BICUBIC)
+        self.repl = open_and_transpose(path).resize(preset.tex2d, Image.Resampling.BICUBIC)
         logger.attr("Icon", f"'{QDir.toNativeSeparators(path)}'")
         return True

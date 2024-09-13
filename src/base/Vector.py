@@ -46,7 +46,7 @@ class Vector2(Generic[T]):
         return self.X.__hash__() ^ (self.Y.__hash__() << 2)
 
     def __eq__(self, other) -> bool:
-        if not isinstance(other, Vector2[T]):
+        if not isinstance(other, Vector2):
             return False
         return self.X == other.X and self.Y == other.Y
 

@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QWheelEvent
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
-from ..base import IconLayer, IconPreset, Vector2, Config
+from ..base import Config, IconLayer, IconPreset, Vector2
 from ..logger import logger
 
 
@@ -15,10 +15,10 @@ class Icon(QWidget):
     ):
         super().__init__()
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.setFixedSize(*preset.tex2d.tuple())
+        self.setFixedSize(*preset.tex2d)
 
         self.img = img
-        ref = ref.transpose(Image.Transpose.FLIP_TOP_BOTTOM).resize(preset.tex2d.tuple())
+        ref = ref.transpose(Image.Transpose.FLIP_TOP_BOTTOM).resize(preset.tex2d)
         bg = Image.new("RGBA", preset.tex2d.tuple(), (255, 255, 255, 0))
         self.ref = ImageChops.blend(ref, bg, 0.5).toqpixmap()
         self.preset = preset
@@ -87,7 +87,7 @@ class Icon(QWidget):
         x, y, w, h = self.texrect()
         if self.display:
             sub = self.img.rotate(self.preset.angle, center=(x + w / 2, y + h / 2))
-            sub = sub.crop((x, y, x + w, y + h)).resize(self.preset.tex2d.tuple())
+            sub = sub.crop((x, y, x + w, y + h)).resize(self.preset.tex2d)
             painter.drawPixmap(0, 0, sub.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         painter.drawRect(0, 0, *(self.preset.tex2d - 1))
 

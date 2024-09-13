@@ -52,9 +52,9 @@ class TachiePuller(QDialog):
         icons = [f"{icon}/{name}" for icon in ["shipyardicon", "squareicon", "herohrzicon"]]
         if len(AdbHelper.devices()) == []:
             AdbHelper.connect()
-        AdbHelper.pull(f"painting/{name}", *deps, *icons, target=name)
-        if os.path.exists(meta := f"{name}/painting/{name}"):
-            os.replace(meta, f"{name}/{name}")
-        if os.path.exists(meta := f"{name}/painting/{name}_n"):
-            os.replace(meta, f"{name}/{name}_n")
+        AdbHelper.pull(f"painting/{name}", *deps, *icons, dst_dir=f"projects/{name}")
+        if os.path.exists(meta := f"projects/{name}/painting/{name}"):
+            os.replace(meta, f"projects/{name}/{name}")
+        if os.path.exists(meta := f"projects/{name}/painting/{name}_n"):
+            os.replace(meta, f"projects/{name}/{name}_n")
         self.accept()

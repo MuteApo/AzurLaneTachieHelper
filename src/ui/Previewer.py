@@ -1,10 +1,10 @@
 import os
 from typing import Callable
 
-from PIL import Image
+from PIL import Image, ImageOps
 from PySide6.QtCore import QDir, Qt
-from PySide6.QtGui import QAction, QDragEnterEvent, QDropEvent
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtGui import QAction, QDragEnterEvent, QDropEvent, QPixmap, QResizeEvent
+from PySide6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from ..base import FaceLayer, IconLayer, Layer
 from ..utility import exists
@@ -14,18 +14,25 @@ class Previewer(QWidget):
     def __init__(self, aEncodeTexture: QAction):
         super().__init__()
         self.aEncodeTexture = aEncodeTexture
+        self.layer = None
 
-        self.lName = QLabel()
         self.lPath = QLabel()
+        self.lName = QLabel()
+        self.lWidth = QLabel()
+        self.lHeight = QLabel()
         self.lImage = QLabel()
-
-        info = QHBoxLayout()
-        info.addWidget(self.lName)
-        info.addWidget(self.lPath)
+        self.lPath.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.lName.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.lWidth.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.lHeight.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.lImage.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         layout = QVBoxLayout()
-        layout.addLayout(info)
-        layout.addWidget(self.lImage, stretch=1, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.lPath)
+        layout.addWidget(self.lName)
+        layout.addWidget(self.lWidth)
+        layout.addWidget(self.lHeight)
+        layout.addWidget(self.lImage)
 
         self.setLayout(layout)
 
@@ -34,13 +41,17 @@ class Previewer(QWidget):
 
     def display_painting(self, layer: Layer):
         self.layer = layer
-        self.lName.setText(layer.texture2D.name)
+        self.lName.setText(f"Name: {layer.texture2D.name}")
+        self.lWidth.setText(f"Width: {layer.spriteSize.X}")
+        self.lHeight.setText(f"Height: {layer.spriteSize.Y}")
         self.lPath.setText(QDir.toNativeSeparators(layer.path))
         self.refresh()
 
     def display_face_or_icon(self, layer: FaceLayer | IconLayer):
         self.layer = layer
-        self.lName.setText(layer.name)
+        self.lName.setText(f"Name: {layer.name}")
+        self.lWidth.setText(f"Width: {layer.decode().size[0]}")
+        self.lHeight.setText(f"Height: {layer.decode().size[1]}")
         self.lPath.setText(QDir.toNativeSeparators(layer.path))
         self.refresh()
 
@@ -48,7 +59,7 @@ class Previewer(QWidget):
         if not exists(self.layer.repl):
             self.layer.repl = self.layer.decode()
         img = self.layer.repl.copy()
-        img.thumbnail((512, 512))
+        img.thumbnail((640, 640))
         self.lImage.setPixmap(img.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         self.update()
 

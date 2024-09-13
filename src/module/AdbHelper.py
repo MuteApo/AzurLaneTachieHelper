@@ -58,24 +58,24 @@ class AdbHelper:
         return cls.adb("devices").split("\r\n")[1:-2]
 
     @classmethod
-    def pull(cls, *files: list[str], target: str = ".", use_serial: bool = True):
+    def pull(cls, *files: list[str], dst_dir: str = ".", use_serial: bool = True):
         if not cls._connected:
             cls.connect()
             logger.info(f"Available devices: {[d.split("\t")[0] for d in cls.devices()]}")
             addr, port = get_serial()
             logger.info(f"Using {f"{addr}:{port}"}")
 
-        os.makedirs(target, exist_ok=True)
+        os.makedirs(dst_dir, exist_ok=True)
         for file in files:
             folder = os.path.dirname(file)
             if folder != "":
-                os.makedirs(os.path.join(target, folder), exist_ok=True)
+                os.makedirs(os.path.join(dst_dir, folder), exist_ok=True)
             path = f"/sdcard/Android/data/{get_package()}/files/AssetBundles/{file}"
 
             try:
-                cls.adb("pull", path, os.path.join(target, folder), use_serial=use_serial)
+                cls.adb("pull", path, os.path.join(dst_dir, folder), use_serial=use_serial)
             except:
-                logger.warn(f"[bold][[red]Failed[/red]][/bold] '{file}'")
+                logger.warning(f"[bold][[red]Failed[/red]][/bold] '{file}'")
             else:
                 logger.info(f"[bold][[green]Succeeded[/green]][/bold] '{file}'")
 

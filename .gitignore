@@ -3,9 +3,8 @@ __pycache__
 build
 char
 dependencies
-dist
-node_modules
 out
+projects
 test
 tools
 src/spine
