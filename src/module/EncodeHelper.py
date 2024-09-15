@@ -69,7 +69,7 @@ class EncodeHelper:
                 set_mesh(x, layer.repl)
 
         path = os.path.join(dir, "output", "painting", os.path.basename(path))
-        check_and_save(path, env.file.save("original"))
+        check_and_save(path, env.file.save("lzma"))
 
         return path
 
@@ -103,7 +103,7 @@ class EncodeHelper:
         face_rt.save_typetree(data)
 
         path = os.path.join(dir, "output", "painting", os.path.basename(layer.meta.path))
-        check_and_save(path, env.file.save("original"))
+        check_and_save(path, env.file.save("lzma"))
 
         return [path]
 
@@ -136,16 +136,16 @@ class EncodeHelper:
         path = os.path.join(os.path.dirname(layer.meta.path), "paintingface", base)
         env = UnityPy.load(path)
 
-        sprites: list[Sprite] = [x.read() for x in env.objects if x.type == ClassIDType.Sprite]
-        task = progress.add_task("Encode paintingface", total=len(sprites))
-        for sprite in sprites:
-            img = faces[sprite.name].repl
-            set_sprite(sprite, img)
-            set_tex2d(sprite.m_RD.texture.read(), img)
-            progress.update(task, advance=1)
+        task = progress.add_task("Encode paintingface", total=len(faces))
+        for x in env.objects:
+            if x.type == ClassIDType.Texture2D:
+                tex2d: Texture2D = x.read()
+                if tex2d.name in faces:
+                    set_tex2d(x.read(), faces[tex2d.name].repl)
+                    progress.update(task, advance=1)
 
         path = os.path.join(dir, "output", "paintingface", base)
-        check_and_save(path, env.file.save("original"))
+        check_and_save(path, env.file.save("lzma"))
 
         if adv_mode:
             return EncodeHelper.replace_meta(dir, layer, prefered) + [path]
@@ -153,7 +153,7 @@ class EncodeHelper:
             return [path]
 
     @staticmethod
-    def replace_icon(dir: str, kind: Literal["shipyardicon", "squareicon", "herohrzicon"], icon: IconLayer) -> str:
+    def replace_icon(dir: str, kind: Literal["shipyardicon", "herohrzicon", "squareicon"], icon: IconLayer) -> str:
         """
         Replace icon and save for a tachie `IconLayer`.
 
@@ -161,7 +161,7 @@ class EncodeHelper:
         ----------
         dir: str
             Root directory for output.
-        kind: Literal["shipyardicon", "squareicon", "herohrzicon"]
+        kind: Literal["shipyardicon", "herohrzicon", "squareicon"]
             The icon type.
         icon: IconLayer
             The pseudo-layer containing icon image.
@@ -177,7 +177,7 @@ class EncodeHelper:
             set_tex2d(v.read().m_RD.texture.read(), icon.repl)
 
         path = os.path.join(dir, "output", kind, icon.layer.meta.name_stem)
-        check_and_save(path, env.file.save("original"))
+        check_and_save(path, env.file.save("lzma"))
 
         return path
 
@@ -205,18 +205,18 @@ class EncodeHelper:
 
         result = []
         with Progress() as progress:
-            valid = [v for v in layers.values() if v.repl is not None]
+            valid = [v for v in layers.values() if v.modified]
             if valid != []:
                 task = progress.add_task("Encode painting", total=len(valid))
                 for x in valid:
                     result += [EncodeHelper.replace_painting(dir, x)]
                     progress.update(task, advance=1)
 
-            valid = {k: v for k, v in faces.items() if v.repl is not None}
+            valid = {k: v for k, v in faces.items() if v.modified}
             if valid != {}:
                 result += EncodeHelper.replace_face(dir, valid, progress)
 
-            valid = {k: v for k, v in icons.items() if v.repl is not None and os.path.exists(v.path)}
+            valid = {k: v for k, v in icons.items() if v.modified and os.path.exists(v.path)}
             if valid != {}:
                 task = progress.add_task("Encode icon", total=len(valid))
                 for k, v in valid.items():

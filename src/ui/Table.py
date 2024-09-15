@@ -104,7 +104,7 @@ class Paintingface(QVBoxLayout):
 
     def onCellClicked(self, row: int, col: int):
         idx = os.path.basename(self.table.item(row, 1).text())
-        self.preview.display_face_or_icon(self.faces[idx])
+        self.preview.display_face(self.faces[idx])
 
     def onItemChanged(self, item: QTableWidgetItem):
         if item.column() == 0:
@@ -171,7 +171,7 @@ class Icon(QVBoxLayout):
 
     def onCellClicked(self, row: int, col: int):
         idx = os.path.basename(self.table.item(row, col).text())
-        self.preview.display_face_or_icon(self.icons[idx])
+        self.preview.display_icon(self.icons[idx])
 
     def load(self, path: str) -> bool:
         kind, _ = os.path.splitext(os.path.basename(path))

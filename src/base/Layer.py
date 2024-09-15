@@ -20,8 +20,9 @@ class Layer:
         self.depth = 1 if parent is None else parent.depth + 1
         self.child: list[Self] = [Layer(x.read(), self) for x in rt.m_Children]
         self.path: str = "Not Found"
-        self.repl: Image.Image = None
         self.meta: MetaInfo = None
+        self.modified: bool = False
+        self.repl: Image.Image = None
 
     def __repr__(self) -> str:
         return f"Layer@{self.depth} {self.name}"
@@ -243,6 +244,7 @@ class Layer:
         name, _ = os.path.splitext(os.path.basename(path))
         if self.name != name:
             return False
+        self.modified = True
         self.repl = self.crop(open_and_transpose(path))
         logger.attr("Painting", f"'{QDir.toNativeSeparators(path)}'")
         return True
@@ -253,6 +255,7 @@ class BaseLayer:
         self.orig = tex2d.image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         self.name = tex2d.name
         self.path = path
+        self.modified: bool = False
         self.full: Image.Image = None
         self.repl: Image.Image = None
 
@@ -268,6 +271,7 @@ class FaceLayer(BaseLayer):
         self.is_clip = is_clip
 
     def load_face(self, path: str):
+        self.modified = True
         self.full = open_and_transpose(path)
         self.repl = self.crop_face()
         logger.attr("Paintingface", f"'{QDir.toNativeSeparators(path)}'")
@@ -299,8 +303,9 @@ class IconLayer(BaseLayer):
 
     def load_icon(self, path: str, preset: IconPreset) -> bool:
         name, _ = os.path.splitext(os.path.basename(path))
-        if name not in ["shipyardicon", "squareicon", "herohrzicon"]:
+        if name not in ["shipyardicon", "herohrzicon", "squareicon"]:
             return False
+        self.modified = True
         self.repl = open_and_transpose(path).resize(preset.tex2d, Image.Resampling.BICUBIC)
         logger.attr("Icon", f"'{QDir.toNativeSeparators(path)}'")
         return True

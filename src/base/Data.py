@@ -51,8 +51,8 @@ class IconPreset:
     def kind2cls(cls, kind: str) -> Self:
         return {
             "shipyardicon": ShipyardiconPreset,
-            "squareicon": SquareiconPreset,
             "herohrzicon": HerohrziconPreset,
+            "squareicon": SquareiconPreset,
         }[kind.lower()]
 
     @classmethod
@@ -72,24 +72,24 @@ class ShipyardiconPreset(IconPreset):
         super().__init__(sprite, tex2d, pivot, scale, angle)
 
 
-class SquareiconPreset(IconPreset):
-    def __init__(
-        self,
-        sprite: Vector2 = Vector2(116, 116),
-        tex2d: Vector2 = Vector2(116, 116),
-        pivot: Vector2 = Vector2(0.5, 0.6),
-        scale: float = 0.6,
-        angle: float = 0,
-    ):
-        super().__init__(sprite, tex2d, pivot, scale, angle)
-
-
 class HerohrziconPreset(IconPreset):
     def __init__(
         self,
         sprite: Vector2 = Vector2(272, 80),
         tex2d: Vector2 = Vector2(360, 80),
         pivot: Vector2 = Vector2(0.2, 0.6),
+        scale: float = 0.6,
+        angle: float = 0,
+    ):
+        super().__init__(sprite, tex2d, pivot, scale, angle)
+
+
+class SquareiconPreset(IconPreset):
+    def __init__(
+        self,
+        sprite: Vector2 = Vector2(116, 116),
+        tex2d: Vector2 = Vector2(116, 116),
+        pivot: Vector2 = Vector2(0.5, 0.6),
         scale: float = 0.6,
         angle: float = 0,
     ):

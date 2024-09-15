@@ -1,7 +1,7 @@
 import os
 from typing import Callable
 
-from PIL import Image
+from PIL import Image, ImageOps
 from PySide6.QtCore import QDir, Qt
 from PySide6.QtGui import QAction, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
@@ -14,7 +14,8 @@ class Previewer(QWidget):
     def __init__(self, aEncodeTexture: QAction):
         super().__init__()
         self.aEncodeTexture = aEncodeTexture
-        self.layer = None
+        self.layer: Layer | FaceLayer | IconLayer = None
+        self.fit: Callable[[Image.Image], Image.Image] = None
 
         self.lPath = QLabel()
         self.lName = QLabel()
@@ -38,14 +39,25 @@ class Previewer(QWidget):
 
     def display_painting(self, layer: Layer):
         self.layer = layer
+        self.fit = lambda x: ImageOps.contain(x, (layer.spriteSize / 3).round(), Image.Resampling.BICUBIC)
         self.lName.setText(f"Name: {layer.texture2D.name}")
         self.lWidth.setText(f"Width: {layer.spriteSize.X}")
         self.lHeight.setText(f"Height: {layer.spriteSize.Y}")
         self.lPath.setText(QDir.toNativeSeparators(layer.path))
         self.refresh()
 
-    def display_face_or_icon(self, layer: FaceLayer | IconLayer):
+    def display_face(self, layer: FaceLayer):
         self.layer = layer
+        self.fit = lambda x: ImageOps.scale(x, 0.4, Image.Resampling.BICUBIC)
+        self.lName.setText(f"Name: {layer.name}")
+        self.lWidth.setText(f"Width: {layer.decode().size[0]}")
+        self.lHeight.setText(f"Height: {layer.decode().size[1]}")
+        self.lPath.setText(QDir.toNativeSeparators(layer.path))
+        self.refresh()
+
+    def display_icon(self, layer: IconLayer):
+        self.layer = layer
+        self.fit = lambda x: x
         self.lName.setText(f"Name: {layer.name}")
         self.lWidth.setText(f"Width: {layer.decode().size[0]}")
         self.lHeight.setText(f"Height: {layer.decode().size[1]}")
@@ -53,11 +65,8 @@ class Previewer(QWidget):
         self.refresh()
 
     def refresh(self):
-        if not exists(self.layer.repl):
-            self.layer.repl = self.layer.decode()
-        img = self.layer.repl.copy()
-        img.thumbnail((640, 640))
-        self.lImage.setPixmap(img.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
+        img = self.layer.repl if exists(self.layer.repl) else self.layer.decode()
+        self.lImage.setPixmap(self.fit(img).transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         self.update()
 
     def dragEnterEvent(self, event: QDragEnterEvent):

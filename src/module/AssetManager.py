@@ -82,7 +82,7 @@ class AssetManager:
             self.faces = {x.name: FaceLayer(x, path) for x in tex2ds if re.match(r"^0|([1-9]\d*)$", x.name)}
             self.faces = {k: v for k, v in sorted(self.faces.items(), key=lambda x: int(x[0]))}
 
-        for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
+        for kind in ["shipyardicon", "herohrzicon", "squareicon"]:
             path = os.path.join(os.path.dirname(file), kind, base)
             if not os.path.exists(path):
                 path += ".ys"

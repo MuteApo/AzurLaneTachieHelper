@@ -14,7 +14,6 @@ class Icon(QWidget):
         self, img: Image.Image, ref: Image.Image, preset: IconPreset, center: Vector2, callback: Callable[[Self], None]
     ):
         super().__init__()
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.setFixedSize(*preset.tex2d)
 
         self.img = img
@@ -31,36 +30,35 @@ class Icon(QWidget):
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
+            self.set_last(self)
             self.prev_pos = event.globalPos()
             self.pressed = True
-            self.set_last(self)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
-        if self.pressed:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.pressed = False
-            self.set_last(self)
 
     def mouseMoveEvent(self, event: QMouseEvent):
-        if not self.pressed:
-            return
-        current_pos = event.globalPos()
-        diff = current_pos - self.prev_pos
-        self.apply(pivot=Vector2(diff.x(), -diff.y()))
-        self.prev_pos = current_pos
-        self.set_last(self)
+        if self.pressed:
+            self.set_last(self)
+            current_pos = event.globalPos()
+            diff = current_pos - self.prev_pos
+            self.prev_pos = current_pos
+            self.apply(pivot=Vector2(diff.x(), -diff.y()))
 
     def wheelEvent(self, event: QWheelEvent):
+        self.set_last(self)
         diff = event.angleDelta()
         if self.rotate:
             self.apply(angle=-diff.y() / 600)
         else:
-            self.apply(scale=diff.y() / 30000)
-        self.set_last(self)
+            self.apply(scale=diff.y() / 36000)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         match event.key():
             case Qt.Key.Key_Alt:
                 self.display = False
+                self.update()
             case Qt.Key.Key_Control:
                 self.rotate = True
             case Qt.Key.Key_A:
@@ -71,7 +69,6 @@ class Icon(QWidget):
                 self.apply(pivot=Vector2(0, 1))
             case Qt.Key.Key_S:
                 self.apply(pivot=Vector2(0, -1))
-        self.update()
 
     def keyReleaseEvent(self, event: QKeyEvent) -> None:
         match event.key():
@@ -106,35 +103,43 @@ class IconViewer(QDialog):
         super().__init__()
         self.setWindowTitle(self.tr("AzurLane Tachie Helper"))
         self.setWindowIcon(QPixmap("ico/cheshire.ico"))
-        self.resize(600, 300)
 
         self.presets = Config.get_presets(name)
         self.icons: dict[str, Icon] = {}
-        for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
+        for kind in ["shipyardicon", "herohrzicon", "squareicon"]:
             ref = refs[kind].decode() if kind in refs else Image.new("RGBA", self.presets[kind].tex2d.tuple())
             self.icons[kind] = Icon(img, ref, self.presets[kind], center, self.setLast)
         self.last: Icon = None
 
         self.confirm = QPushButton(self.tr("Clip"), clicked=self.onClickClip)
 
-        translation = self.tr("Translation: WASD or drag muouse with left button")
-        scale = self.tr("Scale: scroll mouse wheel")
-        rotation = self.tr("Rotation: Hold Ctrl and scroll mouse wheel")
-        self.hint = QLabel("; ".join([translation, scale, rotation]))
+        self.translation = QLabel(self.tr("Translation: WASD or drag muouse with left button"))
+        self.translation.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
+        self.translation.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        self.scale = QLabel(self.tr("Scale: scroll mouse wheel"))
+        self.scale.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
+        self.scale.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+
+        self.rotation = QLabel(self.tr("Rotation: Hold Ctrl and scroll mouse wheel"))
+        self.rotation.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
+        self.rotation.setAlignment(Qt.AlignmentFlag.AlignRight)
 
         self._init_ui()
 
     def _init_ui(self):
-        layout1 = QVBoxLayout()
-        layout1.addWidget(self.icons["herohrzicon"])
-        layout1.addWidget(self.icons["squareicon"])
+        layout1 = QHBoxLayout()
+        layout1.addWidget(self.translation)
+        layout1.addWidget(self.scale)
+        layout1.addWidget(self.rotation)
 
         layout2 = QHBoxLayout()
         layout2.addWidget(self.icons["shipyardicon"])
-        layout2.addLayout(layout1)
+        layout2.addWidget(self.icons["herohrzicon"])
+        layout2.addWidget(self.icons["squareicon"])
 
         layout = QVBoxLayout()
-        layout.addWidget(self.hint)
+        layout.addLayout(layout1)
         layout.addLayout(layout2)
         layout.addWidget(self.confirm)
 

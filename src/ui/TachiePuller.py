@@ -42,17 +42,18 @@ class TachiePuller(QDialog):
 
     def pull(self):
         logger.hr("Pull Tachie", 1)
+        if AdbHelper.devices() == []:
+            AdbHelper.connect()
         name = self.combo_box.currentText()
         logger.attr("Metadata", f"'{name}'")
-        deps = self.data.get(f"painting/{name}", []) + self.data.get(f"painting/{name}_n", [])
+        deps = [f"painting/{name}"] + self.data.get(f"painting/{name}", [])
         if f"{name}_n" in self.metas:
-            deps += [f"painting/{name}_n"]
+            deps.extend([f"painting/{name}_n"] + self.data.get(f"painting/{name}_n", []))
         if f"paintingface/{name}" not in deps:
             deps += [f"paintingface/{name}"]
-        icons = [f"{icon}/{name}" for icon in ["shipyardicon", "squareicon", "herohrzicon"]]
-        if len(AdbHelper.devices()) == []:
-            AdbHelper.connect()
-        AdbHelper.pull(f"painting/{name}", *deps, *icons, dst_dir=f"projects/{name}")
+        deps = sorted(set(deps), key=lambda x: tuple(map(len, x.split("/"))))
+        icons = [f"{icon}/{name}" for icon in ["shipyardicon", "herohrzicon", "squareicon"]]
+        AdbHelper.pull(*deps, *icons, dst_dir=f"projects/{name}")
         if os.path.exists(meta := f"projects/{name}/painting/{name}"):
             os.replace(meta, f"projects/{name}/{name}")
         if os.path.exists(meta := f"projects/{name}/painting/{name}_n"):

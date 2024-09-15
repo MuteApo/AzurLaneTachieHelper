@@ -20,7 +20,7 @@ class AdbHelper:
     _ports = [5555, 7555, 16384, 59865, 62001]
 
     @classmethod
-    def adb(cls, *args, use_serial: bool = False):
+    def adb(cls, *args, use_serial: bool = False) -> str:
         adb = Config.get("system", "AdbPath")
         if cls._verbose:
             logger.attr("AdbHelper", " ".join(args))
@@ -33,11 +33,11 @@ class AdbHelper:
 
     @classmethod
     def kill_server(cls):
-        cls.adb("kill-server")
+        return cls.adb("kill-server")
 
     @classmethod
     def start_server(cls):
-        cls.adb("start-server")
+        return cls.adb("start-server")
 
     @classmethod
     def connect(cls):
@@ -54,7 +54,7 @@ class AdbHelper:
             cls._connected = True
 
     @classmethod
-    def devices(cls):
+    def devices(cls) -> list[str]:
         return cls.adb("devices").split("\r\n")[1:-2]
 
     @classmethod

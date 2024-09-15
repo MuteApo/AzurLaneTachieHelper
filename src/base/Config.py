@@ -39,7 +39,7 @@ class Config:
     def get_presets(cls, group: str) -> dict[str, IconPreset]:
         presets = {}
         cls._settings.beginGroup(group)
-        for kind in ["shipyardicon", "squareicon", "herohrzicon"]:
+        for kind in ["shipyardicon", "herohrzicon", "squareicon"]:
             presets[kind] = IconPreset.from_config(kind, cls._settings.value(kind, None))
         cls._settings.endGroup()
         return presets
