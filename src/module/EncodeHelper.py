@@ -1,5 +1,6 @@
 import os
 import struct
+from typing import Literal
 
 import UnityPy
 from PIL import Image
@@ -39,97 +40,187 @@ def set_mesh(mesh: Mesh, img: Image.Image):
     mesh.save_typetree(data)
 
 
-def replace_painting(dir: str, layer: Layer) -> str:
-    path = layer.path if layer.path != "Not Found" else layer.meta.path
-    env = UnityPy.load(path)
-
-    for x in env.objects:
-        if x.type == ClassIDType.Texture2D:
-            set_tex2d(x.read(), layer.repl)
-        elif x.type == ClassIDType.Mesh:
-            set_mesh(x, layer.repl)
-
-    path = os.path.join(dir, "output", "painting", os.path.basename(path))
-    check_and_save(path, env.file.save("original"))
-
-    return path
-
-
-def replace_meta(dir: str, layer: Layer, prefered: Layer) -> str:
-    env = UnityPy.load(layer.meta.path)
-    cab = list(env.cabs.values())[0]
-    face_rt: RectTransform = cab.objects[layer.pathId]
-    data = face_rt.read_typetree()
-    data["m_SizeDelta"] = prefered.sizeDelta.dict()
-    data["m_Pivot"] = prefered.pivot.dict()
-    data["m_AnchoredPosition"] = (prefered.pivotPosition - layer.anchorPosition).dict()
-    face_rt.save_typetree(data)
-
-    path = os.path.join(dir, "output", "painting", os.path.basename(layer.meta.path))
-    check_and_save(path, env.file.save("original"))
-
-    return [path]
-
-
-def replace_face(dir: str, faces: dict[str, FaceLayer], progress: Progress) -> list[str]:
-    first = list(faces.values())[0]
-    layer = first.layer
-    prefered = first.prefered
-    adv_mode = first.adv_mode
-
-    base = layer.meta.name_stem
-    path = os.path.join(os.path.dirname(layer.meta.path), "paintingface", base)
-    env = UnityPy.load(path)
-
-    sprites: list[Sprite] = [x.read() for x in env.objects if x.type == ClassIDType.Sprite]
-    task = progress.add_task("Encode paintingface", total=len(sprites))
-    for sprite in sprites:
-        img = faces[sprite.name].repl
-        set_sprite(sprite, img)
-        set_tex2d(sprite.m_RD.texture.read(), img)
-        progress.update(task, advance=1)
-
-    path = os.path.join(dir, "output", "paintingface", base)
-    check_and_save(path, env.file.save("original"))
-
-    if adv_mode:
-        return replace_meta(dir, layer, prefered) + [path]
-    else:
-        return [path]
-
-
-def replace_icon(dir: str, kind: str, icon: IconLayer):
-    env = UnityPy.load(icon.path)
-    for v in env.container.values():
-        set_tex2d(v.read().m_RD.texture.read(), icon.repl)
-
-    path = os.path.join(dir, "output", kind, icon.layer.meta.name_stem)
-    check_and_save(path, env.file.save("original"))
-
-    return path
-
-
 class EncodeHelper:
     @staticmethod
+    def replace_painting(dir: str, layer: Layer) -> str:
+        """
+        Replace painting and save for a tachie `Layer`.
+
+        Parameters
+        ----------
+        dir: str
+            Root directory for output.
+        layer: Layer
+            The target `Layer`.
+
+        Returns
+        -------
+        path: str
+            Path to the saved file.
+        """
+
+        path = layer.path if layer.path != "Not Found" else layer.meta.path
+        env = UnityPy.load(path)
+
+        for x in env.objects:
+            if x.type == ClassIDType.Texture2D:
+                set_tex2d(x.read(), layer.repl)
+            elif x.type == ClassIDType.Mesh:
+                set_mesh(x, layer.repl)
+
+        path = os.path.join(dir, "output", "painting", os.path.basename(path))
+        check_and_save(path, env.file.save("original"))
+
+        return path
+
+    @staticmethod
+    def replace_meta(dir: str, layer: Layer, prefered: Layer) -> str:
+        """
+        Replace metadata and save for advanced paintingface mode.
+
+        Parameters
+        ----------
+        dir: str
+            Root directory for output.
+        layer: Layer
+            The target `Layer` for paintingface.
+        prefered: Layer
+            The prefered `Layer` for enlarged paintingface.
+
+        Returns
+        -------
+        path: str
+            Path to the saved file.
+        """
+
+        env = UnityPy.load(layer.meta.path)
+        cab = list(env.cabs.values())[0]
+        face_rt: RectTransform = cab.objects[layer.pathId]
+        data = face_rt.read_typetree()
+        data["m_SizeDelta"] = prefered.sizeDelta.dict()
+        data["m_Pivot"] = prefered.pivot.dict()
+        data["m_AnchoredPosition"] = (prefered.pivotPosition - layer.anchorPosition).dict()
+        face_rt.save_typetree(data)
+
+        path = os.path.join(dir, "output", "painting", os.path.basename(layer.meta.path))
+        check_and_save(path, env.file.save("original"))
+
+        return [path]
+
+    @staticmethod
+    def replace_face(dir: str, faces: dict[str, FaceLayer], progress: Progress) -> list[str]:
+        """
+        Replace paintingface and save for a tachie `FaceLayer`.
+
+        Parameters
+        ----------
+        dir: str
+            Root directory for output.
+        faces: dict[str, FaceLayer]
+            The dict containing each of the paintingface images, as pseudo-layers.
+        progress: Progress
+            The rich progress bar.
+
+        Returns
+        -------
+        path: list[str]
+            Paths to the saved files.
+        """
+
+        first = list(faces.values())[0]
+        layer = first.layer
+        prefered = first.prefered
+        adv_mode = first.adv_mode
+
+        base = layer.meta.name_stem
+        path = os.path.join(os.path.dirname(layer.meta.path), "paintingface", base)
+        env = UnityPy.load(path)
+
+        sprites: list[Sprite] = [x.read() for x in env.objects if x.type == ClassIDType.Sprite]
+        task = progress.add_task("Encode paintingface", total=len(sprites))
+        for sprite in sprites:
+            img = faces[sprite.name].repl
+            set_sprite(sprite, img)
+            set_tex2d(sprite.m_RD.texture.read(), img)
+            progress.update(task, advance=1)
+
+        path = os.path.join(dir, "output", "paintingface", base)
+        check_and_save(path, env.file.save("original"))
+
+        if adv_mode:
+            return EncodeHelper.replace_meta(dir, layer, prefered) + [path]
+        else:
+            return [path]
+
+    @staticmethod
+    def replace_icon(dir: str, kind: Literal["shipyardicon", "squareicon", "herohrzicon"], icon: IconLayer) -> str:
+        """
+        Replace icon and save for a tachie `IconLayer`.
+
+        Parameters
+        ----------
+        dir: str
+            Root directory for output.
+        kind: Literal["shipyardicon", "squareicon", "herohrzicon"]
+            The icon type.
+        icon: IconLayer
+            The pseudo-layer containing icon image.
+
+        Returns
+        -------
+        path: str
+            Path to the saved file.
+        """
+
+        env = UnityPy.load(icon.path)
+        for v in env.container.values():
+            set_tex2d(v.read().m_RD.texture.read(), icon.repl)
+
+        path = os.path.join(dir, "output", kind, icon.layer.meta.name_stem)
+        check_and_save(path, env.file.save("original"))
+
+        return path
+
+    @staticmethod
     def exec(dir: str, layers: dict[str, Layer], faces: dict[str, FaceLayer], icons: dict[str, IconLayer]) -> list[str]:
+        """
+        Decode layers of a painting along with paintingface and return file path of the dumped psd.
+
+        Parameters
+        ----------
+        dir: str
+            Root directory for output.
+        layers: dict[str, Layer]
+            The dict containing each of the painting layers.
+        faces: dict[str, FaceLayer]
+            The dict containing each of the paintingface images, as pseudo-layers.
+        icons: dict[str, IconLayer]
+            The dict containing each of the icon images, as pseudo-layers.
+
+        Returns
+        -------
+        path: list[str]
+            Paths to the saved files.
+        """
+
         result = []
         with Progress() as progress:
             valid = [v for v in layers.values() if v.repl is not None]
             if valid != []:
                 task = progress.add_task("Encode painting", total=len(valid))
                 for x in valid:
-                    result += [replace_painting(dir, x)]
+                    result += [EncodeHelper.replace_painting(dir, x)]
                     progress.update(task, advance=1)
 
             valid = {k: v for k, v in faces.items() if v.repl is not None}
             if valid != {}:
-                result += replace_face(dir, valid, progress)
+                result += EncodeHelper.replace_face(dir, valid, progress)
 
             valid = {k: v for k, v in icons.items() if v.repl is not None and os.path.exists(v.path)}
             if valid != {}:
                 task = progress.add_task("Encode icon", total=len(valid))
                 for k, v in valid.items():
-                    result += [replace_icon(dir, k, v)]
+                    result += [EncodeHelper.replace_icon(dir, k, v)]
                     progress.update(task, advance=1)
 
         return result

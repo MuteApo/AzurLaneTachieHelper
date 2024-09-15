@@ -1,9 +1,9 @@
 import os
 from typing import Callable
 
-from PIL import Image, ImageOps
+from PIL import Image
 from PySide6.QtCore import QDir, Qt
-from PySide6.QtGui import QAction, QDragEnterEvent, QDropEvent, QPixmap, QResizeEvent
+from PySide6.QtGui import QAction, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from ..base import FaceLayer, IconLayer, Layer
@@ -21,10 +21,7 @@ class Previewer(QWidget):
         self.lWidth = QLabel()
         self.lHeight = QLabel()
         self.lImage = QLabel()
-        self.lPath.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.lName.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.lWidth.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.lHeight.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.lImage.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
         self.lImage.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         layout = QVBoxLayout()
