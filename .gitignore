@@ -1,15 +1,11 @@
 __pycache__
 .DS_Store
-build
 char
 dependencies
 out
 projects
-test
 tools
+i18n/*.qm
 src/spine
 *.bat
 *.ini
-*.qm
-*.spec
-*.txt

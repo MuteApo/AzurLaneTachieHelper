@@ -6,12 +6,13 @@ from .Data import IconPreset
 class Config:
     _settings = QSettings("./config.ini", QSettings.Format.IniFormat)
     _default = {
+        "system/RecentPath": "",
+        "system/Compression": "original",
         "system/AdvancedMode": False,
         "system/AdbPath": "3rdparty/adb.exe",
         "system/DeviceAddress": "127.0.0.1",
         "system/DevicePort": "auto",
         "system/Server": "CN",
-        "system/RecentPath": "",
     }
 
     @classmethod
@@ -50,3 +51,12 @@ class Config:
         for k, v in presets.items():
             cls._settings.setValue(k, v.__repr__())
         cls._settings.endGroup()
+
+
+def get_serial() -> tuple[str, int]:
+    return Config.get("system", "DeviceAddress"), Config.get("system", "DevicePort")
+
+
+def get_package() -> str:
+    server = Config.get("system", "Server").upper()
+    return {"CN": "com.bilibili.azurlane", "JP": "com.YoStarJP.AzurLane", "EN": "com.YoStarEN.AzurLane"}[server]

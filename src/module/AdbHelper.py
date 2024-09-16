@@ -1,17 +1,8 @@
 import os
 import subprocess
 
-from ..base import Config
+from ..base import Config, get_package, get_serial
 from ..logger import logger
-
-
-def get_serial() -> tuple[str, int]:
-    return Config.get("system", "DeviceAddress"), Config.get("system", "DevicePort")
-
-
-def get_package() -> str:
-    server = Config.get("system", "Server").upper()
-    return {"CN": "com.bilibili.azurlane", "JP": "com.YoStarJP.AzurLane", "EN": "com.YoStarEN.AzurLane"}[server]
 
 
 class AdbHelper:

@@ -1,8 +1,9 @@
 import os
 
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QComboBox, QCompleter, QDialog, QHBoxLayout, QLabel, QPushButton
+from PySide6.QtWidgets import QComboBox, QCompleter, QDialog, QHBoxLayout, QLabel, QPushButton, QSizePolicy
 
+from ..base import get_package
 from ..logger import logger
 from ..module import AdbHelper
 
@@ -18,7 +19,7 @@ class TachiePuller(QDialog):
         self.metas = sorted([k.removeprefix("painting/") for k in data.keys() if not k.endswith("_tex")])
         self.names = list(filter(lambda x: not x.endswith("_n") and not x.endswith("_hx"), self.metas))
 
-        self.label = QLabel("painting/")
+        self.label = QLabel(f"/sdcard/Android/data/{get_package()}/files/AssetBundles/painting/")
 
         self.completer = QCompleter(self.names)
         self.completer.setMaxVisibleItems(20)

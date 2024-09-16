@@ -8,7 +8,7 @@ from rich.progress import Progress
 from UnityPy.classes import Mesh, RectTransform, Sprite, Texture2D
 from UnityPy.enums import ClassIDType, TextureFormat
 
-from ..base import FaceLayer, IconLayer, Layer
+from ..base import Config, FaceLayer, IconLayer, Layer
 from ..utility import check_and_save
 
 
@@ -69,7 +69,7 @@ class EncodeHelper:
                 set_mesh(x, layer.repl)
 
         path = os.path.join(dir, "output", "painting", os.path.basename(path))
-        check_and_save(path, env.file.save("lzma"))
+        check_and_save(path, env.file.save(Config.get("system", "Compression")))
 
         return path
 
@@ -103,7 +103,7 @@ class EncodeHelper:
         face_rt.save_typetree(data)
 
         path = os.path.join(dir, "output", "painting", os.path.basename(layer.meta.path))
-        check_and_save(path, env.file.save("lzma"))
+        check_and_save(path, env.file.save(Config.get("system", "Compression")))
 
         return [path]
 
@@ -145,7 +145,7 @@ class EncodeHelper:
                     progress.update(task, advance=1)
 
         path = os.path.join(dir, "output", "paintingface", base)
-        check_and_save(path, env.file.save("lzma"))
+        check_and_save(path, env.file.save(Config.get("system", "Compression")))
 
         if adv_mode:
             return EncodeHelper.replace_meta(dir, layer, prefered) + [path]
@@ -177,7 +177,7 @@ class EncodeHelper:
             set_tex2d(v.read().m_RD.texture.read(), icon.repl)
 
         path = os.path.join(dir, "output", kind, icon.layer.meta.name_stem)
-        check_and_save(path, env.file.save("lzma"))
+        check_and_save(path, env.file.save(Config.get("system", "Compression")))
 
         return path
 
