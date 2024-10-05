@@ -107,7 +107,7 @@ class IconViewer(QDialog):
         self.presets = Config.get_presets(name)
         self.icons: dict[str, Icon] = {}
         for kind in ["shipyardicon", "herohrzicon", "squareicon"]:
-            ref = refs[kind].decode() if kind in refs else Image.new("RGBA", self.presets[kind].tex2d.tuple())
+            ref = refs[kind].decode if kind in refs else Image.new("RGBA", self.presets[kind].tex2d.tuple())
             self.icons[kind] = Icon(img, ref, self.presets[kind], center, self.setLast)
         self.last: Icon = None
 

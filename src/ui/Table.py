@@ -4,7 +4,7 @@ import threading
 from PySide6.QtCore import QDir, Qt
 from PySide6.QtWidgets import QHeaderView, QLabel, QSizePolicy, QTableWidget, QTableWidgetItem, QVBoxLayout
 
-from ..base import FaceLayer, IconLayer, IconPreset, Layer
+from ..base import Config, FaceLayer, IconLayer, IconPreset, Layer
 from ..logger import logger
 from .Previewer import Previewer
 
@@ -77,19 +77,19 @@ class Paintingface(QVBoxLayout):
         self.addWidget(label)
         self.addWidget(self.table)
 
-    def set_data(self, faces: dict[str, FaceLayer], face_layer: Layer, prefered: Layer, adv_mode: bool):
+    def set_data(self, faces: dict[str, FaceLayer], face_layer: Layer, prefered: Layer):
         self.faces = faces
         self.layer = face_layer
         self.num = len(faces)
         self.table.setMinimumHeight((self.num + 1) * 30)
         self.table.setRowCount(self.num)
-        self.adv_mode = adv_mode
+        self.adv_mode = Config.get("system", "AdvFaceMode") != "off"
         self.is_clip: dict[str, bool] = {}
         self.idx_map: dict[str, int] = {}
         self.table.itemChanged.connect(self.onItemChanged)
         self.table.itemChanged.disconnect()
         for i, (k, v) in enumerate(faces.items()):
-            v.set_data(face_layer, prefered, adv_mode, True)
+            v.set_data(face_layer, prefered, self.adv_mode, True)
             self.idx_map[k] = i
             item = QTableWidgetItem("")
             item.setCheckState(Qt.CheckState.Checked)

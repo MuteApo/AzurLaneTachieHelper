@@ -5,6 +5,8 @@ T = TypeVar("T", float, int)
 
 
 class Vector2(Generic[T]):
+    __slots__ = ('X', 'Y')
+
     def __init__(self, *args):
         if len(args) == 1:
             if isinstance(args[0], (Vector2, list, tuple)):
@@ -25,25 +27,23 @@ class Vector2(Generic[T]):
         return 2
 
     def __getitem__(self, index: int):
-        match index:
-            case 0:
-                return self.X
-            case 1:
-                return self.Y
-            case _:
-                raise IndexError(f"Index {index} out of range")
+        if index == 0:
+            return self.X
+        elif index == 1:
+            return self.Y
+        else:
+            raise IndexError(f"Index {index} out of range")
 
     def __setitem__(self, index: int, value: T):
-        match index:
-            case 0:
-                self.X = value
-            case 1:
-                self.Y = value
-            case _:
-                raise IndexError(f"Index {index} out of range")
+        if index == 0:
+            self.X = value
+        elif index == 1:
+            self.Y = value
+        else:
+            raise IndexError(f"Index {index} out of range")
 
     def __hash__(self) -> int:
-        return self.X.__hash__() ^ (self.Y.__hash__() << 2)
+        return hash(self.X) ^ (hash(self.Y) << 2)
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Vector2):
@@ -54,7 +54,7 @@ class Vector2(Generic[T]):
         return not self == other
 
     def __le__(self, other) -> bool:
-        return self.X < other.X or self.X == other.X and self.Y < other.Y
+        return self.X < other.X or (self.X == other.X and self.Y < other.Y)
 
     def __neg__(self):
         return Vector2(-self.X, -self.Y)

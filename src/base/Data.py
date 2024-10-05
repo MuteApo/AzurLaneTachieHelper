@@ -19,7 +19,6 @@ class MetaInfo:
     def __str__(self):
         return f"<MetaInfo name={self.name}, size={self.size}, bias={self.bias}>: {self.path}"
 
-
 @dataclass
 class IconPreset:
     sprite: Vector2
@@ -40,15 +39,22 @@ class IconPreset:
     def from_config(cls, kind: str, repr: Optional[str] = None) -> Self:
         if repr is None:
             return cls.default(kind)
-        num = r"-?\d+\.\d+|-?\d+"
-        pivot = re.search(rf"pivot=\(({num}),\s*({num})\)", repr)
-        pivot = Vector2(eval(pivot.group(1)), eval(pivot.group(2)))
-        scale = eval(re.search(rf"scale=({num})", repr).group(1))
-        angle = eval(re.search(rf"angle=({num})", repr).group(1))
+        num = r"-?\d+(?:\.\d+)?"
+        pivot_match = re.search(rf"pivot=\(({num}),\s*({num})\)", repr)
+        scale_match = re.search(rf"scale=({num})", repr)
+        angle_match = re.search(rf"angle=({num})", repr)
+        
+        if not (pivot_match and scale_match and angle_match):
+            raise ValueError("Invalid repr format")
+        
+        pivot = Vector2(float(pivot_match.group(1)), float(pivot_match.group(2)))
+        scale = float(scale_match.group(1))
+        angle = float(angle_match.group(1))
+        
         return cls.kind2cls(kind)(pivot=pivot, scale=scale, angle=angle)
 
     @classmethod
-    def kind2cls(cls, kind: str) -> Self:
+    def kind2cls(cls, kind: str) -> type:
         return {
             "shipyardicon": ShipyardiconPreset,
             "herohrzicon": HerohrziconPreset,

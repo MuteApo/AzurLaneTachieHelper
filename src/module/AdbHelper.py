@@ -8,7 +8,7 @@ from ..logger import logger
 class AdbHelper:
     _verbose = False
     _connected = False
-    _ports = [5555, 7555, 16384, 59865, 62001]
+    _ports = [5555, 7555, 16384, 21503, 59865, 62001]
 
     @classmethod
     def adb(cls, *args, use_serial: bool = False) -> str:

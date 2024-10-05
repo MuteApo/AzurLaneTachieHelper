@@ -96,9 +96,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
         face_layer = self.asset_manager.face_layer
         prefered = face_layer.prefered(self.asset_manager.layers)
-        adv_mode = Config.get("system", "AdvancedMode")
-        self.tFace.set_data(self.asset_manager.faces, face_layer, prefered, adv_mode)
-
+        self.tFace.set_data(self.asset_manager.faces, face_layer, prefered)
         self.tIcon.set_data(self.asset_manager.icons, face_layer, prefered)
 
         self.preview.setAcceptDrops(True)
@@ -174,7 +172,6 @@ class AzurLaneTachieHelper(QMainWindow):
         self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
 
     def onToggleAdvMode(self, value: bool):
-        Config.set("system", "AdvancedMode", value)
         if self.tFace.table.rowCount() > 0:
             for i in range(self.tFace.num):
                 if value:

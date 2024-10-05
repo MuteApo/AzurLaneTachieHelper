@@ -1,6 +1,7 @@
 import os
+from functools import cached_property
 from math import ceil, floor
-from typing import Optional, Self
+from typing import Literal, Optional, Self
 
 from PIL import Image, ImageOps
 from PySide6.QtCore import QDir
@@ -59,92 +60,89 @@ class Layer:
             res |= x.flatten()
         return res
 
-    @property
+    @cached_property
     def name(self) -> str:
         return self.gameObject.name if self.gameObject is not None else "Undefined"
 
-    @property
+    @cached_property
     def pathId(self) -> int:
         return self.rt.path_id
 
-    @property
+    @cached_property
     def gameObject(self) -> GameObject:
         return self.rt.m_GameObject.read()
 
-    @property
+    @cached_property
     def components(self) -> list[PPtr]:
         return self.gameObject.m_Components
 
-    @property
+    @cached_property
     def monoBehaviour(self) -> Optional[MonoBehaviour]:
-        if not hasattr(self, "m_MonoBehaviour"):
-            for x in self.components:
-                if x.type == ClassIDType.MonoBehaviour:
-                    setattr(self, "m_MonoBehaviour", x.read())
-                    return getattr(self, "m_MonoBehaviour")
-            setattr(self, "m_MonoBehaviour", None)
-        return getattr(self, "m_MonoBehaviour")
+        for x in self.components:
+            if x.type == ClassIDType.MonoBehaviour:
+                return x.read()
+        return None
 
-    @property
+    @cached_property
     def sprite(self) -> Optional[Sprite]:
         if self.monoBehaviour is None or not hasattr(self.monoBehaviour, "m_Sprite"):
             return None
         x = getattr(self.monoBehaviour, "m_Sprite")
         return x.read() if x.get_obj() is not None else None
 
-    @property
+    @cached_property
     def texture2D(self) -> Optional[Texture2D]:
         if self.sprite is None:
             return None
         return self.sprite.m_RD.texture.read()
 
-    @property
+    @cached_property
     def mesh(self) -> Optional[Mesh]:
         if self.monoBehaviour is None or not hasattr(self.monoBehaviour, "mMesh"):
             return None
         x = getattr(self.monoBehaviour, "mMesh")
         return x.read() if x.get_obj() is not None else None
 
-    @property
+    @cached_property
     def rawSpriteSize(self) -> Optional[Vector2]:
         if self.monoBehaviour is None or not hasattr(self.monoBehaviour, "mRawSpriteSize"):
             return None
         x = getattr(self.monoBehaviour, "mRawSpriteSize")
         return Vector2(x.x, x.y)
 
-    @property
+    @cached_property
     def anchorMin(self) -> Vector2:
         val: Vector2 = self.rt.m_AnchorMin
         return Vector2(val.x, val.y)
 
-    @property
+    @cached_property
     def anchorMax(self) -> Vector2:
         val: Vector2 = self.rt.m_AnchorMax
         return Vector2(val.x, val.y)
 
-    @property
+    @cached_property
     def anchoredPosition(self) -> Vector2:
         val: Vector2 = self.rt.m_AnchoredPosition
         return Vector2(val.x, val.y)
 
-    @property
+    @cached_property
     def sizeDelta(self) -> Vector2:
         val: Vector2 = self.rt.m_SizeDelta
         return Vector2(val.x, val.y)
 
-    @property
+    @cached_property
     def pivot(self) -> Vector2:
         val: Vector2 = self.rt.m_Pivot
         return Vector2(val.x, val.y)
 
-    @property
+    @cached_property
     def size(self) -> Vector2:
         val = self.sizeDelta
         if self.parent is not None:
             val += self.parent.sizeDelta * (self.anchorMax - self.anchorMin)
         return val
 
-    @property
+    @cached_property
     def anchorPosition(self) -> Vector2:
         if self.parent is None:
             return Vector2(0)
@@ -152,85 +150,76 @@ class Layer:
         anchorMax = self.parent.size * self.anchorMax
         return self.parent.posMin + anchorMin * (1 - self.pivot) + anchorMax * self.pivot
 
-    @property
+    @cached_property
     def pivotPosition(self) -> Vector2:
         return self.anchorPosition + self.anchoredPosition
 
-    @property
+    @cached_property
     def posMin(self) -> Vector2:
         return self.pivotPosition - self.size * self.pivot
 
-    @property
+    @cached_property
     def posMax(self) -> Vector2:
         return self.posMin + self.size
 
-    @property
+    @cached_property
     def posBiased(self) -> Vector2:
         return self.posMin + self.meta.bias
 
-    @property
+    @cached_property
     def buffer(self) -> list[tuple]:
-        if not hasattr(self, "_mesh"):
-            if self.texture2D is None:
-                setattr(self, "_mesh", None)
-            else:
-                w, h = self.texture2D.image.size
-                val = []
-                if self.mesh is None:
-                    val += [((0, 0, w, h), (0, 0, 0, h, w, h, w, 0))]
-                else:
-                    v = self.mesh.m_Vertices
-                    v = [(round(v[i]), round(v[i + 1])) for i in range(0, len(v), 3)]
-                    t = self.mesh.m_UV0
-                    t = [(t[i] * w, t[i + 1] * h) for i in range(0, len(t), 2)]
-                    f = self.mesh.m_Indices
-                    for i in range(0, len(f), 6):
-                        x1, y1 = v[f[i]]
-                        x2, y2 = v[f[i + 3]]
-                        if x1 != x2 and y1 != y2:
-                            pos = (x1, y1, x2, y2)
-                            quad = (*t[f[i]], *t[f[i + 1]], *t[f[i + 3]], *t[f[i + 4]])
-                            val += [(pos, quad)]
-                setattr(self, "_mesh", val)
-        return getattr(self, "_mesh")
+        if self.texture2D is None:
+            return None
+        w, h = self.texture2D.image.size
+        val = []
+        if self.mesh is None:
+            val += [((0, 0, w, h), (0, 0, 0, h, w, h, w, 0))]
+        else:
+            v = self.mesh.m_Vertices
+            v = [(round(v[i]), round(v[i + 1])) for i in range(0, len(v), 3)]
+            t = self.mesh.m_UV0
+            t = [(t[i] * w, t[i + 1] * h) for i in range(0, len(t), 2)]
+            f = self.mesh.m_Indices
+            for i in range(0, len(f), 6):
+                x1, y1 = v[f[i]]
+                x2, y2 = v[f[i + 3]]
+                if x1 != x2 and y1 != y2:
+                    pos = (x1, y1, x2, y2)
+                    quad = (*t[f[i]], *t[f[i + 1]], *t[f[i + 3]], *t[f[i + 4]])
+                    val += [(pos, quad)]
+        return val
 
-    @property
+    @cached_property
     def tex(self) -> Image.Image:
-        if not hasattr(self, "_tex"):
-            img = self.texture2D.image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-            setattr(self, "_tex", img)
-        return getattr(self, "_tex")
+        img = self.texture2D.image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        return img
 
-    @property
+    @cached_property
     def meshSize(self) -> Vector2:
-        if not hasattr(self, "_mesh_size"):
-            if self.buffer is None:
-                setattr(self, "_mesh_size", None)
-            else:
-                v = [x[0] for x in self.buffer]
-                w = max([x[2] for x in v])
-                h = max([x[3] for x in v])
-                setattr(self, "_mesh_size", Vector2(w, h))
-        return getattr(self, "_mesh_size")
+        if self.buffer is None:
+            return None
+        v = [x[0] for x in self.buffer]
+        w = max([x[2] for x in v])
+        h = max([x[3] for x in v])
+        return Vector2(w, h)
 
-    @property
+    @cached_property
     def maxSize(self) -> Vector2:
         return self.meshSize if self.meshSize.prod() > self.sizeDelta.prod() else self.sizeDelta
 
-    @property
+    @cached_property
     def spriteSize(self) -> Vector2:
         return self.meshSize if self.meshSize.prod() > self.rawSpriteSize.prod() else self.rawSpriteSize
 
-    def prefered(self, layers: dict[str, Self]) -> Self:
+    def prefered(self, layers: dict[str, Self], reverse: bool = False) -> Self:
         expands = [x for x in layers.values() if self in x and x.name != "face"]
-        return sorted(expands, key=lambda v: v.maxSize.prod())[0]
+        return sorted(expands, key=lambda v: v.maxSize.prod())[-1 if reverse else 0]
 
+    @cached_property
     def decode(self) -> Image.Image:
-        if not hasattr(self, "_dec_tex"):
-            size = self.spriteSize.round().tuple()
-            dec = self.tex.transform(size, Image.Transform.MESH, self.buffer, Image.Resampling.BICUBIC)
-            setattr(self, "_dec_tex", ImageOps.contain(dec, self.maxSize.round()))
-        return getattr(self, "_dec_tex")
+        size = self.spriteSize.round().tuple()
+        dec = self.tex.transform(size, Image.Transform.MESH, self.buffer, Image.Resampling.BICUBIC)
+        return ImageOps.contain(dec, self.maxSize.round())
 
     def box(self, size: Optional[Vector2] = None) -> tuple[int, int, int, int]:
         x, y = self.posBiased
@@ -259,6 +248,7 @@ class BaseLayer:
         self.full: Image.Image = None
         self.repl: Image.Image = None
 
+    @cached_property
     def decode(self):
         return self.orig
 

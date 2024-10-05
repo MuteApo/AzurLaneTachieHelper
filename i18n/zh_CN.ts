@@ -2,6 +2,29 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="zh_CN">
 <context>
+    <name>AdvFaceMode</name>
+    <message>
+        <location filename="../src/ui/Menu.py" line="89"/>
+        <source>Advanced Paintingface Mode</source>
+        <translation>高拆模式</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/Menu.py" line="92"/>
+        <source>OFF</source>
+        <translation>关闭</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/Menu.py" line="93"/>
+        <source>Adaptive</source>
+        <translation>自适应</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/Menu.py" line="94"/>
+        <source>Max</source>
+        <translation>最大</translation>
+    </message>
+</context>
+<context>
     <name>AzurLaneTachieHelper</name>
     <message>
         <location filename="../src/TachieHelper.py" line="26"/>
@@ -20,27 +43,27 @@
         <translation>成功导出到：</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="114"/>
+        <location filename="../src/TachieHelper.py" line="112"/>
         <source>Select Metadata</source>
         <translation>选择元数据</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="120"/>
+        <location filename="../src/TachieHelper.py" line="118"/>
         <source>Select Paintings</source>
         <translation>选择立绘图层</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="132"/>
+        <location filename="../src/TachieHelper.py" line="130"/>
         <source>Select Paintingface Folder</source>
         <translation>选择表情差分</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="149"/>
+        <location filename="../src/TachieHelper.py" line="147"/>
         <source>Select Icons</source>
         <translation>选择图标</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="155"/>
+        <location filename="../src/TachieHelper.py" line="153"/>
         <source>Select Reference</source>
         <translation>选择参照图</translation>
     </message>
@@ -150,14 +173,9 @@
 <context>
     <name>Option</name>
     <message>
-        <location filename="../src/ui/Menu.py" line="90"/>
+        <location filename="../src/ui/Menu.py" line="116"/>
         <source>Option</source>
         <translation>选项</translation>
-    </message>
-    <message>
-        <location filename="../src/ui/Menu.py" line="93"/>
-        <source>Advanced Paintingface Mode</source>
-        <translation>高拆模式</translation>
     </message>
 </context>
 <context>

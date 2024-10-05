@@ -73,11 +73,11 @@ class DecodeHelper:
                     face = []
                     subtask = progress.add_task("Decode paintingface", total=len(faces))
                     for kk, vv in sorted(faces.items()):
-                        face += [DecodeHelper.ps_layer(f"face #{kk}", v, vv.decode(), visible=False)]
+                        face += [DecodeHelper.ps_layer(f"face #{kk}", v, vv.decode, visible=False)]
                         progress.update(subtask, advance=1)
                     painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
                 else:
-                    painting += [DecodeHelper.ps_layer(f"{v.name} [{v.texture2D.name}]", v, v.decode(), visible=True)]
+                    painting += [DecodeHelper.ps_layer(f"{v.name} [{v.texture2D.name}]", v, v.decode, visible=True)]
                 progress.update(task, advance=1)
 
         return nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)

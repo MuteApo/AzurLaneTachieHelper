@@ -8,7 +8,7 @@ class Config:
     _default = {
         "system/RecentPath": "",
         "system/Compression": "original",
-        "system/AdvancedMode": False,
+        "system/AdvFaceMode": "off",
         "system/AdbPath": "3rdparty/adb.exe",
         "system/DeviceAddress": "127.0.0.1",
         "system/DevicePort": "auto",
@@ -18,18 +18,17 @@ class Config:
     @classmethod
     def init(cls):
         for k, v in cls._default.items():
-            if k not in cls._settings.allKeys():
+            if not cls._settings.contains(k):
                 cls._settings.setValue(k, v)
 
     @classmethod
     def get(cls, group: str, key: str):
-        match value := cls._settings.value(f"{group}/{key}"):
-            case "true":
-                return True
-            case "false":
-                return False
-            case _:
-                return value
+        value = cls._settings.value(f"{group}/{key}")
+        if value == "true":
+            return True
+        elif value == "false":
+            return False
+        return value
 
     @classmethod
     def set(cls, group: str, key: str, value):

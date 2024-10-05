@@ -83,20 +83,41 @@ class Server(QMenu):
         self.aJP.setChecked(self.is_server("JP"))
         self.aEN.setChecked(self.is_server("EN"))
 
+class AdvFaceMode(QMenu):
+    def __init__(self, cb: Callable):
+        super().__init__()
+        self.setTitle(self.tr("Advanced Paintingface Mode"))
+
+        self.cb = cb
+        self.aOff = QAction(self.tr("OFF"), checkable=True, triggered=partial(self.toggle, mode="off"))
+        self.aAdaptive = QAction(self.tr("Adaptive"), checkable=True, triggered=partial(self.toggle, mode="adaptive"))
+        self.aMax = QAction(self.tr("Max"), checkable=True, triggered=partial(self.toggle, mode="max"))
+
+        self.addActions([self.aOff, self.aAdaptive, self.aMax])
+        self.flush()
+
+    def is_mode(self, mode: str):
+        return Config.get("system", "AdvFaceMode") == mode
+
+    def toggle(self, _: bool, mode: str):
+        Config.set("system", "AdvFaceMode", mode)
+        self.cb(mode != "off")
+        self.flush()
+
+    def flush(self):
+        self.aOff.setChecked(self.is_mode("off"))
+        self.aAdaptive.setChecked(self.is_mode("adaptive"))
+        self.aMax.setChecked(self.is_mode("max"))
+    
 
 class Option(QMenu):
     def __init__(self, cb: Callable):
         super().__init__()
         self.setTitle(self.tr("Option"))
 
-        self.aAdvMode = QAction(
-            self.tr("Advanced Paintingface Mode"),
-            checkable=True,
-            checked=Config.get("system", "AdvancedMode"),
-            triggered=cb,
-        )
+        self.aAdvFaceMode = AdvFaceMode(cb)
         self.mServer = Server()
 
-        self.addAction(self.aAdvMode)
+        self.addMenu(self.aAdvFaceMode)
         self.addSeparator()
         self.addMenu(self.mServer)

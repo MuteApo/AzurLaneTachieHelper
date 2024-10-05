@@ -50,8 +50,8 @@ class Previewer(QWidget):
         self.layer = layer
         self.fit = lambda x: ImageOps.scale(x, 0.4, Image.Resampling.BICUBIC)
         self.lName.setText(f"Name: {layer.name}")
-        self.lWidth.setText(f"Width: {layer.decode().size[0]}")
-        self.lHeight.setText(f"Height: {layer.decode().size[1]}")
+        self.lWidth.setText(f"Width: {layer.decode.size[0]}")
+        self.lHeight.setText(f"Height: {layer.decode.size[1]}")
         self.lPath.setText(QDir.toNativeSeparators(layer.path))
         self.refresh()
 
@@ -59,13 +59,13 @@ class Previewer(QWidget):
         self.layer = layer
         self.fit = lambda x: x
         self.lName.setText(f"Name: {layer.name}")
-        self.lWidth.setText(f"Width: {layer.decode().size[0]}")
-        self.lHeight.setText(f"Height: {layer.decode().size[1]}")
+        self.lWidth.setText(f"Width: {layer.decode.size[0]}")
+        self.lHeight.setText(f"Height: {layer.decode.size[1]}")
         self.lPath.setText(QDir.toNativeSeparators(layer.path))
         self.refresh()
 
     def refresh(self):
-        img = self.layer.repl if exists(self.layer.repl) else self.layer.decode()
+        img = self.layer.repl if exists(self.layer.repl) else self.layer.decode
         self.lImage.setPixmap(self.fit(img).transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         self.update()
 
