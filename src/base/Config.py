@@ -10,8 +10,7 @@ class Config:
         "system/Compression": "original",
         "system/AdvFaceMode": "off",
         "system/AdbPath": "3rdparty/adb.exe",
-        "system/DeviceAddress": "127.0.0.1",
-        "system/DevicePort": "auto",
+        "system/Serial": "auto",
         "system/Server": "CN",
     }
 
@@ -52,8 +51,8 @@ class Config:
         cls._settings.endGroup()
 
 
-def get_serial() -> tuple[str, int]:
-    return Config.get("system", "DeviceAddress"), Config.get("system", "DevicePort")
+def get_serial() -> str:
+    return Config.get("system", "Serial").lower()
 
 
 def get_package() -> str:

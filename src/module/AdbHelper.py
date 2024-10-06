@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 
 from ..base import Config, get_package, get_serial
@@ -8,19 +9,31 @@ from ..logger import logger
 class AdbHelper:
     _verbose = False
     _connected = False
-    _ports = [5555, 7555, 16384, 21503, 59865, 62001]
+    _serials = [
+        "127.0.0.1:5555",
+        "127.0.0.1:7555",
+        "127.0.0.1:16384",
+        "127.0.0.1:21503",
+        "127.0.0.1:59865",
+        "127.0.0.1:62001",
+        "emulator-5554",
+        "bluestacks4-hyperv",
+        "bluestacks5-hyperv",
+    ]
 
     @classmethod
     def adb(cls, *args, use_serial: bool = False) -> str:
-        adb = Config.get("system", "AdbPath")
-        if cls._verbose:
-            logger.attr("AdbHelper", " ".join(args))
-        cmd = [adb]
+        cmd = [Config.get("system", "AdbPath")]
         if use_serial:
-            addr, port = get_serial()
-            cmd.extend(["-s", f"{addr}:{port}"])
+            cmd.extend(["-s", get_serial()])
         cmd.extend(args)
-        return subprocess.check_output(cmd).decode("utf-8")
+
+        if cls._verbose:
+            logger.info(f"[bold][Subprocess][/bold] {" ".join(cmd)}")
+        output = subprocess.check_output(cmd).decode("utf-8").strip()
+        if cls._verbose:
+            logger.info(f"[bold][Subprocess][/bold] {output}")
+        return output
 
     @classmethod
     def kill_server(cls):
@@ -31,50 +44,53 @@ class AdbHelper:
         return cls.adb("start-server")
 
     @classmethod
-    def connect(cls):
-        addr, port = get_serial()
-        if port == "auto":
-            port = cls.detect()
-        try:
-            cls.adb("connect", f"{addr}:{port}")
-        except Exception as e:
-            logger.error(e)
-            cls.kill_server()
-            cls.start_server()
-        else:
+    def connect(cls) -> str:
+        logger.info(f"[bold][AdbHelper][/bold] Available devices: {", ".join(cls.devices(serial_only=True))}")
+
+        serial = get_serial()
+        if serial == "auto":
+            serial = cls.detect()
+
+        if re.match(r"^(already )?connected to", cls.adb("connect", serial)):
             cls._connected = True
+            return serial
 
     @classmethod
-    def devices(cls) -> list[str]:
-        return cls.adb("devices").split("\r\n")[1:-2]
+    def devices(cls, serial_only: bool = False) -> list[str]:
+        output = list(map(lambda x: x.split("\t"), cls.adb("devices").split("\r\n")[1:]))
+        if serial_only:
+            output = list(map(lambda x: x[0], output))
+        return output
 
     @classmethod
     def pull(cls, *files: list[str], dst_dir: str = ".", use_serial: bool = True):
         if not cls._connected:
-            cls.connect()
-            logger.info(f"Available devices: {[d.split("\t")[0] for d in cls.devices()]}")
-            addr, port = get_serial()
-            logger.info(f"Using {f"{addr}:{port}"}")
+            logger.info(f"[bold][AdbHelper][/bold] Using {cls.connect()}")
 
         os.makedirs(dst_dir, exist_ok=True)
         for file in files:
             folder = os.path.dirname(file)
             if folder != "":
                 os.makedirs(os.path.join(dst_dir, folder), exist_ok=True)
-            path = f"/sdcard/Android/data/{get_package()}/files/AssetBundles/{file}"
 
             try:
+                path = f"/sdcard/Android/data/{get_package()}/files/AssetBundles/{file}"
                 cls.adb("pull", path, os.path.join(dst_dir, folder), use_serial=use_serial)
-            except:
+            except subprocess.CalledProcessError:
                 logger.warning(f"[bold][[red]Failed[/red]][/bold] '{file}'")
             else:
                 logger.info(f"[bold][[green]Succeeded[/green]][/bold] '{file}'")
 
     @classmethod
     def detect(cls):
-        addr, _ = get_serial()
-        for port in cls._ports:
-            logger.info(f"Detecting emulator port {port}")
-            if cls.adb("connect", f"{addr}:{port}").startswith("connected to"):
-                return Config.set("system", "DevicePort", port)
-        raise Exception(f"Cannot decide emulator port, as not in {cls._ports}")
+        logger.info("[bold][AdbHelper][/bold] Auto detecting emulator")
+
+        devices = cls.devices(serial_only=True)
+        if devices != []:
+            return Config.set("system", "Serial", devices[0])
+
+        for serial in cls._serials:
+            if re.match(r"^(already )?connected to", cls.adb("connect", serial)):
+                return Config.set("system", "Serial", serial)
+
+        raise ConnectionError(f"Cannot decide emulator, as not in {cls._serials}")
