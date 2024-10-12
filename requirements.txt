@@ -1,7 +1,7 @@
 numpy
 pillow
 pyqtdarktheme @ git+https://github.com/5yutan5/PyQtDarkTheme.git
-pyside6
+pyside6<6.8
 pytoshop
 rich
 setuptools

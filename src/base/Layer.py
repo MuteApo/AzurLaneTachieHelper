@@ -1,12 +1,13 @@
 import os
 from functools import cached_property
 from math import ceil, floor
-from typing import Literal, Optional, Self
+from typing import Optional, Self
 
 from PIL import Image, ImageOps
 from PySide6.QtCore import QDir
 from UnityPy.classes import GameObject, Mesh, MonoBehaviour, PPtr, RectTransform, Sprite, Texture2D
 from UnityPy.enums import ClassIDType
+from UnityPy.helpers.MeshHelper import MeshHandler
 
 from ..logger import logger
 from ..utility import open_and_transpose
@@ -29,8 +30,12 @@ class Layer:
         return f"Layer@{self.depth} {self.name}"
 
     def __str__(self) -> str:
-        attrs = ["texture2D", "mesh", "sizeDelta", "meshSize", "rawSpriteSize"]
         items = [""]
+        if self.texture2D is not None:
+            items += [f"Texture2D: <Texture2D name={self.texture2D.m_Name}>"]
+        if self.mesh is not None:
+            items += [f"Mesh: <Mesh name={self.mesh.m_Name}>"]
+        attrs = ["sizeDelta", "meshSize", "rawSpriteSize"]
         for x in attrs:
             if hasattr(self, x):
                 y = getattr(self, x)
@@ -54,7 +59,7 @@ class Layer:
     def flatten(self) -> dict[str, Self]:
         res = {}
         if self.sprite is not None:
-            name = self.sprite.name if self.name in ["part"] else self.name
+            name = self.sprite.m_Name if self.name in ["part"] else self.name
             res[name] = self
         for x in self.child:
             res |= x.flatten()
@@ -62,33 +67,29 @@ class Layer:
 
     @cached_property
     def name(self) -> str:
-        return self.gameObject.name if self.gameObject is not None else "Undefined"
+        return self.gameObject.m_Name if self.gameObject is not None else "Undefined"
 
     @cached_property
     def pathId(self) -> int:
-        return self.rt.path_id
+        return self.rt.object_reader.path_id
 
     @cached_property
     def gameObject(self) -> GameObject:
         return self.rt.m_GameObject.read()
 
     @cached_property
-    def components(self) -> list[PPtr]:
-        return self.gameObject.m_Components
-
-    @cached_property
     def monoBehaviour(self) -> Optional[MonoBehaviour]:
-        for x in self.components:
-            if x.type == ClassIDType.MonoBehaviour:
-                return x.read()
+        for x in self.gameObject.m_Component:
+            if x.component.type == ClassIDType.MonoBehaviour:
+                return x.component.read()
         return None
 
     @cached_property
     def sprite(self) -> Optional[Sprite]:
         if self.monoBehaviour is None or not hasattr(self.monoBehaviour, "m_Sprite"):
             return None
-        x = getattr(self.monoBehaviour, "m_Sprite")
-        return x.read() if x.get_obj() is not None else None
+        sprite: PPtr = self.monoBehaviour.m_Sprite
+        return sprite.read() if sprite.m_PathID != 0 else None
 
     @cached_property
     def texture2D(self) -> Optional[Texture2D]:
@@ -100,8 +101,8 @@ class Layer:
     def mesh(self) -> Optional[Mesh]:
         if self.monoBehaviour is None or not hasattr(self.monoBehaviour, "mMesh"):
             return None
-        x = getattr(self.monoBehaviour, "mMesh")
-        return x.read() if x.get_obj() is not None else None
+        mesh: PPtr = self.monoBehaviour.mMesh
+        return mesh.read() if mesh.m_PathID != 0 else None
 
     @cached_property
     def rawSpriteSize(self) -> Optional[Vector2]:
@@ -175,11 +176,11 @@ class Layer:
         if self.mesh is None:
             val += [((0, 0, w, h), (0, 0, 0, h, w, h, w, 0))]
         else:
-            v = self.mesh.m_Vertices
-            v = [(round(v[i]), round(v[i + 1])) for i in range(0, len(v), 3)]
-            t = self.mesh.m_UV0
-            t = [(t[i] * w, t[i + 1] * h) for i in range(0, len(t), 2)]
-            f = self.mesh.m_Indices
+            handler = MeshHandler(self.mesh)
+            handler.process()
+            v = [(round(x), round(y)) for x, y, z in handler.m_Vertices]
+            t = [(u * w, v * h) for u, v in handler.m_UV0]
+            f = handler.m_IndexBuffer
             for i in range(0, len(f), 6):
                 x1, y1 = v[f[i]]
                 x2, y2 = v[f[i + 3]]
@@ -209,7 +210,9 @@ class Layer:
 
     @cached_property
     def spriteSize(self) -> Vector2:
-        return self.meshSize if self.meshSize.prod() > self.rawSpriteSize.prod() else self.rawSpriteSize
+        if self.rawSpriteSize is not None and self.rawSpriteSize.prod() > self.meshSize.prod():
+            return self.rawSpriteSize
+        return self.meshSize
 
     def prefered(self, layers: dict[str, Self], reverse: bool = False) -> Self:
         expands = [x for x in layers.values() if self in x and x.name != "face"]
@@ -242,7 +245,7 @@ class Layer:
 class BaseLayer:
     def __init__(self, tex2d: Texture2D, path: str):
         self.orig = tex2d.image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        self.name = tex2d.name
+        self.name = tex2d.m_Name
         self.path = path
         self.modified: bool = False
         self.full: Image.Image = None

@@ -77,7 +77,7 @@ class DecodeHelper:
                         progress.update(subtask, advance=1)
                     painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
                 else:
-                    painting += [DecodeHelper.ps_layer(f"{v.name} [{v.texture2D.name}]", v, v.decode, visible=True)]
+                    painting += [DecodeHelper.ps_layer(f"{v.name} [{v.texture2D.m_Name}]", v, v.decode, visible=True)]
                 progress.update(task, advance=1)
 
         return nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)

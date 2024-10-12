@@ -1,9 +1,9 @@
 on:
   push:
-    branches:
-        - "dev"
-    # tags:
-    #   - "*.*.*"
+    # branches:
+    #     - "dev"
+    tags:
+      - "*.*.*"
 
   workflow_dispatch:
 

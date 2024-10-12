@@ -66,7 +66,7 @@ class AssetManager:
         logger.attr("Dependencies", list(self.deps.keys()))
 
         base_go: GameObject = list(env.container.values())[0].read()
-        base_rt: RectTransform = base_go.m_Transform.read()
+        base_rt: RectTransform = base_go.m_Component[0].component.read()
         base_layer = Layer(base_rt)
 
         self.layers = base_layer.flatten()
@@ -79,7 +79,7 @@ class AssetManager:
         if os.path.exists(path):
             env = UnityPy.load(path)
             tex2ds: list[Texture2D] = [x.read() for x in env.objects if x.type == ClassIDType.Texture2D]
-            self.faces = {x.name: FaceLayer(x, path) for x in tex2ds if re.match(r"^0|([1-9]\d*)$", x.name)}
+            self.faces = {x.m_Name: FaceLayer(x, path) for x in tex2ds if re.match(r"^0|([1-9]\d*)$", x.m_Name)}
             self.faces = {k: v for k, v in sorted(self.faces.items(), key=lambda x: int(x[0]))}
 
         for kind in ["shipyardicon", "herohrzicon", "squareicon"]:
@@ -89,7 +89,7 @@ class AssetManager:
             if os.path.exists(path):
                 env = UnityPy.load(path)
                 tex2ds: list[Texture2D] = [x.read() for x in env.objects if x.type == ClassIDType.Texture2D]
-                self.icons |= {kind: IconLayer(x, path) for x in tex2ds if re.match(f"(?i)^{base}$", x.name)}
+                self.icons |= {kind: IconLayer(x, path) for x in tex2ds if re.match(f"(?i)^{base}$", x.m_Name)}
 
         x_min = min([_.posMin.X for _ in self.layers.values()])
         x_max = max([_.posMax.X for _ in self.layers.values()])
@@ -103,7 +103,7 @@ class AssetManager:
         for k, v in self.layers.items():
             v.meta = self.meta
             if k != "face":
-                dep = f"painting/{v.texture2D.name}_tex".lower()
+                dep = f"painting/{v.texture2D.m_Name}_tex".lower()
                 v.path = self.deps[dep] if dep in self.deps else file
 
     def clip_icons(self, workload: str, presets: dict[str, IconPreset]) -> list[str]:

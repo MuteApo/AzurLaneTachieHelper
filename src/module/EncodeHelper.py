@@ -138,10 +138,11 @@ class EncodeHelper:
 
         task = progress.add_task("Encode paintingface", total=len(faces))
         for x in env.objects:
-            if x.type == ClassIDType.Texture2D:
-                tex2d: Texture2D = x.read()
-                if tex2d.name in faces:
-                    set_tex2d(x.read(), faces[tex2d.name].repl)
+            if x.type == ClassIDType.Sprite:
+                sprite: Sprite = x.read()
+                if sprite.m_Name in faces:
+                    set_sprite(x.read(), faces[sprite.m_Name].repl)
+                    set_tex2d(sprite.m_RD.texture.read(), faces[sprite.m_Name].repl)
                     progress.update(task, advance=1)
 
         path = os.path.join(dir, "output", "paintingface", base)

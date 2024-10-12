@@ -19,7 +19,7 @@ class TachiePuller(QDialog):
         self.metas = sorted([k.removeprefix("painting/") for k in data.keys() if not k.endswith("_tex")])
         self.names = list(filter(lambda x: not x.endswith("_n") and not x.endswith("_hx"), self.metas))
 
-        self.label = QLabel(f"/sdcard/Android/data/{get_package()}/files/AssetBundles/painting/")
+        self.label = QLabel(f"{get_package()}/files/AssetBundles/painting/")
 
         self.completer = QCompleter(self.names)
         self.completer.setMaxVisibleItems(20)
