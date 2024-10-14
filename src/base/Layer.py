@@ -1,7 +1,7 @@
 import os
 from functools import cached_property
 from math import ceil, floor
-from typing import Optional, Self
+from typing import Callable, Literal, Optional, Self
 
 from PIL import Image, ImageOps
 from PySide6.QtCore import QDir
@@ -205,18 +205,14 @@ class Layer:
         return Vector2(w, h)
 
     @cached_property
-    def maxSize(self) -> Vector2:
-        return self.meshSize if self.meshSize.prod() > self.sizeDelta.prod() else self.sizeDelta
-
-    @cached_property
     def spriteSize(self) -> Vector2:
         if self.rawSpriteSize is not None and self.rawSpriteSize.prod() > self.meshSize.prod():
             return self.rawSpriteSize
         return self.meshSize
 
-    def prefered(self, layers: dict[str, Self], reverse: bool = False) -> Self:
-        expands = [x for x in layers.values() if self in x and x.name != "face"]
-        return sorted(expands, key=lambda v: v.maxSize.prod())[-1 if reverse else 0]
+    @cached_property
+    def maxSize(self) -> Vector2:
+        return self.spriteSize if self.spriteSize.prod() > self.sizeDelta.prod() else self.sizeDelta
 
     @cached_property
     def decode(self) -> Image.Image:
@@ -242,6 +238,11 @@ class Layer:
         return True
 
 
+def prefered_layer(layers: dict[str, Layer], layer: Layer, reverse: bool = False) -> Layer:
+    expands = [x for x in layers.values() if layer in x and x.name != "face"]
+    return sorted(expands, key=lambda v: v.maxSize.prod())[-1 if reverse else 0]
+
+
 class BaseLayer:
     def __init__(self, tex2d: Texture2D, path: str):
         self.orig = tex2d.image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
@@ -252,12 +253,18 @@ class BaseLayer:
         self.repl: Image.Image = None
 
     @cached_property
-    def decode(self):
+    def decode(self) -> Image.Image:
         return self.orig
 
 
 class FaceLayer(BaseLayer):
-    def set_data(self, layer: Layer, prefered: Layer, adv_mode: bool, is_clip: bool):
+    def set_data(
+        self,
+        layer: Layer,
+        prefered: Callable[[Optional[bool]], Layer],
+        adv_mode: Literal["off", "adaptive", "max"],
+        is_clip: bool,
+    ):
         self.layer = layer
         self.prefered = prefered
         self.adv_mode = adv_mode
@@ -275,18 +282,20 @@ class FaceLayer(BaseLayer):
             self.repl = self.crop_face()
 
     def crop_face(self):
+        prefered = self.prefered(self.adv_mode == "max")
+        print(prefered)
         img = self.full
-        if self.adv_mode:
+        if self.adv_mode == "off":
+            return img.crop(self.layer.box())
+        else:
             if self.is_clip:
-                x1, y1, x2, y2 = self.layer.box()
+                x1, y1, x2, y2 = self.layer.box(prefered.maxSize if self.adv_mode == "max" else None)
                 rgb = Image.new("RGBA", img.size)
                 rgb.paste(img.crop((x1, y1, x2 + 1, y2 + 1)), (x1, y1))
                 a = Image.new("RGBA", img.size)
                 a.paste(img.crop((x1 + 1, y1 + 1, x2, y2)), (x1 + 1, y1 + 1))
                 img = Image.merge("RGBA", [*rgb.split()[:3], a.split()[-1]])
-            return img.crop(self.prefered.box())
-        else:
-            return img.crop(self.layer.box())
+            return img.crop(prefered.box())
 
 
 class IconLayer(BaseLayer):

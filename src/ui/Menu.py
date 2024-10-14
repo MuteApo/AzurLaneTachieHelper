@@ -15,7 +15,8 @@ from ..ui import TachiePuller
 
 
 def pull_tachie():
-    assert os.path.exists("dependencies"), f"AssetBundles/dependencies not found"
+    if not os.path.exists("dependencies"):
+        AdbHelper.pull("dependencies")
     env = UnityPy.load("dependencies")
     mb: MonoBehaviour = [x.read() for x in env.objects if x.type == ClassIDType.MonoBehaviour][0]
     data = {k: v.m_Dependencies for k, v in zip(mb.m_Keys, mb.m_Values) if k.startswith("painting/")}

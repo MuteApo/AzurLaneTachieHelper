@@ -1,4 +1,5 @@
 import os
+from functools import partial
 
 from PySide6.QtCore import QDir, Qt
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
@@ -15,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from .base import Config
+from .base.Layer import prefered_layer
 from .logger import logger
 from .module import AssetManager
 from .ui import IconViewer, Menu, Previewer, Table
@@ -95,7 +97,7 @@ class AzurLaneTachieHelper(QMainWindow):
         self.tPainting.set_data(self.asset_manager.deps, self.asset_manager.layers)
 
         face_layer = self.asset_manager.face_layer
-        prefered = face_layer.prefered(self.asset_manager.layers)
+        prefered = partial(prefered_layer, self.asset_manager.layers, face_layer)
         self.tFace.set_data(self.asset_manager.faces, face_layer, prefered)
         self.tIcon.set_data(self.asset_manager.icons, face_layer, prefered)
 

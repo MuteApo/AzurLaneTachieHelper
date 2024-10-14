@@ -51,9 +51,9 @@ class AdbHelper:
         if serial == "auto":
             serial = cls.detect()
 
-        if re.match(r"^(already )?connected to", cls.adb("connect", serial)):
-            cls._connected = True
-            return serial
+        cls.adb("connect", serial)
+        cls._connected = True
+        return serial
 
     @classmethod
     def devices(cls, serial_only: bool = False) -> list[str]:

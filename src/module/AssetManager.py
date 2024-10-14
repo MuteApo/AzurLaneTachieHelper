@@ -9,8 +9,10 @@ from UnityPy.classes import GameObject, MonoBehaviour, RectTransform, Texture2D
 from UnityPy.enums import ClassIDType
 
 from ..base import Config, FaceLayer, IconLayer, IconPreset, Layer, MetaInfo, Vector2
+from ..base.Layer import prefered_layer
 from ..logger import logger
 from ..utility import open_and_transpose
+from .AdbHelper import AdbHelper
 from .DecodeHelper import DecodeHelper
 from .EncodeHelper import EncodeHelper
 
@@ -47,7 +49,8 @@ class AssetManager:
         return EncodeHelper.exec(dir, self.layers, self.faces, self.icons)
 
     def dependency(self, file: str) -> list[str]:
-        assert os.path.exists("dependencies"), "file 'dependencies' not found"
+        if not os.path.exists("dependencies"):
+            AdbHelper.pull("dependencies")
         env = UnityPy.load("dependencies")
         mb: MonoBehaviour = [x.read() for x in env.objects if x.type == ClassIDType.MonoBehaviour][0]
         idx = mb.m_Keys.index(f"painting/{os.path.basename(file)}")
@@ -134,7 +137,7 @@ class AssetManager:
         return output
 
     def prepare_icon(self, file: str) -> tuple[Image.Image, Vector2]:
-        prefered = self.face_layer.prefered(self.layers, Config.get("system", "AdvFaceMode") == "max")
+        prefered = prefered_layer(self.layers, self.face_layer, Config.get("system", "AdvFaceMode") == "max")
         full = open_and_transpose(file).crop(prefered.box())
         center = self.face_layer.posMin - prefered.posMin + self.face_layer.sizeDelta / 2
         return full.resize(prefered.maxSize.round()), center

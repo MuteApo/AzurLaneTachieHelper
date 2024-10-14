@@ -1,4 +1,4 @@
-from math import floor
+from math import ceil, floor
 
 import numpy as np
 from PIL import Image
@@ -40,9 +40,9 @@ class DecodeHelper:
         return nested_layers.Image(
             name=name,
             visible=visible,
-            top=floor(layer.meta.size.Y - y - h),
+            top=ceil(layer.meta.size.Y - y - h),
             left=floor(x),
-            bottom=floor(layer.meta.size.Y - y),
+            bottom=ceil(layer.meta.size.Y - y),
             right=floor(x + w),
             channels=channels,
         )

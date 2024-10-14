@@ -83,7 +83,7 @@ class Paintingface(QVBoxLayout):
         self.num = len(faces)
         self.table.setMinimumHeight((self.num + 1) * 30)
         self.table.setRowCount(self.num)
-        self.adv_mode = Config.get("system", "AdvFaceMode") != "off"
+        self.adv_mode = Config.get("system", "AdvFaceMode")
         self.is_clip: dict[str, bool] = {}
         self.idx_map: dict[str, int] = {}
         self.table.itemChanged.connect(self.onItemChanged)
