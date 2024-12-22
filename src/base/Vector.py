@@ -63,6 +63,10 @@ class Vector2(Generic[T]):
         other = Vector2(other)
         return Vector2(self.X + other.X, self.Y + other.Y)
 
+    def __radd__(self, other):
+        other = Vector2(other)
+        return Vector2(other.X + self.X, other.Y + self.Y)
+
     def __sub__(self, other):
         other = Vector2(other)
         return Vector2(self.X - other.X, self.Y - other.Y)
@@ -91,9 +95,6 @@ class Vector2(Generic[T]):
         other = Vector2(other)
         return Vector2(self.X**other.X, self.Y**other.Y)
 
-    def sqrt(self):
-        return Vector2(sqrt(self.X), sqrt(self.Y))
-
     def round(self):
         return Vector2[int](round(self.X), round(self.Y))
 
@@ -108,6 +109,16 @@ class Vector2(Generic[T]):
 
     def prod(self) -> float:
         return self.X * self.Y
+
+    def norm(self) -> float:
+        return sqrt((self**2).sum())
+    
+    def normalize(self):
+        return self / self.norm()
+
+    def cross(self, other) -> float:
+        other = Vector2(other)
+        return self.X * other.Y - self.Y * other.X
 
     def rotate(self, rad: float):
         x = self.X * cos(rad) - self.Y * sin(rad)

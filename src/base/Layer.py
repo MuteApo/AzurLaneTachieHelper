@@ -146,10 +146,10 @@ class Layer:
     @cached_property
     def anchorPosition(self) -> Vector2:
         if self.parent is None:
-            return Vector2(0)
+            return Vector2(0.0, 0.0)
         anchorMin = self.parent.size * self.anchorMin
         anchorMax = self.parent.size * self.anchorMax
-        return self.parent.posMin + anchorMin * (1 - self.pivot) + anchorMax * self.pivot
+        return self.parent.posMin + anchorMin * (1.0 - self.pivot) + anchorMax * self.pivot
 
     @cached_property
     def pivotPosition(self) -> Vector2:

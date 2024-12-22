@@ -148,7 +148,7 @@ class EncodeHelper:
         path = os.path.join(dir, "output", "paintingface", base)
         check_and_save(path, env.file.save(Config.get("system", "Compression")))
 
-        if adv_mode:
+        if adv_mode != "off":
             return EncodeHelper.replace_meta(dir, layer, prefered) + [path]
         else:
             return [path]

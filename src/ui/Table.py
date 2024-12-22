@@ -93,7 +93,7 @@ class Paintingface(QVBoxLayout):
             self.idx_map[k] = i
             item = QTableWidgetItem("")
             item.setCheckState(Qt.CheckState.Checked)
-            if self.adv_mode:
+            if self.adv_mode != "off":
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
             else:
                 item.setFlags(~Qt.ItemFlag.ItemIsEnabled)

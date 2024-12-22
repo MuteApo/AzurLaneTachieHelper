@@ -1,9 +1,10 @@
+import math
 from typing import Callable, Self
 
 from PIL import Image, ImageChops
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QWheelEvent
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QVBoxLayout, QWidget
 
 from ..base import Config, IconLayer, IconPreset, Vector2
 from ..logger import logger
@@ -17,9 +18,9 @@ class Icon(QWidget):
         self.setFixedSize(*preset.tex2d)
 
         self.img = img
-        ref = ref.transpose(Image.Transpose.FLIP_TOP_BOTTOM).resize(preset.tex2d)
-        bg = Image.new("RGBA", preset.tex2d.tuple(), (255, 255, 255, 0))
-        self.ref = ImageChops.blend(ref, bg, 0.5).toqpixmap()
+        bg = Image.new("RGBA", ref.size, (255, 255, 255, 0))
+        ref = ImageChops.blend(ref, bg, 0.5).resize(preset.tex2d.tuple())
+        self.ref = ref.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap()
         self.preset = preset
         self.center = center
         self.set_last = callback
@@ -42,17 +43,21 @@ class Icon(QWidget):
         if self.pressed:
             self.set_last(self)
             current_pos = event.globalPos()
-            diff = current_pos - self.prev_pos
+            if self.rotate:
+                w, h = self.preset.tex2d
+                center = QPoint(w / 2, h / 2)
+                cur = self.mapFromGlobal(current_pos) - center
+                prev = self.mapFromGlobal(self.prev_pos) - center
+                self.apply(angle=self.calc_angle(cur, prev))
+            else:
+                diff = current_pos - self.prev_pos
+                self.apply(pivot=Vector2(diff.x(), -diff.y()))
             self.prev_pos = current_pos
-            self.apply(pivot=Vector2(diff.x(), -diff.y()))
 
     def wheelEvent(self, event: QWheelEvent):
         self.set_last(self)
         diff = event.angleDelta()
-        if self.rotate:
-            self.apply(angle=-diff.y() / 600)
-        else:
-            self.apply(scale=diff.y() / 36000)
+        self.apply(scale=diff.y() / 24000)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         match event.key():
@@ -83,18 +88,23 @@ class Icon(QWidget):
         painter.drawPixmap(0, 0, self.ref)
         x, y, w, h = self.texrect()
         if self.display:
-            sub = self.img.rotate(self.preset.angle, center=(x + w / 2, y + h / 2))
+            sub = self.img.rotate(-self.preset.angle, center=(x + w / 2, y + h / 2))
             sub = sub.crop((x, y, x + w, y + h)).resize(self.preset.tex2d)
             painter.drawPixmap(0, 0, sub.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         painter.drawRect(0, 0, *(self.preset.tex2d - 1))
+
+    def calc_angle(self, u: QPoint, v: QPoint) -> float:
+        a = Vector2(u.x(), u.y())
+        b = Vector2(v.x(), v.y())
+        return math.degrees(math.asin(a.normalize().cross(b.normalize())))
 
     def texrect(self) -> tuple[float, float, float, float]:
         w, h = self.preset.tex2d / self.preset.scale
         x, y = self.center - Vector2(w, h) * self.preset.pivot
         return x, y, w, h
 
-    def apply(self, pivot: Vector2 = Vector2(0), scale: float = 0, angle: float = 0):
-        self.preset.apply(pivot / self.preset.tex2d, scale, angle)
+    def apply(self, pivot: Vector2 = Vector2(0.0, 0.0), scale: float = 0, angle: float = 0):
+        self.preset.apply(-pivot.rotate(self.preset.angle) / self.preset.tex2d, scale, angle)
         self.update()
 
 
@@ -113,34 +123,16 @@ class IconViewer(QDialog):
 
         self.confirm = QPushButton(self.tr("Clip"), clicked=self.onClickClip)
 
-        self.translation = QLabel(self.tr("Translation: WASD or drag muouse with left button"))
-        self.translation.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
-        self.translation.setAlignment(Qt.AlignmentFlag.AlignLeft)
-
-        self.scale = QLabel(self.tr("Scale: scroll mouse wheel"))
-        self.scale.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
-        self.scale.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-
-        self.rotation = QLabel(self.tr("Rotation: Hold Ctrl and scroll mouse wheel"))
-        self.rotation.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
-        self.rotation.setAlignment(Qt.AlignmentFlag.AlignRight)
-
         self._init_ui()
 
     def _init_ui(self):
         layout1 = QHBoxLayout()
-        layout1.addWidget(self.translation)
-        layout1.addWidget(self.scale)
-        layout1.addWidget(self.rotation)
-
-        layout2 = QHBoxLayout()
-        layout2.addWidget(self.icons["shipyardicon"])
-        layout2.addWidget(self.icons["herohrzicon"])
-        layout2.addWidget(self.icons["squareicon"])
+        layout1.addWidget(self.icons["shipyardicon"])
+        layout1.addWidget(self.icons["herohrzicon"])
+        layout1.addWidget(self.icons["squareicon"])
 
         layout = QVBoxLayout()
         layout.addLayout(layout1)
-        layout.addLayout(layout2)
         layout.addWidget(self.confirm)
 
         self.setLayout(layout)
