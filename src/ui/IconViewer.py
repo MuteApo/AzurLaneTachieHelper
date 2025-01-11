@@ -79,23 +79,23 @@ class Icon(QWidget):
         match event.key():
             case Qt.Key.Key_Alt:
                 self.display = True
+                self.update()
             case Qt.Key.Key_Control:
                 self.rotate = False
-        self.update()
 
     def paintEvent(self, event: QPaintEvent):
         painter = QPainter(self)
         painter.drawPixmap(0, 0, self.ref)
         x, y, w, h = self.texrect()
         if self.display:
-            sub = self.img.rotate(-self.preset.angle, center=(x + w / 2, y + h / 2))
+            sub = self.img.rotate(self.preset.angle, center=(x + w / 2, y + h / 2))
             sub = sub.crop((x, y, x + w, y + h)).resize(self.preset.tex2d)
             painter.drawPixmap(0, 0, sub.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         painter.drawRect(0, 0, *(self.preset.tex2d - 1))
 
     def calc_angle(self, u: QPoint, v: QPoint) -> float:
-        a = Vector2(u.x(), u.y())
-        b = Vector2(v.x(), v.y())
+        a = Vector2(u.x(), -u.y())
+        b = Vector2(v.x(), -v.y())
         return math.degrees(math.asin(a.normalize().cross(b.normalize())))
 
     def texrect(self) -> tuple[float, float, float, float]:
@@ -104,7 +104,7 @@ class Icon(QWidget):
         return x, y, w, h
 
     def apply(self, pivot: Vector2 = Vector2(0.0, 0.0), scale: float = 0, angle: float = 0):
-        self.preset.apply(-pivot.rotate(self.preset.angle) / self.preset.tex2d, scale, angle)
+        self.preset.apply(pivot.rotate(-self.preset.angle) / self.preset.tex2d, scale, angle)
         self.update()
 
 
