@@ -56,6 +56,11 @@ class Layer:
                 return x
         return None
 
+    def traverse(self, func: Callable[[Self], None]):
+        func(self)
+        for x in self.child:
+            x.traverse(func)
+
     def flatten(self) -> dict[str, Self]:
         res = {}
         if self.sprite is not None:
@@ -64,6 +69,11 @@ class Layer:
         for x in self.child:
             res |= x.flatten()
         return res
+
+    def access_with_fallback(self, name: str):
+        if hasattr(self.rt, name):
+            return getattr(self.rt, name)
+        return getattr(self.parent.rt, name)
 
     @cached_property
     def name(self) -> str:
@@ -108,56 +118,93 @@ class Layer:
     def rawSpriteSize(self) -> Optional[Vector2]:
         if self.monoBehaviour is None or not hasattr(self.monoBehaviour, "mRawSpriteSize"):
             return None
-        x = getattr(self.monoBehaviour, "mRawSpriteSize")
-        return Vector2(x.x, x.y)
+        return Vector2(self.monoBehaviour.mRawSpriteSize)
 
     @cached_property
     def anchorMin(self) -> Vector2:
-        val: Vector2 = self.rt.m_AnchorMin
-        return Vector2(val.x, val.y)
+        return Vector2(self.access_with_fallback("m_AnchorMin"))
 
     @cached_property
     def anchorMax(self) -> Vector2:
-        val: Vector2 = self.rt.m_AnchorMax
-        return Vector2(val.x, val.y)
+        return Vector2(self.access_with_fallback("m_AnchorMax"))
 
     @cached_property
     def anchoredPosition(self) -> Vector2:
-        val: Vector2 = self.rt.m_AnchoredPosition
-        return Vector2(val.x, val.y)
+        return Vector2(self.access_with_fallback("m_AnchoredPosition"))
 
     @cached_property
     def sizeDelta(self) -> Vector2:
-        val: Vector2 = self.rt.m_SizeDelta
-        return Vector2(val.x, val.y)
+        return Vector2(self.access_with_fallback("m_SizeDelta"))
 
     @cached_property
     def pivot(self) -> Vector2:
-        val: Vector2 = self.rt.m_Pivot
-        return Vector2(val.x, val.y)
+        return Vector2(self.access_with_fallback("m_Pivot"))
+
+    @cached_property
+    def localPosition(self) -> Vector2:
+        return Vector2(self.access_with_fallback("m_LocalPosition"))
+
+    @cached_property
+    def localScale(self) -> Vector2:
+        if self.parent is None:
+            return Vector2(1.0, 1.0)
+        else:
+            return Vector2(self.access_with_fallback("m_LocalScale"))
+    
+    @cached_property
+    def accumScale(self) -> Vector2:
+        if self.parent is None:
+            return Vector2(1.0, 1.0)
+        else:
+            if isinstance(self.parent.rt, RectTransform):
+                return self.parent.accumScale
+            else:
+                return self.parent.globalScale
+    
+    @cached_property
+    def globalScale(self) -> Vector2:
+        return self.accumScale * self.localScale
+
+    @cached_property
+    def unscaledSize(self) -> Vector2:
+        if self.parent is None:
+            if isinstance(self.rt, RectTransform):
+                return self.sizeDelta
+            else:
+                return Vector2(0.0, 0.0)
+        else:
+            if isinstance(self.rt, RectTransform):
+                return self.sizeDelta + (self.anchorMax - self.anchorMin) * self.parent.size
+            else:
+                return Vector2(0.0, 0.0)
 
     @cached_property
     def size(self) -> Vector2:
-        val = self.sizeDelta
-        if self.parent is not None:
-            val += self.parent.sizeDelta * (self.anchorMax - self.anchorMin)
-        return val
-
-    @cached_property
-    def anchorPosition(self) -> Vector2:
-        if self.parent is None:
-            return Vector2(0.0, 0.0)
-        anchorMin = self.parent.size * self.anchorMin
-        anchorMax = self.parent.size * self.anchorMax
-        return self.parent.posMin + anchorMin * (1.0 - self.pivot) + anchorMax * self.pivot
+        return self.unscaledSize * self.globalScale
 
     @cached_property
     def pivotPosition(self) -> Vector2:
-        return self.anchorPosition + self.anchoredPosition
+        if self.parent is None:
+            if isinstance(self.rt, RectTransform):
+                return self.size * self.pivot
+            else:
+                return Vector2(0.0, 0.0)
+        else:
+            if isinstance(self.rt, RectTransform):
+                if isinstance(self.parent.rt, RectTransform):
+                    offset = self.anchorMin + (self.anchorMax - self.anchorMin) * self.pivot
+                    return self.parent.posMin + self.anchoredPosition * self.accumScale + self.parent.size * offset
+                else:
+                    return self.parent.pivotPosition + self.anchoredPosition * self.accumScale
+            else:
+                return self.parent.pivotPosition + self.localPosition * self.accumScale
 
     @cached_property
     def posMin(self) -> Vector2:
-        return self.pivotPosition - self.size * self.pivot
+        if self.parent is None:
+            return Vector2(0.0, 0.0)
+        else:
+            return self.pivotPosition - self.size * self.pivot
 
     @cached_property
     def posMax(self) -> Vector2:

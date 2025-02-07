@@ -3,17 +3,7 @@ from functools import partial
 
 from PySide6.QtCore import QDir, Qt
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
-from PySide6.QtWidgets import (
-    QFileDialog,
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QMainWindow,
-    QMessageBox,
-    QSizePolicy,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QFileDialog, QFrame, QHBoxLayout, QLabel, QMainWindow, QMessageBox, QVBoxLayout, QWidget
 
 from .base import Config
 from .base.Layer import prefered_layer
@@ -32,15 +22,21 @@ class AzurLaneTachieHelper(QMainWindow):
         Config.init()
         self.asset_manager = AssetManager()
 
+        self.advmode_map = {"off": self.tr("OFF"), "adaptive": self.tr("Adaptive"), "max": self.tr("Max")}
+        self.server_map = {"CN": self.tr("CN"), "JP": self.tr("JP"), "EN": self.tr("EN")}
+
         self._init_statusbar()
         self._init_menu()
         self._init_ui()
 
     def _init_statusbar(self):
-        self.message = QLabel(self.tr("Ready"))
-        self.message.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.statusBar().addWidget(self.message)
-        self.statusBar().setStyleSheet("QStatusBar::item{border:0px}")
+        self.msg_file = QLabel(self.tr("Ready"))
+        self.msg_advmode = QLabel()
+        self.msg_server = QLabel()
+
+        self.statusBar().addWidget(self.msg_file)
+        self.statusBar().addPermanentWidget(self.msg_advmode)
+        self.statusBar().addPermanentWidget(self.msg_server)
 
     def _init_ui(self):
         self.preview = Previewer(self.mEdit.aEncodeTexture)
@@ -69,23 +65,27 @@ class AzurLaneTachieHelper(QMainWindow):
     def _init_menu(self):
         self.mFile = Menu.File(self.onOpenMetadata, self.onImportPainting, self.onImportFaces, self.onImportIcons)
         self.mEdit = Menu.Edit(self.onEditClip, self.onEditDecode, self.onEditEncode)
-        self.mOption = Menu.Option(self.onToggleAdvMode)
+        self.mOption = Menu.Option(self.onToggleAdvMode, self.refresh_statusbar)
 
         self.menuBar().addMenu(self.mFile)
         self.menuBar().addMenu(self.mEdit)
         self.menuBar().addMenu(self.mOption)
 
+    def refresh_statusbar(self):
+        self.msg_advmode.setText(self.tr("Advanced Paintingface Mode") + self.tr(": ") + self.advmode_map[Config.get("system", "AdvFaceMode")])
+        self.msg_server.setText(self.tr("Server") + self.tr(": ") + self.server_map[Config.get("system", "Server")])
+
     def show_path(self, text: str):
         msg_box = QMessageBox()
         msg_box.setWindowTitle(self.tr("AzurLane Tachie Helper"))
-        msg_box.setText(self.tr("Successfully written into:") + f"\n{text}")
+        msg_box.setText(self.tr("Successfully written into") + self.tr(": ") + f"\n{text}")
         msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg_box.exec()
 
     def open_metadata(self, file: str):
         Config.set("system", "RecentPath", file)
         name = os.path.basename(file)
-        self.message.setText(f"({name}) {QDir.toNativeSeparators(file)}")
+        self.msg_file.setText(f"({name}) {QDir.toNativeSeparators(file)}")
         logger.hr(name, 1)
         logger.attr("Metadata", f"'{file}'")
 

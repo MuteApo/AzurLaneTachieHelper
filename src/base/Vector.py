@@ -1,16 +1,20 @@
 from math import ceil, cos, floor, sin, sqrt
 from typing import Generic, TypeVar
 
+from UnityPy.classes.math import Vector2f, Vector3f
+
 T = TypeVar("T", float, int)
 
 
 class Vector2(Generic[T]):
-    __slots__ = ('X', 'Y')
+    __slots__ = ("X", "Y")
 
     def __init__(self, *args):
         if len(args) == 1:
             if isinstance(args[0], (Vector2, list, tuple)):
                 self.X, self.Y = args[0]
+            elif isinstance(args[0], (Vector2f, Vector3f)):
+                self.X, self.Y = args[0].x, args[0].y
             elif isinstance(args[0], (float, int)):
                 self.X = self.Y = args[0]
             else:
@@ -112,7 +116,7 @@ class Vector2(Generic[T]):
 
     def norm(self) -> float:
         return sqrt((self**2).sum())
-    
+
     def normalize(self):
         return self / self.norm()
 

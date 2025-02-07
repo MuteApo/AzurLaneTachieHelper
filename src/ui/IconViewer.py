@@ -104,7 +104,7 @@ class Icon(QWidget):
         return x, y, w, h
 
     def apply(self, pivot: Vector2 = Vector2(0.0, 0.0), scale: float = 0, angle: float = 0):
-        self.preset.apply(pivot.rotate(-self.preset.angle) / self.preset.tex2d, scale, angle)
+        self.preset.apply(pivot / self.preset.tex2d, scale, angle)
         self.update()
 
 

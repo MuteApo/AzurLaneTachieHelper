@@ -4,22 +4,22 @@
 <context>
     <name>AdvFaceMode</name>
     <message>
-        <location filename="../src/ui/Menu.py" line="90"/>
+        <location filename="../src/ui/Menu.py" line="93"/>
         <source>Advanced Paintingface Mode</source>
         <translation>高拆模式</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="93"/>
+        <location filename="../src/ui/Menu.py" line="96"/>
         <source>OFF</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="94"/>
+        <location filename="../src/ui/Menu.py" line="97"/>
         <source>Adaptive</source>
         <translation>自适应</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="95"/>
+        <location filename="../src/ui/Menu.py" line="98"/>
         <source>Max</source>
         <translation>最大</translation>
     </message>
@@ -28,42 +28,89 @@
     <name>AzurLaneTachieHelper</name>
     <message>
         <location filename="../src/TachieHelper.py" line="28"/>
-        <location filename="../src/TachieHelper.py" line="80"/>
+        <location filename="../src/TachieHelper.py" line="90"/>
         <source>AzurLane Tachie Helper</source>
         <translation>碧蓝航线立绘助手</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="40"/>
+        <location filename="../src/TachieHelper.py" line="43"/>
         <source>Ready</source>
         <translation>就绪</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="81"/>
-        <source>Successfully written into:</source>
-        <translation>成功导出到：</translation>
+        <location filename="../src/TachieHelper.py" line="36"/>
+        <source>CN</source>
+        <translation>Bilibili服</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="114"/>
+        <location filename="../src/TachieHelper.py" line="36"/>
+        <source>JP</source>
+        <translation>日服</translation>
+    </message>
+    <message>
+        <location filename="../src/TachieHelper.py" line="86"/>
+        <source>Server</source>
+        <translation>区服</translation>
+    </message>
+    <message>
+        <location filename="../src/TachieHelper.py" line="38"/>
+        <source>EN</source>
+        <translation>国际服</translation>
+    </message>
+    <message>
+        <location filename="../src/TachieHelper.py" line="35"/>
+        <source>OFF</source>
+        <translation>关闭</translation>
+    </message>
+    <message>
+        <location filename="../src/TachieHelper.py" line="35"/>
+        <source>Adaptive</source>
+        <translation>自适应</translation>
+    </message>
+    <message>
+        <location filename="../src/TachieHelper.py" line="85"/>
+        <source>Advanced Paintingface Mode</source>
+        <translation>高拆模式</translation>
+    </message>
+    <message>
+        <location filename="../src/TachieHelper.py" line="36"/>
+        <source>Max</source>
+        <translation>最大</translation>
+    </message>
+    <message>
+        <location filename="../src/TachieHelper.py" line="91"/>
+        <source>Successfully written into</source>
+        <translation>成功导出到</translation>
+    </message>
+    <message>
+        <location filename="../src/TachieHelper.py" line="85"/>
+        <location filename="../src/TachieHelper.py" line="86"/>
+        <location filename="../src/TachieHelper.py" line="91"/>
+        <source>: </source>
+        <translation>：</translation>
+    </message>
+    <message>
+        <location filename="../src/TachieHelper.py" line="124"/>
         <source>Select Metadata</source>
         <translation>选择元数据</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="120"/>
+        <location filename="../src/TachieHelper.py" line="130"/>
         <source>Select Paintings</source>
         <translation>选择立绘图层</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="132"/>
+        <location filename="../src/TachieHelper.py" line="142"/>
         <source>Select Paintingface Folder</source>
         <translation>选择表情差分</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="149"/>
+        <location filename="../src/TachieHelper.py" line="159"/>
         <source>Select Icons</source>
         <translation>选择图标</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="155"/>
+        <location filename="../src/TachieHelper.py" line="165"/>
         <source>Select Reference</source>
         <translation>选择参照图</translation>
     </message>
@@ -158,7 +205,7 @@
 <context>
     <name>Option</name>
     <message>
-        <location filename="../src/ui/Menu.py" line="117"/>
+        <location filename="../src/ui/Menu.py" line="121"/>
         <source>Option</source>
         <translation>选项</translation>
     </message>
@@ -202,19 +249,19 @@
         <translation>区服</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="67"/>
-        <source>CN Server</source>
-        <translation>CN服（B服）</translation>
-    </message>
-    <message>
         <location filename="../src/ui/Menu.py" line="68"/>
-        <source>JP Server</source>
-        <translation>JP服</translation>
+        <source>CN</source>
+        <translation>Bilibili服</translation>
     </message>
     <message>
         <location filename="../src/ui/Menu.py" line="69"/>
-        <source>EN Server</source>
-        <translation>EN服</translation>
+        <source>JP</source>
+        <translation>日服</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/Menu.py" line="70"/>
+        <source>EN</source>
+        <translation>国际服</translation>
     </message>
 </context>
 <context>

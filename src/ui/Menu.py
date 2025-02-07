@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QMenu
 from UnityPy.classes import MonoBehaviour
 from UnityPy.enums import ClassIDType
 
-from ..base import Config
+from ..base import Config, get_package
 from ..logger import logger
 from ..module import AdbHelper
 from ..ui import TachiePuller
@@ -60,13 +60,14 @@ class Edit(QMenu):
 
 
 class Server(QMenu):
-    def __init__(self):
+    def __init__(self, cb: Callable):
         super().__init__()
         self.setTitle(self.tr("Server"))
 
-        self.aCN = QAction(self.tr("CN Server"), checkable=True, triggered=partial(self.toggle, server="CN"))
-        self.aJP = QAction(self.tr("JP Server"), checkable=True, triggered=partial(self.toggle, server="JP"))
-        self.aEN = QAction(self.tr("EN Server"), checkable=True, triggered=partial(self.toggle, server="EN"))
+        self.cb = cb
+        self.aCN = QAction(self.tr("CN"), checkable=True, triggered=partial(self.toggle, server="CN"))
+        self.aJP = QAction(self.tr("JP"), checkable=True, triggered=partial(self.toggle, server="JP"))
+        self.aEN = QAction(self.tr("EN"), checkable=True, triggered=partial(self.toggle, server="EN"))
 
         self.addActions([self.aCN, self.aJP, self.aEN])
         self.flush()
@@ -75,21 +76,23 @@ class Server(QMenu):
         return Config.get("system", "Server") == server
 
     def toggle(self, _: bool, server: str):
-        logger.attr(server, f"'{AdbHelper._to_pkg[server]}'")
         Config.set("system", "Server", server)
+        logger.attr(server, f"'{get_package()}'")
         self.flush()
 
     def flush(self):
         self.aCN.setChecked(self.is_server("CN"))
         self.aJP.setChecked(self.is_server("JP"))
         self.aEN.setChecked(self.is_server("EN"))
+        self.cb()
+
 
 class AdvFaceMode(QMenu):
-    def __init__(self, cb: Callable):
+    def __init__(self, *cbs: list[Callable]):
         super().__init__()
         self.setTitle(self.tr("Advanced Paintingface Mode"))
 
-        self.cb = cb
+        self.cbs = cbs
         self.aOff = QAction(self.tr("OFF"), checkable=True, triggered=partial(self.toggle, mode="off"))
         self.aAdaptive = QAction(self.tr("Adaptive"), checkable=True, triggered=partial(self.toggle, mode="adaptive"))
         self.aMax = QAction(self.tr("Max"), checkable=True, triggered=partial(self.toggle, mode="max"))
@@ -102,22 +105,23 @@ class AdvFaceMode(QMenu):
 
     def toggle(self, _: bool, mode: str):
         Config.set("system", "AdvFaceMode", mode)
-        self.cb(mode != "off")
+        self.cbs[0](mode != "off")
         self.flush()
 
     def flush(self):
         self.aOff.setChecked(self.is_mode("off"))
         self.aAdaptive.setChecked(self.is_mode("adaptive"))
         self.aMax.setChecked(self.is_mode("max"))
+        self.cbs[1]()
     
 
 class Option(QMenu):
-    def __init__(self, cb: Callable):
+    def __init__(self, *cbs: list[Callable]):
         super().__init__()
         self.setTitle(self.tr("Option"))
 
-        self.aAdvFaceMode = AdvFaceMode(cb)
-        self.mServer = Server()
+        self.aAdvFaceMode = AdvFaceMode(*cbs)
+        self.mServer = Server(cbs[1])
 
         self.addMenu(self.aAdvFaceMode)
         self.addSeparator()
