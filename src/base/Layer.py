@@ -330,7 +330,6 @@ class FaceLayer(BaseLayer):
 
     def crop_face(self):
         prefered = self.prefered(self.adv_mode == "max")
-        print(prefered)
         img = self.full
         if self.adv_mode == "off":
             return img.crop(self.layer.box())

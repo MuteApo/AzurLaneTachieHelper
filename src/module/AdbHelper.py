@@ -54,14 +54,20 @@ class AdbHelper:
 
     @classmethod
     def connect(cls) -> str:
-        logger.info(f"[bold][AdbHelper][/bold] Available devices: {", ".join(cls.devices(serial_only=True))}")
+        devices = cls.devices(serial_only=True)
+        logger.info(f"[bold][AdbHelper][/bold] Available devices: {", ".join(devices)}")
 
         serial = get_serial()
         if serial == "auto":
             serial = cls.detect()
 
+        if serial not in devices:
+            serial = devices[0]
+
+        Config.set("system", "Serial", serial)
         cls.adb("connect", serial)
         cls._connected = True
+
         return serial
 
     @classmethod

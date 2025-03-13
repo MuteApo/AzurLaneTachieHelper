@@ -71,6 +71,8 @@ class AssetManager:
         base_go: GameObject = list(env.container.values())[0].read()
         base_rt: RectTransform = base_go.m_Component[0].component.read()
         base_layer = Layer(base_rt)
+        # base_layer.traverse(lambda x: print("    " * x.depth, x.__repr__(), x.rt.__class__.__name__))
+        # base_layer.traverse(lambda x: logger.attr(x.__repr__(), x.__str__()))
 
         self.layers = base_layer.flatten()
         if "face" not in [x.name for x in self.layers.values()]:

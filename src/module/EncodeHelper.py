@@ -141,7 +141,7 @@ class EncodeHelper:
             if x.type == ClassIDType.Sprite:
                 sprite: Sprite = x.read()
                 if sprite.m_Name in faces:
-                    set_sprite(sprite, faces[sprite.m_Name].repl)
+                    # set_sprite(sprite, faces[sprite.m_Name].repl)
                     set_tex2d(sprite.m_RD.texture.read(), faces[sprite.m_Name].repl)
                     progress.update(task, advance=1)
 

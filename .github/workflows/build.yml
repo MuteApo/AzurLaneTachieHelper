@@ -54,6 +54,7 @@ jobs:
           windows-icon-from-ico: ico\cheshire.ico
           include-data-files: |
             ${{env.PURELIB}}\UnityPy\resources\uncompressed.tpk=UnityPy\resources\
+            ${{env.PURELIB}}\archspec\json\cpu\*.json=archspec\json\cpu\
             i18n\*.qm=i18n\
           output-file: AzurLaneTachieHelper
     

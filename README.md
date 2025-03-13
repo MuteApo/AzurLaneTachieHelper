@@ -9,12 +9,12 @@
 
 #### Installation
 
-- Python 3.10 with following libraries:
+- Python>=3.10 with following libraries:
   - NumPy
   - Pillow
   - Pytoshop
   - UnityPy
 - Or with given env spec:
   ```shell
-  pip install -r requirements.txt --ignore-requires-python
+  pip install -U -r requirements.txt --ignore-requires-python
   ```
