@@ -1,7 +1,7 @@
 import os
 from functools import cached_property
 from math import ceil, floor
-from typing import Callable, Literal, Optional, Self
+from typing import Callable, Optional, Self
 
 from PIL import Image, ImageOps
 from PySide6.QtCore import QDir
@@ -11,6 +11,7 @@ from UnityPy.helpers.MeshHelper import MeshHandler
 
 from ..logger import logger
 from ..utility import open_and_transpose
+from .Config import Config
 from .Data import IconPreset, MetaInfo
 from .Vector import Vector2
 
@@ -150,7 +151,7 @@ class Layer:
             return Vector2(1.0, 1.0)
         else:
             return Vector2(self.access_with_fallback("m_LocalScale"))
-    
+
     @cached_property
     def accumScale(self) -> Vector2:
         if self.parent is None:
@@ -160,7 +161,7 @@ class Layer:
                 return self.parent.accumScale
             else:
                 return self.parent.globalScale
-    
+
     @cached_property
     def globalScale(self) -> Vector2:
         return self.accumScale * self.localScale
@@ -198,6 +199,14 @@ class Layer:
                     return self.parent.pivotPosition + self.anchoredPosition * self.accumScale
             else:
                 return self.parent.pivotPosition + self.localPosition * self.accumScale
+
+    @cached_property
+    def anchorPosition(self) -> Vector2:
+        if self.parent is None:
+            return Vector2(0.0, 0.0)
+        anchorMin = self.parent.size * self.anchorMin
+        anchorMax = self.parent.size * self.anchorMax
+        return self.parent.posMin + anchorMin * (1.0 - self.pivot) + anchorMax * self.pivot
 
     @cached_property
     def posMin(self) -> Vector2:
@@ -305,16 +314,9 @@ class BaseLayer:
 
 
 class FaceLayer(BaseLayer):
-    def set_data(
-        self,
-        layer: Layer,
-        prefered: Callable[[Optional[bool]], Layer],
-        adv_mode: Literal["off", "adaptive", "max"],
-        is_clip: bool,
-    ):
+    def set_data(self, layer: Layer, prefered: Callable[[Optional[bool]], Layer], is_clip: bool):
         self.layer = layer
         self.prefered = prefered
-        self.adv_mode = adv_mode
         self.is_clip = is_clip
 
     def load_face(self, path: str):
@@ -329,13 +331,14 @@ class FaceLayer(BaseLayer):
             self.repl = self.crop_face()
 
     def crop_face(self):
-        prefered = self.prefered(self.adv_mode == "max")
+        adv_mode = Config.get("system", "AdvFaceMode")
+        prefered = self.prefered(adv_mode == "max")
         img = self.full
-        if self.adv_mode == "off":
+        if adv_mode == "off":
             return img.crop(self.layer.box())
         else:
             if self.is_clip:
-                x1, y1, x2, y2 = self.layer.box(prefered.maxSize if self.adv_mode == "max" else None)
+                x1, y1, x2, y2 = self.layer.box(prefered.maxSize if adv_mode == "max" else None)
                 rgb = Image.new("RGBA", img.size)
                 rgb.paste(img.crop((x1, y1, x2 + 1, y2 + 1)), (x1, y1))
                 a = Image.new("RGBA", img.size)
@@ -354,6 +357,6 @@ class IconLayer(BaseLayer):
         if name not in ["shipyardicon", "herohrzicon", "squareicon"]:
             return False
         self.modified = True
-        self.repl = open_and_transpose(path).resize(preset.tex2d, Image.Resampling.BICUBIC)
+        self.repl = open_and_transpose(path).resize(preset.size, Image.Resampling.BICUBIC)
         logger.attr("Icon", f"'{QDir.toNativeSeparators(path)}'")
         return True

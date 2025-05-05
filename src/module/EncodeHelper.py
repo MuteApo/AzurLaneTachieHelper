@@ -8,7 +8,8 @@ from rich.progress import Progress
 from UnityPy.classes import Mesh, RectTransform, Sprite, Texture2D
 from UnityPy.enums import ClassIDType, TextureFormat
 
-from ..base import Config, FaceLayer, IconLayer, Layer
+from ..base.Config import Config
+from ..base.Layer import FaceLayer, IconLayer, Layer
 from ..utility import check_and_save
 
 
@@ -99,7 +100,7 @@ class EncodeHelper:
         data = face_rt.read_typetree()
         data["m_SizeDelta"] = prefered.sizeDelta.dict()
         data["m_Pivot"] = prefered.pivot.dict()
-        data["m_AnchoredPosition"] = (prefered.pivotPosition - layer.anchorPosition).dict()
+        data["m_AnchoredPosition"] = (prefered.pivotPosition - layer.pivotPosition + layer.anchoredPosition).dict()
         face_rt.save_typetree(data)
 
         path = os.path.join(dir, "output", "painting", os.path.basename(layer.meta.path))
@@ -129,8 +130,8 @@ class EncodeHelper:
 
         first = list(faces.values())[0]
         layer = first.layer
-        prefered = first.prefered(first.adv_mode == "max")
-        adv_mode = first.adv_mode
+        adv_mode = Config.get("system", "AdvFaceMode")
+        prefered = first.prefered(adv_mode == "max")
 
         base = layer.meta.name_stem
         path = os.path.join(os.path.dirname(layer.meta.path), "paintingface", base)
@@ -141,7 +142,8 @@ class EncodeHelper:
             if x.type == ClassIDType.Sprite:
                 sprite: Sprite = x.read()
                 if sprite.m_Name in faces:
-                    # set_sprite(sprite, faces[sprite.m_Name].repl)
+                    if Config.get("system", "AdvFaceMode") != "off":
+                        set_sprite(sprite, faces[sprite.m_Name].repl)
                     set_tex2d(sprite.m_RD.texture.read(), faces[sprite.m_Name].repl)
                     progress.update(task, advance=1)
 

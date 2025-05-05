@@ -6,7 +6,10 @@ from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QWheelEvent
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QVBoxLayout, QWidget
 
-from ..base import Config, IconLayer, IconPreset, Vector2
+from ..base.Config import Config
+from ..base.Data import IconPreset
+from ..base.Layer import IconLayer
+from ..base.Vector import Vector2
 from ..logger import logger
 
 
@@ -15,11 +18,11 @@ class Icon(QWidget):
         self, img: Image.Image, ref: Image.Image, preset: IconPreset, center: Vector2, callback: Callable[[Self], None]
     ):
         super().__init__()
-        self.setFixedSize(*preset.tex2d)
+        self.setFixedSize(*preset.size)
 
         self.img = img
         bg = Image.new("RGBA", ref.size, (255, 255, 255, 0))
-        ref = ImageChops.blend(ref, bg, 0.5).resize(preset.tex2d.tuple())
+        ref = ImageChops.blend(ref, bg, 0.5).resize(preset.size.tuple())
         self.ref = ref.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap()
         self.preset = preset
         self.center = center
@@ -44,7 +47,7 @@ class Icon(QWidget):
             self.set_last(self)
             current_pos = event.globalPos()
             if self.rotate:
-                w, h = self.preset.tex2d
+                w, h = self.preset.size
                 center = QPoint(w / 2, h / 2)
                 cur = self.mapFromGlobal(current_pos) - center
                 prev = self.mapFromGlobal(self.prev_pos) - center
@@ -89,9 +92,9 @@ class Icon(QWidget):
         x, y, w, h = self.texrect()
         if self.display:
             sub = self.img.rotate(self.preset.angle, center=(x + w / 2, y + h / 2))
-            sub = sub.crop((x, y, x + w, y + h)).resize(self.preset.tex2d)
+            sub = sub.crop((x, y, x + w, y + h)).resize(self.preset.size)
             painter.drawPixmap(0, 0, sub.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
-        painter.drawRect(0, 0, *(self.preset.tex2d - 1))
+        painter.drawRect(0, 0, *(self.preset.size - 1))
 
     def calc_angle(self, u: QPoint, v: QPoint) -> float:
         a = Vector2(u.x(), -u.y())
@@ -99,12 +102,12 @@ class Icon(QWidget):
         return math.degrees(math.asin(a.normalize().cross(b.normalize())))
 
     def texrect(self) -> tuple[float, float, float, float]:
-        w, h = self.preset.tex2d / self.preset.scale
+        w, h = self.preset.size / self.preset.scale
         x, y = self.center - Vector2(w, h) * self.preset.pivot
         return x, y, w, h
 
     def apply(self, pivot: Vector2 = Vector2(0.0, 0.0), scale: float = 0, angle: float = 0):
-        self.preset.apply(pivot / self.preset.tex2d, scale, angle)
+        self.preset.apply(pivot / self.preset.size, scale, angle)
         self.update()
 
 
@@ -117,7 +120,7 @@ class IconViewer(QDialog):
         self.presets = Config.get_presets(name)
         self.icons: dict[str, Icon] = {}
         for kind in ["shipyardicon", "herohrzicon", "squareicon"]:
-            ref = refs[kind].decode if kind in refs else Image.new("RGBA", self.presets[kind].tex2d.tuple())
+            ref = refs[kind].decode if kind in refs else Image.new("RGBA", self.presets[kind].size.tuple())
             self.icons[kind] = Icon(img, ref, self.presets[kind], center, self.setLast)
         self.last: Icon = None
 

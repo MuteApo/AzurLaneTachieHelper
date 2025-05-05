@@ -4,7 +4,9 @@ import threading
 from PySide6.QtCore import QDir, Qt
 from PySide6.QtWidgets import QHeaderView, QLabel, QSizePolicy, QTableWidget, QTableWidgetItem, QVBoxLayout
 
-from ..base import Config, FaceLayer, IconLayer, IconPreset, Layer
+from ..base.Config import Config
+from ..base.Data import IconPreset
+from ..base.Layer import FaceLayer, IconLayer, Layer
 from ..logger import logger
 from .Previewer import Previewer
 
@@ -83,17 +85,16 @@ class Paintingface(QVBoxLayout):
         self.num = len(faces)
         self.table.setMinimumHeight((self.num + 1) * 30)
         self.table.setRowCount(self.num)
-        self.adv_mode = Config.get("system", "AdvFaceMode")
         self.is_clip: dict[str, bool] = {}
         self.idx_map: dict[str, int] = {}
         self.table.itemChanged.connect(self.onItemChanged)
         self.table.itemChanged.disconnect()
         for i, (k, v) in enumerate(faces.items()):
-            v.set_data(face_layer, prefered, self.adv_mode, True)
+            v.set_data(face_layer, prefered, True)
             self.idx_map[k] = i
             item = QTableWidgetItem("")
             item.setCheckState(Qt.CheckState.Checked)
-            if self.adv_mode != "off":
+            if Config.get("system", "AdvFaceMode") != "off":
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
             else:
                 item.setFlags(~Qt.ItemFlag.ItemIsEnabled)

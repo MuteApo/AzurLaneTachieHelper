@@ -1,4 +1,4 @@
-from math import ceil, floor
+from math import floor
 
 import numpy as np
 from PIL import Image
@@ -7,7 +7,7 @@ from pytoshop.enums import ColorMode
 from pytoshop.user import nested_layers
 from rich.progress import Progress
 
-from ..base import FaceLayer, Layer
+from ..base.Layer import FaceLayer, Layer
 
 
 class DecodeHelper:
@@ -40,9 +40,9 @@ class DecodeHelper:
         return nested_layers.Image(
             name=name,
             visible=visible,
-            top=ceil(layer.meta.size.Y - y - h),
+            top=floor(layer.meta.size.Y - y - h),
             left=floor(x),
-            bottom=ceil(layer.meta.size.Y - y),
+            bottom=floor(layer.meta.size.Y - y),
             right=floor(x + w),
             channels=channels,
         )

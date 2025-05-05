@@ -5,11 +5,13 @@ from PySide6.QtCore import QDir, Qt
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import QFileDialog, QFrame, QHBoxLayout, QLabel, QMainWindow, QMessageBox, QVBoxLayout, QWidget
 
-from .base import Config
+from .base.Config import Config
 from .base.Layer import prefered_layer
 from .logger import logger
-from .module import AssetManager
-from .ui import IconViewer, Menu, Previewer, Table
+from .module.AssetManager import AssetManager
+from .ui import Menu, Table
+from .ui.IconViewer import IconViewer
+from .ui.Previewer import Previewer
 
 
 class AzurLaneTachieHelper(QMainWindow):
@@ -181,6 +183,7 @@ class AzurLaneTachieHelper(QMainWindow):
                 else:
                     flag = ~Qt.ItemFlag.ItemIsEnabled
                 self.tFace.table.item(i, 0).setFlags(flag)
+                self.tFace.onItemChanged(self.tFace.table.item(i, 0))
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():

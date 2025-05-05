@@ -19,10 +19,10 @@ class MetaInfo:
     def __str__(self):
         return f"<MetaInfo name={self.name}, size={self.size}, bias={self.bias}>: {self.path}"
 
+
 @dataclass
 class IconPreset:
-    sprite: Vector2
-    tex2d: Vector2
+    size: Vector2
     pivot: Vector2
     scale: float
     angle: float
@@ -43,14 +43,14 @@ class IconPreset:
         pivot_match = re.search(rf"pivot=\(({num}),\s*({num})\)", repr)
         scale_match = re.search(rf"scale=({num})", repr)
         angle_match = re.search(rf"angle=({num})", repr)
-        
+
         if not (pivot_match and scale_match and angle_match):
             raise ValueError("Invalid repr format")
-        
+
         pivot = Vector2(float(pivot_match.group(1)), float(pivot_match.group(2)))
         scale = float(scale_match.group(1))
         angle = float(angle_match.group(1))
-        
+
         return cls.kind2cls(kind)(pivot=pivot, scale=scale, angle=angle)
 
     @classmethod
@@ -69,34 +69,31 @@ class IconPreset:
 class ShipyardiconPreset(IconPreset):
     def __init__(
         self,
-        sprite: Vector2 = Vector2(192, 256),
-        tex2d: Vector2 = Vector2(192, 256),
+        size: Vector2 = Vector2(192, 256),
         pivot: Vector2 = Vector2(0.5, 0.7),
         scale: float = 0.6,
         angle: float = 0,
     ):
-        super().__init__(sprite, tex2d, pivot, scale, angle)
+        super().__init__(size, pivot, scale, angle)
 
 
 class HerohrziconPreset(IconPreset):
     def __init__(
         self,
-        sprite: Vector2 = Vector2(272, 80),
-        tex2d: Vector2 = Vector2(360, 80),
+        size: Vector2 = Vector2(360, 80),
         pivot: Vector2 = Vector2(0.2, 0.6),
         scale: float = 0.6,
         angle: float = 0,
     ):
-        super().__init__(sprite, tex2d, pivot, scale, angle)
+        super().__init__(size, pivot, scale, angle)
 
 
 class SquareiconPreset(IconPreset):
     def __init__(
         self,
-        sprite: Vector2 = Vector2(116, 116),
-        tex2d: Vector2 = Vector2(116, 116),
+        size: Vector2 = Vector2(116, 116),
         pivot: Vector2 = Vector2(0.5, 0.6),
         scale: float = 0.6,
         angle: float = 0,
     ):
-        super().__init__(sprite, tex2d, pivot, scale, angle)
+        super().__init__(size, pivot, scale, angle)

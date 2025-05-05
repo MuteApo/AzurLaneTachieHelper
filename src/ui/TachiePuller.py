@@ -1,12 +1,12 @@
 import os
+from zipfile import ZipFile
 
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QComboBox, QCompleter, QDialog, QHBoxLayout, QLabel, QPushButton
 
-from ..base import get_package
+from ..base.Config import get_package
 from ..logger import logger
-from ..module import AdbHelper
-from zipfile import ZipFile
+from ..module.AdbHelper import AdbHelper
 
 
 class TachiePuller(QDialog):

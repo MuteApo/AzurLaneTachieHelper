@@ -8,10 +8,10 @@ from PySide6.QtWidgets import QMenu
 from UnityPy.classes import MonoBehaviour
 from UnityPy.enums import ClassIDType
 
-from ..base import Config, get_package
+from ..base.Config import Config, get_package
 from ..logger import logger
-from ..module import AdbHelper
-from ..ui import TachiePuller
+from ..module.AdbHelper import AdbHelper
+from ..ui.TachiePuller import TachiePuller
 
 
 def pull_tachie():

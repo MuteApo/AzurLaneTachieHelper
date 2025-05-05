@@ -8,8 +8,10 @@ from PIL import Image
 from UnityPy.classes import GameObject, MonoBehaviour, RectTransform, Texture2D
 from UnityPy.enums import ClassIDType
 
-from ..base import Config, FaceLayer, IconLayer, IconPreset, Layer, MetaInfo, Vector2
-from ..base.Layer import prefered_layer
+from ..base.Config import Config
+from ..base.Data import IconPreset, MetaInfo
+from ..base.Layer import FaceLayer, IconLayer, Layer, prefered_layer
+from ..base.Vector import Vector2
 from ..logger import logger
 from ..utility import open_and_transpose
 from .AdbHelper import AdbHelper
@@ -113,7 +115,7 @@ class AssetManager:
 
     def clip_icons(self, workload: str, presets: dict[str, IconPreset]) -> list[str]:
         def clip(kind: str, preset: IconPreset):
-            w, h = preset.tex2d / preset.scale
+            w, h = preset.size / preset.scale
             x, y = center - Vector2(w, h) * preset.pivot
 
             path = os.path.join(os.path.dirname(self.meta.path), f"{kind}.png")

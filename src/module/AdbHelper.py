@@ -2,7 +2,7 @@ import os
 import re
 import subprocess
 
-from ..base import Config, get_package, get_serial
+from ..base.Config import Config, get_package, get_serial
 from ..logger import logger
 
 

@@ -1,4 +1,5 @@
 import os
+from functools import partial
 from typing import Callable
 
 from PIL import Image, ImageOps
@@ -6,7 +7,7 @@ from PySide6.QtCore import QDir, Qt
 from PySide6.QtGui import QAction, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
 
-from ..base import FaceLayer, IconLayer, Layer
+from ..base.Layer import FaceLayer, IconLayer, Layer
 from ..utility import exists
 
 
@@ -37,9 +38,15 @@ class Previewer(QWidget):
     def set_callback(self, *cbs: list[Callable[[str], bool]]):
         self.load_painting, self.load_face, self.load_icon = cbs
 
+    def contain(self, x, size):
+        return ImageOps.contain(x, size, Image.Resampling.BICUBIC)
+
+    def scale(self, x, factor):
+        return ImageOps.scale(x, factor, Image.Resampling.BICUBIC)
+
     def display_painting(self, layer: Layer):
         self.layer = layer
-        self.fit = lambda x: ImageOps.contain(x, (layer.spriteSize / 3).round(), Image.Resampling.BICUBIC)
+        self.fit = partial(self.contain, size=(layer.spriteSize / 3).round())
         self.lPath.setText(f"Path: {QDir.toNativeSeparators(layer.path)}")
         self.lName.setText(f"Name: {layer.texture2D.m_Name}")
         self.lWidth.setText(f"Width: {layer.spriteSize.X}")
@@ -48,7 +55,7 @@ class Previewer(QWidget):
 
     def display_face(self, layer: FaceLayer):
         self.layer = layer
-        self.fit = lambda x: ImageOps.scale(x, 0.4, Image.Resampling.BICUBIC)
+        self.fit = partial(self.scale, factor=0.4)
         self.lName.setText(f"Name: {layer.name}")
         self.lWidth.setText(f"Width: {layer.decode.size[0]}")
         self.lHeight.setText(f"Height: {layer.decode.size[1]}")
