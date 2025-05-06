@@ -8,7 +8,8 @@ from rich.progress import Progress
 from UnityPy.classes import Mesh, RectTransform, Sprite, Texture2D
 from UnityPy.enums import ClassIDType, TextureFormat
 
-from ..base.Config import Config
+from ..base import Config
+from ..base.Data import FaceModeType
 from ..base.Layer import FaceLayer, IconLayer, Layer
 from ..utility import check_and_save
 
@@ -70,7 +71,7 @@ class EncodeHelper:
                 set_mesh(x, layer.repl)
 
         path = os.path.join(dir, "output", "painting", os.path.basename(path))
-        check_and_save(path, env.file.save(Config.get("system", "Compression")))
+        check_and_save(path, env.file.save(Config.get_compression()))
 
         return path
 
@@ -104,7 +105,7 @@ class EncodeHelper:
         face_rt.save_typetree(data)
 
         path = os.path.join(dir, "output", "painting", os.path.basename(layer.meta.path))
-        check_and_save(path, env.file.save(Config.get("system", "Compression")))
+        check_and_save(path, env.file.save(Config.get_compression()))
 
         return [path]
 
@@ -130,8 +131,8 @@ class EncodeHelper:
 
         first = list(faces.values())[0]
         layer = first.layer
-        adv_mode = Config.get("system", "AdvFaceMode")
-        prefered = first.prefered(adv_mode == "max")
+        face_mode = Config.get_face_mode()
+        prefered = first.prefered(face_mode.is_maximum())
 
         base = layer.meta.name_stem
         path = os.path.join(os.path.dirname(layer.meta.path), "paintingface", base)
@@ -142,15 +143,15 @@ class EncodeHelper:
             if x.type == ClassIDType.Sprite:
                 sprite: Sprite = x.read()
                 if sprite.m_Name in faces:
-                    if Config.get("system", "AdvFaceMode") != "off":
+                    if face_mode != FaceModeType.Off:
                         set_sprite(sprite, faces[sprite.m_Name].repl)
                     set_tex2d(sprite.m_RD.texture.read(), faces[sprite.m_Name].repl)
                     progress.update(task, advance=1)
 
         path = os.path.join(dir, "output", "paintingface", base)
-        check_and_save(path, env.file.save(Config.get("system", "Compression")))
+        check_and_save(path, env.file.save(Config.get_compression()))
 
-        if adv_mode != "off":
+        if face_mode != FaceModeType.Off:
             return EncodeHelper.replace_meta(dir, layer, prefered) + [path]
         else:
             return [path]
@@ -180,7 +181,7 @@ class EncodeHelper:
             set_tex2d(v.read().m_RD.texture.read(), icon.repl)
 
         path = os.path.join(dir, "output", kind, icon.layer.meta.name_stem)
-        check_and_save(path, env.file.save(Config.get("system", "Compression")))
+        check_and_save(path, env.file.save(Config.get_compression()))
 
         return path
 

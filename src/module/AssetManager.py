@@ -8,7 +8,7 @@ from PIL import Image
 from UnityPy.classes import GameObject, MonoBehaviour, RectTransform, Texture2D
 from UnityPy.enums import ClassIDType
 
-from ..base.Config import Config
+from ..base import Config
 from ..base.Data import IconPreset, MetaInfo
 from ..base.Layer import FaceLayer, IconLayer, Layer, prefered_layer
 from ..base.Vector import Vector2
@@ -141,7 +141,7 @@ class AssetManager:
         return output
 
     def prepare_icon(self, file: str) -> tuple[Image.Image, Vector2]:
-        prefered = prefered_layer(self.layers, self.face_layer, Config.get("system", "AdvFaceMode") == "max")
+        prefered = prefered_layer(self.layers, self.face_layer, Config.get_face_mode().is_maximum())
         full = open_and_transpose(file).crop(prefered.box())
         center = self.face_layer.posMin - prefered.posMin + self.face_layer.sizeDelta / 2
         return full.resize(prefered.maxSize.round()), center

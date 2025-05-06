@@ -2,7 +2,7 @@ import os
 import re
 import subprocess
 
-from ..base.Config import Config, get_package, get_serial
+from ..base import Config
 from ..logger import logger
 
 
@@ -23,10 +23,10 @@ class AdbHelper:
 
     @classmethod
     def adb(cls, *args: str, progress: bool = False) -> str:
-        cmd = [Config.get("system", "AdbPath"), "-s", get_serial(), *args]
+        cmd = [Config.get_adb_path(), "-s", Config.get_serial(), *args]
 
         stderr = None if progress else subprocess.DEVNULL
-        if Config.get("system", "Verbose"):
+        if Config.get_verbosity():
             logger.info(f"[bold][Subprocess][/bold] {" ".join(cmd)}")
             output = subprocess.check_output(cmd, stderr=stderr).decode("utf-8").strip()
             logger.info(f"[bold][Subprocess][/bold] {output}")
@@ -57,14 +57,14 @@ class AdbHelper:
         devices = cls.devices(serial_only=True)
         logger.info(f"[bold][AdbHelper][/bold] Available devices: {", ".join(devices)}")
 
-        serial = get_serial()
+        serial = Config.get_serial()
         if serial == "auto":
             serial = cls.detect()
 
         if serial not in devices:
             serial = devices[0]
 
-        Config.set("system", "Serial", serial)
+        Config.set_serial(serial)
         cls.adb("connect", serial)
         cls._connected = True
 
@@ -89,7 +89,7 @@ class AdbHelper:
         succeeded, failed = [], []
         for file in files:
             if add_prefix:
-                path = f"/sdcard/Android/data/{get_package()}/files/AssetBundles/{file}"
+                path = f"/sdcard/Android/data/{Config.get_package()}/files/AssetBundles/{file}"
                 folder = f"{dst_dir}/{os.path.dirname(file)}"
                 os.makedirs(folder, exist_ok=True)
             else:
@@ -115,10 +115,10 @@ class AdbHelper:
 
         devices = cls.devices(serial_only=True)
         if devices != []:
-            return Config.set("system", "Serial", devices[0])
+            return Config.set_serial(devices[0])
 
         for serial in cls._serials:
             if re.match(r"^(already )?connected to", cls.adb("connect", serial)):
-                return Config.set("system", "Serial", serial)
+                return Config.set_serial(serial)
 
         raise ConnectionError(f"Cannot decide emulator, as not in {cls._serials}")

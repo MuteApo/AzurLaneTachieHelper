@@ -2,10 +2,17 @@ import os
 import threading
 
 from PySide6.QtCore import QDir, Qt
-from PySide6.QtWidgets import QHeaderView, QLabel, QSizePolicy, QTableWidget, QTableWidgetItem, QVBoxLayout
+from PySide6.QtWidgets import (
+    QHeaderView,
+    QLabel,
+    QSizePolicy,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+)
 
-from ..base.Config import Config
-from ..base.Data import IconPreset
+from ..base import Config
+from ..base.Data import FaceModeType, IconPreset
 from ..base.Layer import FaceLayer, IconLayer, Layer
 from ..logger import logger
 from .Previewer import Previewer
@@ -94,7 +101,7 @@ class Paintingface(QVBoxLayout):
             self.idx_map[k] = i
             item = QTableWidgetItem("")
             item.setCheckState(Qt.CheckState.Checked)
-            if Config.get("system", "AdvFaceMode") != "off":
+            if Config.get_face_mode() != FaceModeType.Off:
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
             else:
                 item.setFlags(~Qt.ItemFlag.ItemIsEnabled)

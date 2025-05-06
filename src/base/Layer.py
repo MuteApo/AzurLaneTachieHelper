@@ -5,13 +5,21 @@ from typing import Callable, Optional, Self
 
 from PIL import Image, ImageOps
 from PySide6.QtCore import QDir
-from UnityPy.classes import GameObject, Mesh, MonoBehaviour, PPtr, RectTransform, Sprite, Texture2D
+from UnityPy.classes import (
+    GameObject,
+    Mesh,
+    MonoBehaviour,
+    PPtr,
+    RectTransform,
+    Sprite,
+    Texture2D,
+)
 from UnityPy.enums import ClassIDType
 from UnityPy.helpers.MeshHelper import MeshHandler
 
 from ..logger import logger
 from ..utility import open_and_transpose
-from .Config import Config
+from . import Config
 from .Data import IconPreset, MetaInfo
 from .Vector import Vector2
 
@@ -331,14 +339,14 @@ class FaceLayer(BaseLayer):
             self.repl = self.crop_face()
 
     def crop_face(self):
-        adv_mode = Config.get("system", "AdvFaceMode")
-        prefered = self.prefered(adv_mode == "max")
+        face_mode = Config.get_face_mode()
+        prefered = self.prefered(face_mode.is_maximum())
         img = self.full
-        if adv_mode == "off":
+        if face_mode.is_off():
             return img.crop(self.layer.box())
         else:
             if self.is_clip:
-                x1, y1, x2, y2 = self.layer.box(prefered.maxSize if adv_mode == "max" else None)
+                x1, y1, x2, y2 = self.layer.box(prefered.maxSize if face_mode.is_maximum() else None)
                 rgb = Image.new("RGBA", img.size)
                 rgb.paste(img.crop((x1, y1, x2 + 1, y2 + 1)), (x1, y1))
                 a = Image.new("RGBA", img.size)

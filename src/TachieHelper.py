@@ -3,9 +3,19 @@ from functools import partial
 
 from PySide6.QtCore import QDir, Qt
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
-from PySide6.QtWidgets import QFileDialog, QFrame, QHBoxLayout, QLabel, QMainWindow, QMessageBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QVBoxLayout,
+    QWidget,
+)
 
-from .base.Config import Config
+from .base import Config
+from .base.Data import FaceModeType
 from .base.Layer import prefered_layer
 from .logger import logger
 from .module.AssetManager import AssetManager
@@ -24,7 +34,11 @@ class AzurLaneTachieHelper(QMainWindow):
         Config.init()
         self.asset_manager = AssetManager()
 
-        self.advmode_map = {"off": self.tr("OFF"), "adaptive": self.tr("Adaptive"), "max": self.tr("Max")}
+        self.face_mode_map = {
+            FaceModeType.Off: self.tr("Off"),
+            FaceModeType.Adaptive: self.tr("Adaptive"),
+            FaceModeType.Maximum: self.tr("Maximum"),
+        }
         self.server_map = {"CN": self.tr("CN"), "JP": self.tr("JP"), "EN": self.tr("EN")}
 
         self._init_statusbar()
@@ -33,11 +47,11 @@ class AzurLaneTachieHelper(QMainWindow):
 
     def _init_statusbar(self):
         self.msg_file = QLabel(self.tr("Ready"))
-        self.msg_advmode = QLabel()
+        self.msg_face_mode = QLabel()
         self.msg_server = QLabel()
 
         self.statusBar().addWidget(self.msg_file)
-        self.statusBar().addPermanentWidget(self.msg_advmode)
+        self.statusBar().addPermanentWidget(self.msg_face_mode)
         self.statusBar().addPermanentWidget(self.msg_server)
 
     def _init_ui(self):
@@ -67,15 +81,18 @@ class AzurLaneTachieHelper(QMainWindow):
     def _init_menu(self):
         self.mFile = Menu.File(self.onOpenMetadata, self.onImportPainting, self.onImportFaces, self.onImportIcons)
         self.mEdit = Menu.Edit(self.onEditClip, self.onEditDecode, self.onEditEncode)
-        self.mOption = Menu.Option(self.onToggleAdvMode, self.refresh_statusbar)
+        self.mOption = Menu.Option(self.onToggleFaceMode, self.refresh_statusbar)
 
         self.menuBar().addMenu(self.mFile)
         self.menuBar().addMenu(self.mEdit)
         self.menuBar().addMenu(self.mOption)
 
     def refresh_statusbar(self):
-        self.msg_advmode.setText(self.tr("Advanced Paintingface Mode") + self.tr(": ") + self.advmode_map[Config.get("system", "AdvFaceMode")])
-        self.msg_server.setText(self.tr("Server") + self.tr(": ") + self.server_map[Config.get("system", "Server")])
+        face_mode =  self.face_mode_map[Config.get_face_mode()]
+        self.msg_face_mode.setText(self.tr("Paintingface Mode") + self.tr(": ") + face_mode)
+        
+        server = self.server_map[Config.get_server()]
+        self.msg_server.setText(self.tr("Server") + self.tr(": ") + server)
 
     def show_path(self, text: str):
         msg_box = QMessageBox()
@@ -85,7 +102,7 @@ class AzurLaneTachieHelper(QMainWindow):
         msg_box.exec()
 
     def open_metadata(self, file: str):
-        Config.set("system", "RecentPath", file)
+        Config.set_recent_path(file)
         name = os.path.basename(file)
         self.msg_file.setText(f"({name}) {QDir.toNativeSeparators(file)}")
         logger.hr(name, 1)
@@ -112,13 +129,13 @@ class AzurLaneTachieHelper(QMainWindow):
         self.mEdit.aClipIcons.setEnabled(True)
 
     def onOpenMetadata(self):
-        last = Config.get("system", "RecentPath")
+        last = Config.get_recent_path()
         file, _ = QFileDialog.getOpenFileName(self, self.tr("Select Metadata"), last)
         if file:
             self.open_metadata(file)
 
     def onImportPainting(self):
-        last = os.path.dirname(Config.get("system", "RecentPath"))
+        last = os.path.dirname(Config.get_recent_path())
         files, _ = QFileDialog.getOpenFileNames(self, self.tr("Select Paintings"), last, "Image (*.png)")
         if files:
             flag = False
@@ -130,7 +147,7 @@ class AzurLaneTachieHelper(QMainWindow):
                 self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onImportFaces(self):
-        last = os.path.dirname(Config.get("system", "RecentPath"))
+        last = os.path.dirname(Config.get_recent_path())
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Paintingface Folder"), last)
         if dir:
             if self.tFace.load(dir):
@@ -147,13 +164,13 @@ class AzurLaneTachieHelper(QMainWindow):
             self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onImportIcons(self):
-        last = os.path.dirname(Config.get("system", "RecentPath"))
+        last = os.path.dirname(Config.get_recent_path())
         files, _ = QFileDialog.getOpenFileNames(self, self.tr("Select Icons"), last, "Image (*.png)")
         if files:
             self.import_icon(files)
 
     def onEditClip(self):
-        last = os.path.dirname(Config.get("system", "RecentPath"))
+        last = os.path.dirname(Config.get_recent_path())
         file, _ = QFileDialog.getOpenFileName(self, self.tr("Select Reference"), last, "Image (*.png)")
         if file:
             full, center = self.asset_manager.prepare_icon(file)
@@ -175,7 +192,7 @@ class AzurLaneTachieHelper(QMainWindow):
         res = self.asset_manager.encode(base)
         self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
 
-    def onToggleAdvMode(self, value: bool):
+    def onToggleFaceMode(self, value: bool):
         if self.tFace.table.rowCount() > 0:
             for i in range(self.tFace.num):
                 if value:

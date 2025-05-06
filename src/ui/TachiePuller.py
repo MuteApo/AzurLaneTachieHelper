@@ -2,9 +2,16 @@ import os
 from zipfile import ZipFile
 
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QComboBox, QCompleter, QDialog, QHBoxLayout, QLabel, QPushButton
+from PySide6.QtWidgets import (
+    QComboBox,
+    QCompleter,
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+)
 
-from ..base.Config import get_package
+from ..base import Config
 from ..logger import logger
 from ..module.AdbHelper import AdbHelper
 
@@ -20,7 +27,7 @@ class TachiePuller(QDialog):
         self.metas = sorted([k.removeprefix("painting/") for k in data.keys() if not k.endswith("_tex")])
         self.names = list(filter(lambda x: not x.endswith("_n") and not x.endswith("_hx"), self.metas))
 
-        self.label = QLabel(get_package() + ":")
+        self.label = QLabel(Config.get_package() + ":")
 
         self.completer = QCompleter(self.names)
         self.completer.setMaxVisibleItems(20)
@@ -61,7 +68,7 @@ class TachiePuller(QDialog):
         _, failed = AdbHelper.pull(*deps, *icons, dst_dir=f"projects/{name}", add_prefix=True)
         if failed != []:
             if not os.path.exists("base.apk"):
-                apk = AdbHelper.exec_out("ls", "-R", f"/data/app/*/{get_package()}*/*.apk", as_root=True)
+                apk = AdbHelper.exec_out("ls", "-R", f"/data/app/*/{Config.get_package()}*/*.apk", as_root=True)
                 AdbHelper.pull(apk, progress=True, log=False)
 
             with ZipFile("base.apk") as z:

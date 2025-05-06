@@ -1,61 +1,104 @@
 from PySide6.QtCore import QSettings
 
-from .Data import IconPreset
+from .Data import FaceModeType, IconPreset
+
+settings = QSettings("./config.ini", QSettings.Format.IniFormat)
+default = {
+    "system/RecentPath": "",
+    "system/Compression": "original",
+    "system/Verbose": "false",
+    "system/FaceMode": "off",
+    "system/AdbPath": "3rdparty/adb.exe",
+    "system/Serial": "auto",
+    "system/Server": "CN",
+}
 
 
-class Config:
-    _settings = QSettings("./config.ini", QSettings.Format.IniFormat)
-    _default = {
-        "system/RecentPath": "",
-        "system/Compression": "original",
-        "system/Verbose": "false",
-        "system/AdvFaceMode": "off",
-        "system/AdbPath": "3rdparty/adb.exe",
-        "system/Serial": "auto",
-        "system/Server": "CN",
-    }
+def init():
+    for k, v in default.items():
+        if not settings.contains(k):
+            settings.setValue(k, v)
 
-    @classmethod
-    def init(cls):
-        for k, v in cls._default.items():
-            if not cls._settings.contains(k):
-                cls._settings.setValue(k, v)
 
-    @classmethod
-    def get(cls, group: str, key: str):
-        value = cls._settings.value(f"{group}/{key}")
-        if value == "true":
-            return True
-        elif value == "false":
-            return False
-        return value
+def get_config(group: str, key: str):
+    value = settings.value(f"{group}/{key}")
+    if value == "true":
+        return True
+    elif value == "false":
+        return False
+    return value
 
-    @classmethod
-    def set(cls, group: str, key: str, value):
-        cls._settings.setValue(f"{group}/{key}", value)
-        return cls.get(group, key)
 
-    @classmethod
-    def get_presets(cls, group: str) -> dict[str, IconPreset]:
-        presets = {}
-        cls._settings.beginGroup(group)
-        for kind in ["shipyardicon", "herohrzicon", "squareicon"]:
-            presets[kind] = IconPreset.from_config(kind, cls._settings.value(kind, None))
-        cls._settings.endGroup()
-        return presets
+def set_config(group: str, key: str, value):
+    settings.setValue(f"{group}/{key}", value)
+    return get_config(group, key)
 
-    @classmethod
-    def set_presets(cls, group: str, presets: dict[str, IconPreset]):
-        cls._settings.beginGroup(group)
-        for k, v in presets.items():
-            cls._settings.setValue(k, v.__repr__())
-        cls._settings.endGroup()
+
+def get_presets(group: str) -> dict[str, IconPreset]:
+    presets = {}
+    settings.beginGroup(group)
+    for kind in ["shipyardicon", "herohrzicon", "squareicon"]:
+        presets[kind] = IconPreset.from_config(kind, settings.value(kind, None))
+    settings.endGroup()
+    return presets
+
+
+def set_presets(group: str, presets: dict[str, IconPreset]):
+    settings.beginGroup(group)
+    for k, v in presets.items():
+        settings.setValue(k, v.__repr__())
+    settings.endGroup()
+
+
+def get_recent_path() -> str:
+    return get_config("system", "RecentPath")
+
+
+def set_recent_path(file: str):
+    set_config("system", "RecentPath", file)
+
+
+def get_compression() -> str:
+    return get_config("system", "Compression")
+
+
+def get_verbosity() -> bool:
+    return get_config("system", "Verbose")
+
+
+def get_face_mode() -> FaceModeType:
+    face_mode = get_config("system", "FaceMode").lower()
+    return {"off": FaceModeType.Off, "adaptive": FaceModeType.Adaptive, "maximum": FaceModeType.Maximum}[face_mode]
+
+
+def set_face_mode(mode: FaceModeType) -> FaceModeType:
+    mode_str = {FaceModeType.Off: "off", FaceModeType.Adaptive: "adaptive", FaceModeType.Maximum: "maximum"}[mode]
+    set_config("system", "FaceMode", mode_str)
+
+
+def get_adb_path() -> str:
+    return get_config("system", "AdbPath")
 
 
 def get_serial() -> str:
-    return Config.get("system", "Serial").lower()
+    return get_config("system", "Serial").lower()
+
+
+def set_serial(serial: str):
+    set_config("system", "Serial", serial)
+
+
+def get_server() -> str:
+    return get_config("system", "Server").upper()
+
+
+def set_server(server: str):
+    set_config("system", "Server", server)
 
 
 def get_package() -> str:
-    server = Config.get("system", "Server").upper()
-    return {"CN": "com.bilibili.azurlane", "JP": "com.YoStarJP.AzurLane", "EN": "com.YoStarEN.AzurLane"}[server]
+    return {
+        "CN": "com.bilibili.azurlane",
+        "JP": "com.YoStarJP.AzurLane",
+        "EN": "com.YoStarEN.AzurLane",
+    }[get_server()]

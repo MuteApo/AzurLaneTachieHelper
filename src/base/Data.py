@@ -1,8 +1,24 @@
 import re
 from dataclasses import dataclass
+from enum import Enum
 from typing import Optional, Self
 
 from .Vector import Vector2
+
+
+class FaceModeType(Enum):
+    Off = 0
+    Adaptive = 1
+    Maximum = 2
+
+    def is_off(self):
+        return self == FaceModeType.Off
+
+    def is_adaptive(self):
+        return self == FaceModeType.Adaptive
+
+    def is_maximum(self):
+        return self == FaceModeType.Maximum
 
 
 @dataclass

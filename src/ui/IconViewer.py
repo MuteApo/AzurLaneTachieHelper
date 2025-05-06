@@ -3,10 +3,17 @@ from typing import Callable, Self
 
 from PIL import Image, ImageChops
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPixmap, QWheelEvent
+from PySide6.QtGui import (
+    QKeyEvent,
+    QMouseEvent,
+    QPainter,
+    QPaintEvent,
+    QPixmap,
+    QWheelEvent,
+)
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QVBoxLayout, QWidget
 
-from ..base.Config import Config
+from ..base import Config
 from ..base.Data import IconPreset
 from ..base.Layer import IconLayer
 from ..base.Vector import Vector2
