@@ -1,15 +1,14 @@
 import os
 import re
-import threading
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 import UnityPy
 from PIL import Image
-from UnityPy.classes import GameObject, MonoBehaviour, RectTransform, Texture2D
+from UnityPy.classes import GameObject, MonoBehaviour, Texture2D
 from UnityPy.enums import ClassIDType
 
-from ..base import Config
-from ..base.Data import IconPreset, MetaInfo
+from ..base.Data import IconPreset, IconPresets, MetaInfo
 from ..base.Layer import FaceLayer, IconLayer, Layer, prefered_layer
 from ..base.Vector import Vector2
 from ..logger import logger
@@ -71,10 +70,7 @@ class AssetManager:
         logger.attr("Dependencies", list(self.deps.keys()))
 
         base_go: GameObject = list(env.container.values())[0].read()
-        base_rt: RectTransform = base_go.m_Component[0].component.read()
-        base_layer = Layer(base_rt)
-        # base_layer.traverse(lambda x: print("    " * x.depth, x.__repr__(), x.rt.__class__.__name__))
-        # base_layer.traverse(lambda x: logger.attr(x.__repr__(), x.__str__()))
+        base_layer = Layer(base_go.m_Component[0].component)
 
         self.layers = base_layer.flatten()
         if "face" not in [x.name for x in self.layers.values()]:
@@ -88,15 +84,6 @@ class AssetManager:
             tex2ds: list[Texture2D] = [x.read() for x in env.objects if x.type == ClassIDType.Texture2D]
             self.faces = {x.m_Name: FaceLayer(x, path) for x in tex2ds if re.match(r"^0|([1-9]\d*)$", x.m_Name)}
             self.faces = {k: v for k, v in sorted(self.faces.items(), key=lambda x: int(x[0]))}
-
-        for kind in ["shipyardicon", "herohrzicon", "squareicon"]:
-            path = os.path.join(os.path.dirname(file), kind, base)
-            if not os.path.exists(path):
-                path += ".ys"
-            if os.path.exists(path):
-                env = UnityPy.load(path)
-                tex2ds: list[Texture2D] = [x.read() for x in env.objects if x.type == ClassIDType.Texture2D]
-                self.icons |= {kind: IconLayer(x, path) for x in tex2ds if re.match(f"(?i)^{base}$", x.m_Name)}
 
         x_min = min([_.posMin.X for _ in self.layers.values()])
         x_max = max([_.posMax.X for _ in self.layers.values()])
@@ -113,7 +100,23 @@ class AssetManager:
                 dep = f"painting/{v.texture2D.m_Name}_tex".lower()
                 v.path = self.deps[dep] if dep in self.deps else file
 
-    def clip_icons(self, workload: str, presets: dict[str, IconPreset]) -> list[str]:
+        presets = IconPresets()
+        for k, v in presets.to_dict().items():
+            path = os.path.join(os.path.dirname(file), k, base)
+            if not os.path.exists(path):
+                path += ".ys"
+            if os.path.exists(path):
+                env = UnityPy.load(path)
+                for x in env.objects:
+                    if x.type == ClassIDType.Texture2D:
+                        tex2d: Texture2D = x.read()
+                        if re.match(f"(?i)^{base}$", tex2d.m_Name):
+                            icon_layer = IconLayer(tex2d, path)
+                self.icons[k] = icon_layer
+
+    def clip_icons(self, workload: str, presets: IconPresets) -> list[str]:
+        full, center = self.prepare_icon(workload)
+
         def clip(kind: str, preset: IconPreset):
             w, h = preset.size / preset.scale
             x, y = center - Vector2(w, h) * preset.pivot
@@ -128,20 +131,18 @@ class AssetManager:
                 data[..., :3] = 0
                 data[..., 3] = np.where(data[..., 3] > 76, 76, data[..., 3])
                 img = Image.fromarray(data)
-                img.paste(sub, mask=sub)
+                img.paste(sub)
             img.crop((x, y, x + w, y + h)).transpose(Image.Transpose.FLIP_TOP_BOTTOM).save(path)
-            output.append(path)
 
-        full, center = self.prepare_icon(workload)
-        output = []
-        tasks = [threading.Thread(target=clip, args=(k, v)) for k, v in presets.items()]
-        [_.start() for _ in tasks]
-        [_.join() for _ in tasks]
+            return path
 
-        return output
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            output = executor.map(clip, presets.to_dict().keys(), presets.to_dict().values())
+
+        return list(output)
 
     def prepare_icon(self, file: str) -> tuple[Image.Image, Vector2]:
-        prefered = prefered_layer(self.layers, self.face_layer, Config.get_face_mode().is_maximum())
-        full = open_and_transpose(file).crop(prefered.box())
+        prefered = prefered_layer(self.layers, self.face_layer)
+        full = open_and_transpose(file).crop(prefered.box)
         center = self.face_layer.posMin - prefered.posMin + self.face_layer.sizeDelta / 2
         return full.resize(prefered.maxSize.round()), center

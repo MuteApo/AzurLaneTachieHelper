@@ -95,10 +95,10 @@ class FaceMode(QMenu):
 
         self.cbs = cbs
         self.aOff = QAction(self.tr("Off"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Off))
-        self.aAdaptive = QAction(self.tr("Adaptive"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Adaptive))
-        self.aMax = QAction(self.tr("Maximum"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Maximum))
+        self.aAuto = QAction(self.tr("Auto"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Auto))
+        self.aCustom = QAction(self.tr("Custom"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Custom))
 
-        self.addActions([self.aOff, self.aAdaptive, self.aMax])
+        self.addActions([self.aOff, self.aAuto, self.aCustom])
         self.flush()
 
     def toggle(self, _: bool, mode: FaceModeType):
@@ -108,9 +108,9 @@ class FaceMode(QMenu):
 
     def flush(self):
         mode = Config.get_face_mode()
-        self.aOff.setChecked(mode.is_off())
-        self.aAdaptive.setChecked(mode.is_adaptive())
-        self.aMax.setChecked(mode.is_maximum())
+        self.aOff.setChecked(mode == FaceModeType.Off)
+        self.aAuto.setChecked(mode == FaceModeType.Auto)
+        self.aCustom.setChecked(mode == FaceModeType.Custom)
         self.cbs[1]()
 
 

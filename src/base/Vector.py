@@ -27,6 +27,9 @@ class Vector2(Generic[T]):
     def __repr__(self):
         return f"({self.X}, {self.Y})"
 
+    def __format__(self, format_spec):
+        return f"({self.X:{format_spec}}, {self.Y:{format_spec}})"
+
     def __len__(self):
         return 2
 

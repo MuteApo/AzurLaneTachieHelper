@@ -124,11 +124,12 @@ class IconViewer(QDialog):
         self.setWindowTitle(self.tr("AzurLane Tachie Helper"))
         self.setWindowIcon(QPixmap("ico/cheshire.ico"))
 
-        self.presets = Config.get_presets(name)
         self.icons: dict[str, Icon] = {}
-        for kind in ["shipyardicon", "herohrzicon", "squareicon"]:
-            ref = refs[kind].decode if kind in refs else Image.new("RGBA", self.presets[kind].size.tuple())
-            self.icons[kind] = Icon(img, ref, self.presets[kind], center, self.setLast)
+        self.presets = Config.get_presets(name)
+        for k, v in self.presets.to_dict().items():
+            ref = refs[k].decode if k in refs else Image.new("RGBA", v.size.tuple())
+            v.size = Vector2(ref.size)
+            self.icons[k] = Icon(img, ref, v, center, self.setLast)
         self.last: Icon = None
 
         self.confirm = QPushButton(self.tr("Clip"), clicked=self.onClickClip)
@@ -162,7 +163,7 @@ class IconViewer(QDialog):
             self.last.keyReleaseEvent(event)
 
     def onClickClip(self):
-        for k, v in self.presets.items():
+        for k, v in self.presets.to_dict().items():
             logger.attr(k, v)
         self.accept()
 

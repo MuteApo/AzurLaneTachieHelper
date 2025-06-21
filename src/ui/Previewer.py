@@ -38,15 +38,9 @@ class Previewer(QWidget):
     def set_callback(self, *cbs: list[Callable[[str], bool]]):
         self.load_painting, self.load_face, self.load_icon = cbs
 
-    def contain(self, x, size):
-        return ImageOps.contain(x, size, Image.Resampling.BICUBIC)
-
-    def scale(self, x, factor):
-        return ImageOps.scale(x, factor, Image.Resampling.BICUBIC)
-
     def display_painting(self, layer: Layer):
         self.layer = layer
-        self.fit = partial(self.contain, size=(layer.spriteSize / 3).round())
+        self.fit = partial(ImageOps.scale, factor=0.25, resample=Image.Resampling.BICUBIC)
         self.lPath.setText(f"Path: {QDir.toNativeSeparators(layer.path)}")
         self.lName.setText(f"Name: {layer.texture2D.m_Name}")
         self.lWidth.setText(f"Width: {layer.spriteSize.X}")
@@ -55,7 +49,7 @@ class Previewer(QWidget):
 
     def display_face(self, layer: FaceLayer):
         self.layer = layer
-        self.fit = partial(self.scale, factor=0.4)
+        self.fit = partial(ImageOps.scale, factor=0.25, resample=Image.Resampling.BICUBIC)
         self.lName.setText(f"Name: {layer.name}")
         self.lWidth.setText(f"Width: {layer.decode.size[0]}")
         self.lHeight.setText(f"Height: {layer.decode.size[1]}")

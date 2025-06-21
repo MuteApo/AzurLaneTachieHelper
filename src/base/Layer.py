@@ -20,16 +20,16 @@ from UnityPy.helpers.MeshHelper import MeshHandler
 from ..logger import logger
 from ..utility import open_and_transpose
 from . import Config
-from .Data import IconPreset, MetaInfo
+from .Data import FaceModeType, MetaInfo
 from .Vector import Vector2
 
 
 class Layer:
-    def __init__(self, rt: RectTransform, parent: Self = None):
-        self.rt = rt
+    def __init__(self, rt: PPtr[RectTransform], parent: Self = None):
+        self.rt = rt.read()
         self.parent = parent
         self.depth = 1 if parent is None else parent.depth + 1
-        self.child: list[Self] = [Layer(x.read(), self) for x in rt.m_Children]
+        self.child = [Layer(x, self) for x in self.rt.m_Children]
         self.path: str = "Not Found"
         self.meta: MetaInfo = None
         self.modified: bool = False
@@ -284,13 +284,14 @@ class Layer:
         dec = self.tex.transform(size, Image.Transform.MESH, self.buffer, Image.Resampling.BICUBIC)
         return ImageOps.contain(dec, self.maxSize.round())
 
-    def box(self, size: Optional[Vector2] = None) -> tuple[int, int, int, int]:
+    @cached_property
+    def box(self) -> tuple[int, int, int, int]:
         x, y = self.posBiased
-        w, h = self.sizeDelta if size is None else size
+        w, h = self.sizeDelta
         return floor(x), ceil(y), floor(x + w), ceil(y + h)
 
     def crop(self, img: Image.Image) -> Image.Image:
-        return img.crop(self.box(self.maxSize)).resize(self.spriteSize.round(), Image.Resampling.BICUBIC)
+        return img.crop(self.box).resize(self.spriteSize.round(), Image.Resampling.BICUBIC)
 
     def load(self, path: str) -> bool:
         name, _ = os.path.splitext(os.path.basename(path))
@@ -302,9 +303,9 @@ class Layer:
         return True
 
 
-def prefered_layer(layers: dict[str, Layer], layer: Layer, reverse: bool = False) -> Layer:
+def prefered_layer(layers: dict[str, Layer], layer: Layer) -> Layer:
     expands = [x for x in layers.values() if layer in x and x.name != "face"]
-    return sorted(expands, key=lambda v: v.maxSize.prod())[-1 if reverse else 0]
+    return sorted(expands, key=lambda v: v.maxSize.prod())[0]
 
 
 class BaseLayer:
@@ -322,49 +323,44 @@ class BaseLayer:
 
 
 class FaceLayer(BaseLayer):
-    def set_data(self, layer: Layer, prefered: Callable[[Optional[bool]], Layer], is_clip: bool):
+    def set_data(self, layer: Layer, prefered: Layer):
         self.layer = layer
         self.prefered = prefered
-        self.is_clip = is_clip
 
     def load_face(self, path: str):
+        logger.attr("Paintingface", f"'{QDir.toNativeSeparators(path)}'")
         self.modified = True
         self.full = open_and_transpose(path)
-        self.repl = self.crop_face()
-        logger.attr("Paintingface", f"'{QDir.toNativeSeparators(path)}'")
+        self.refresh()
 
-    def update_clip(self, is_clip: bool):
-        self.is_clip = is_clip
+    def refresh(self):
         if self.full is not None:
             self.repl = self.crop_face()
 
     def crop_face(self):
         face_mode = Config.get_face_mode()
-        prefered = self.prefered(face_mode.is_maximum())
-        img = self.full
-        if face_mode.is_off():
-            return img.crop(self.layer.box())
+        if face_mode == FaceModeType.Off:
+            return self.full.crop(self.layer.box)
+
+        if face_mode == FaceModeType.Auto:
+            prefered_box = self.prefered.box
+        elif face_mode == FaceModeType.Custom:
+            face_extension = Config.get_face_extension(self.layer.meta.name_stem)
+            prefered_box = [a + b for a, b in zip(self.layer.box, face_extension)]
         else:
-            if self.is_clip:
-                x1, y1, x2, y2 = self.layer.box(prefered.maxSize if face_mode.is_maximum() else None)
-                rgb = Image.new("RGBA", img.size)
-                rgb.paste(img.crop((x1, y1, x2 + 1, y2 + 1)), (x1, y1))
-                a = Image.new("RGBA", img.size)
-                a.paste(img.crop((x1 + 1, y1 + 1, x2, y2)), (x1 + 1, y1 + 1))
-                img = Image.merge("RGBA", [*rgb.split()[:3], a.split()[-1]])
-            return img.crop(prefered.box())
+            raise ValueError(f"Unknown face mode: {face_mode}")
+
+        return self.safe_crop(self.full, prefered_box)
+
+    def safe_crop(self, x: Image.Image, box: tuple[int, int, int, int]):
+        w, h = x.size
+        x1, y1, x2, y2 = box
+        safe_box = (max(0, x1), max(0, y1), min(x2, w), min(y2, h))
+        return x.crop(safe_box)
 
 
 class IconLayer(BaseLayer):
-    def set_data(self, layer: Layer, prefered: Layer):
-        self.layer = layer
-        self.prefered = prefered
-
-    def load_icon(self, path: str, preset: IconPreset) -> bool:
-        name, _ = os.path.splitext(os.path.basename(path))
-        if name not in ["shipyardicon", "herohrzicon", "squareicon"]:
-            return False
-        self.modified = True
-        self.repl = open_and_transpose(path).resize(preset.size, Image.Resampling.BICUBIC)
+    def load_icon(self, path: str):
         logger.attr("Icon", f"'{QDir.toNativeSeparators(path)}'")
-        return True
+        self.modified = True
+        self.repl = open_and_transpose(path).resize(self.orig.size, Image.Resampling.BICUBIC)

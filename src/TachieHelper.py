@@ -1,5 +1,5 @@
 import os
-from functools import partial
+from concurrent.futures import ThreadPoolExecutor
 
 from PySide6.QtCore import QDir, Qt
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
@@ -19,9 +19,10 @@ from .base.Data import FaceModeType
 from .base.Layer import prefered_layer
 from .logger import logger
 from .module.AssetManager import AssetManager
-from .ui import Menu, Table
+from .ui import Menu
 from .ui.IconViewer import IconViewer
 from .ui.Previewer import Previewer
+from .ui.Table import IconTable, PaintingfaceTable, PaintingTable
 
 
 class AzurLaneTachieHelper(QMainWindow):
@@ -36,8 +37,8 @@ class AzurLaneTachieHelper(QMainWindow):
 
         self.face_mode_map = {
             FaceModeType.Off: self.tr("Off"),
-            FaceModeType.Adaptive: self.tr("Adaptive"),
-            FaceModeType.Maximum: self.tr("Maximum"),
+            FaceModeType.Auto: self.tr("Auto"),
+            FaceModeType.Custom: self.tr("Custom"),
         }
         self.server_map = {"CN": self.tr("CN"), "JP": self.tr("JP"), "EN": self.tr("EN")}
 
@@ -56,9 +57,9 @@ class AzurLaneTachieHelper(QMainWindow):
 
     def _init_ui(self):
         self.preview = Previewer(self.mEdit.aEncodeTexture)
-        self.tPainting = Table.Painting(self.preview)
-        self.tFace = Table.Paintingface(self.preview)
-        self.tIcon = Table.Icon(self.preview)
+        self.tPainting = PaintingTable(self.preview)
+        self.tFace = PaintingfaceTable(self.preview)
+        self.tIcon = IconTable(self.preview)
         self.preview.set_callback(self.tPainting.load, self.tFace.load, self.tIcon.load)
 
         left = QVBoxLayout()
@@ -88,9 +89,9 @@ class AzurLaneTachieHelper(QMainWindow):
         self.menuBar().addMenu(self.mOption)
 
     def refresh_statusbar(self):
-        face_mode =  self.face_mode_map[Config.get_face_mode()]
+        face_mode = self.face_mode_map[Config.get_face_mode()]
         self.msg_face_mode.setText(self.tr("Paintingface Mode") + self.tr(": ") + face_mode)
-        
+
         server = self.server_map[Config.get_server()]
         self.msg_server.setText(self.tr("Server") + self.tr(": ") + server)
 
@@ -116,9 +117,9 @@ class AzurLaneTachieHelper(QMainWindow):
         self.tPainting.set_data(self.asset_manager.deps, self.asset_manager.layers)
 
         face_layer = self.asset_manager.face_layer
-        prefered = partial(prefered_layer, self.asset_manager.layers, face_layer)
+        prefered = prefered_layer(self.asset_manager.layers, face_layer)
         self.tFace.set_data(self.asset_manager.faces, face_layer, prefered)
-        self.tIcon.set_data(self.asset_manager.icons, face_layer, prefered)
+        self.tIcon.set_data(self.asset_manager.icons)
 
         self.preview.setAcceptDrops(True)
         self.mFile.aImportPainting.setEnabled(True)
@@ -138,13 +139,10 @@ class AzurLaneTachieHelper(QMainWindow):
         last = os.path.dirname(Config.get_recent_path())
         files, _ = QFileDialog.getOpenFileNames(self, self.tr("Select Paintings"), last, "Image (*.png)")
         if files:
-            flag = False
-            for file in files:
-                if self.tPainting.load(file):
-                    flag = True
-            if flag:
-                self.preview.refresh()
-                self.mEdit.aEncodeTexture.setEnabled(True)
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                executor.map(self.tPainting.load, files)
+            self.preview.refresh()
+            self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onImportFaces(self):
         last = os.path.dirname(Config.get_recent_path())
@@ -155,13 +153,10 @@ class AzurLaneTachieHelper(QMainWindow):
                 self.mEdit.aEncodeTexture.setEnabled(True)
 
     def import_icon(self, files: list[str]):
-        flag = False
-        for file in files:
-            if self.tIcon.load(file):
-                flag = True
-        if flag:
-            self.preview.refresh()
-            self.mEdit.aEncodeTexture.setEnabled(True)
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            executor.map(self.tIcon.load, files)
+        self.preview.refresh()
+        self.mEdit.aEncodeTexture.setEnabled(True)
 
     def onImportIcons(self):
         last = os.path.dirname(Config.get_recent_path())
@@ -178,8 +173,6 @@ class AzurLaneTachieHelper(QMainWindow):
             if viewer.exec():
                 Config.set_presets(self.asset_manager.meta.name_stem, viewer.presets)
                 res = self.asset_manager.clip_icons(file, viewer.presets)
-                res = [QDir.toNativeSeparators(_) for _ in res]
-                self.show_path("\n".join(res))
                 self.import_icon(res)
 
     def onEditDecode(self):
@@ -190,17 +183,12 @@ class AzurLaneTachieHelper(QMainWindow):
     def onEditEncode(self):
         base = os.path.dirname(self.asset_manager.meta.path)
         res = self.asset_manager.encode(base)
-        self.show_path("\n".join([QDir.toNativeSeparators(_) for _ in res]))
+        self.show_path("\n".join(map(QDir.toNativeSeparators, res)))
 
-    def onToggleFaceMode(self, value: bool):
-        if self.tFace.table.rowCount() > 0:
-            for i in range(self.tFace.num):
-                if value:
-                    flag = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable
-                else:
-                    flag = ~Qt.ItemFlag.ItemIsEnabled
-                self.tFace.table.item(i, 0).setFlags(flag)
-                self.tFace.onItemChanged(self.tFace.table.item(i, 0))
+    def onToggleFaceMode(self):
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            executor.map(lambda x: x.refresh(), self.tPainting.layers.values())
+        self.preview.refresh()
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():
@@ -210,9 +198,8 @@ class AzurLaneTachieHelper(QMainWindow):
     def dropEvent(self, event: QDropEvent):
         if event.mimeData().hasUrls():
             event.setDropAction(Qt.DropAction.CopyAction)
-            links = [x.toLocalFile() for x in event.mimeData().urls()]
-            files = [x for x in links if os.path.isfile(x)]
-            metadatas = [x for x in files if "." not in os.path.basename(x)]
+            files = filter(os.path.isfile, map(lambda x: x.toLocalFile(), event.mimeData().urls()))
+            metadatas = list(filter(lambda x: "." not in os.path.basename(x), files))
             if metadatas != []:
                 self.open_metadata(metadatas[0])
                 event.accept()

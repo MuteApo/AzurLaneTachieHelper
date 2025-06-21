@@ -1,24 +1,16 @@
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Self
 
 from .Vector import Vector2
 
 
 class FaceModeType(Enum):
     Off = 0
-    Adaptive = 1
-    Maximum = 2
+    Auto = 1
+    Custom = 2
 
-    def is_off(self):
-        return self == FaceModeType.Off
 
-    def is_adaptive(self):
-        return self == FaceModeType.Adaptive
-
-    def is_maximum(self):
-        return self == FaceModeType.Maximum
 
 
 @dataclass
@@ -36,80 +28,64 @@ class MetaInfo:
         return f"<MetaInfo name={self.name}, size={self.size}, bias={self.bias}>: {self.path}"
 
 
-@dataclass
+def parse_icon_preset(data: str):
+    num = r"-?\d+(?:\.\d+)?"
+    pivot_match = re.search(rf"pivot=\(({num}),\s*({num})\)", data)
+    scale_match = re.search(rf"scale=({num})", data)
+    angle_match = re.search(rf"angle=({num})", data)
+
+    pivot = Vector2(float(pivot_match.group(1)), float(pivot_match.group(2)))
+    scale = float(scale_match.group(1))
+    angle = float(angle_match.group(1))
+
+    return dict(pivot=pivot, scale=scale, angle=angle)
+
+
 class IconPreset:
-    size: Vector2
-    pivot: Vector2
-    scale: float
-    angle: float
+    def __init__(
+        self,
+        size: Vector2[int] | tuple[int, int],
+        pivot: Vector2[float] | tuple[float, float],
+        scale: float,
+        angle: float,
+    ):
+        self.size = Vector2(size)
+        self.pivot = Vector2(pivot)
+        self.scale = scale
+        self.angle = angle
+
+    def __getitem__(self, item: str) -> float | Vector2:
+        return getattr(self, item)
+
+    def __setitem__(self, key: str, value: float | Vector2):
+        setattr(self, key, Vector2(value) if isinstance(value, tuple) else value)
 
     def __repr__(self) -> str:
-        return f"<angle={self.angle}, scale={self.scale}, pivot={self.pivot}>"
+        return self.to_dict().__repr__()
 
-    def apply(self, pivot: Vector2, scale: float, angle: float):
-        self.pivot += pivot
+    def to_dict(self) -> dict:
+        return dict(size=self.size.tuple(), pivot=self.pivot.tuple(), scale=self.scale, angle=self.angle)
+
+    def apply(self, pivot: Vector2 | tuple[float, float], scale: float, angle: float):
+        self.pivot += Vector2(pivot)
         self.scale += scale
         self.angle += angle
 
-    @classmethod
-    def from_config(cls, kind: str, repr: Optional[str] = None) -> Self:
-        if repr is None:
-            return cls.default(kind)
-        num = r"-?\d+(?:\.\d+)?"
-        pivot_match = re.search(rf"pivot=\(({num}),\s*({num})\)", repr)
-        scale_match = re.search(rf"scale=({num})", repr)
-        angle_match = re.search(rf"angle=({num})", repr)
 
-        if not (pivot_match and scale_match and angle_match):
-            raise ValueError("Invalid repr format")
+class IconPresets:
+    def __init__(self):
+        self.shipyardicon = IconPreset((192, 256), (0.5, 0.7), 0.6, 0.0)
+        self.herohrzicon = IconPreset((360, 80), (0.2, 0.6), 0.6, 0.0)
+        self.squareicon = IconPreset((116, 116), (0.5, 0.6), 0.6, 0.0)
 
-        pivot = Vector2(float(pivot_match.group(1)), float(pivot_match.group(2)))
-        scale = float(scale_match.group(1))
-        angle = float(angle_match.group(1))
+    def __getitem__(self, item: str) -> IconPreset:
+        return getattr(self, item)
 
-        return cls.kind2cls(kind)(pivot=pivot, scale=scale, angle=angle)
+    def __setitem__(self, key: str, value: IconPreset):
+        setattr(self, key, value)
 
-    @classmethod
-    def kind2cls(cls, kind: str) -> type:
-        return {
-            "shipyardicon": ShipyardiconPreset,
-            "herohrzicon": HerohrziconPreset,
-            "squareicon": SquareiconPreset,
-        }[kind.lower()]
+    def __repr__(self) -> str:
+        return self.to_dict().__repr__()
 
-    @classmethod
-    def default(cls, kind: str) -> Self:
-        return cls.kind2cls(kind)()
-
-
-class ShipyardiconPreset(IconPreset):
-    def __init__(
-        self,
-        size: Vector2 = Vector2(192, 256),
-        pivot: Vector2 = Vector2(0.5, 0.7),
-        scale: float = 0.6,
-        angle: float = 0,
-    ):
-        super().__init__(size, pivot, scale, angle)
-
-
-class HerohrziconPreset(IconPreset):
-    def __init__(
-        self,
-        size: Vector2 = Vector2(360, 80),
-        pivot: Vector2 = Vector2(0.2, 0.6),
-        scale: float = 0.6,
-        angle: float = 0,
-    ):
-        super().__init__(size, pivot, scale, angle)
-
-
-class SquareiconPreset(IconPreset):
-    def __init__(
-        self,
-        size: Vector2 = Vector2(116, 116),
-        pivot: Vector2 = Vector2(0.5, 0.6),
-        scale: float = 0.6,
-        angle: float = 0,
-    ):
-        super().__init__(size, pivot, scale, angle)
+    def to_dict(self):
+        return dict(shipyardicon=self.shipyardicon, herohrzicon=self.herohrzicon, squareicon=self.squareicon)

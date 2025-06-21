@@ -1,6 +1,6 @@
 from PySide6.QtCore import QSettings
 
-from .Data import FaceModeType, IconPreset
+from .Data import FaceModeType, IconPresets, parse_icon_preset
 
 settings = QSettings("./config.ini", QSettings.Format.IniFormat)
 default = {
@@ -34,18 +34,25 @@ def set_config(group: str, key: str, value):
     return get_config(group, key)
 
 
-def get_presets(group: str) -> dict[str, IconPreset]:
-    presets = {}
+def get_presets(group: str) -> IconPresets:
+    presets = IconPresets()
     settings.beginGroup(group)
-    for kind in ["shipyardicon", "herohrzicon", "squareicon"]:
-        presets[kind] = IconPreset.from_config(kind, settings.value(kind, None))
+    for k, v in presets.to_dict().items():
+        config = settings.value(k, None)
+        try:
+            data = eval(config)
+        except:
+            data = parse_icon_preset(config)
+        for kk, vv in data.items():
+            v[kk] = vv
+        settings.setValue(k, v.__repr__())
     settings.endGroup()
     return presets
 
 
-def set_presets(group: str, presets: dict[str, IconPreset]):
+def set_presets(group: str, presets: IconPresets):
     settings.beginGroup(group)
-    for k, v in presets.items():
+    for k, v in presets.to_dict().items():
         settings.setValue(k, v.__repr__())
     settings.endGroup()
 
@@ -68,12 +75,21 @@ def get_verbosity() -> bool:
 
 def get_face_mode() -> FaceModeType:
     face_mode = get_config("system", "FaceMode").lower()
-    return {"off": FaceModeType.Off, "adaptive": FaceModeType.Adaptive, "maximum": FaceModeType.Maximum}[face_mode]
+    return {"off": FaceModeType.Off, "auto": FaceModeType.Auto, "custom": FaceModeType.Custom}[face_mode]
 
 
 def set_face_mode(mode: FaceModeType) -> FaceModeType:
-    mode_str = {FaceModeType.Off: "off", FaceModeType.Adaptive: "adaptive", FaceModeType.Maximum: "maximum"}[mode]
+    mode_str = {FaceModeType.Off: "off", FaceModeType.Auto: "auto", FaceModeType.Custom: "custom"}[mode]
     set_config("system", "FaceMode", mode_str)
+
+
+def get_face_extension(name: str) -> tuple[int, int, int, int]:
+    config = get_config(name, "paintingface")
+    return eval(config) if config else None
+
+
+def set_face_extension(name: str, box: tuple[int, int, int, int]):
+    set_config(name, "paintingface", str(box))
 
 
 def get_adb_path() -> str:

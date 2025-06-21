@@ -4,92 +4,100 @@
 <context>
     <name>AzurLaneTachieHelper</name>
     <message>
-        <location filename="../src/TachieHelper.py" line="30"/>
-        <location filename="../src/TachieHelper.py" line="99"/>
+        <location filename="../src/TachieHelper.py" line="31"/>
+        <location filename="../src/TachieHelper.py" line="100"/>
         <source>AzurLane Tachie Helper</source>
         <translation>碧蓝航线立绘助手</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="49"/>
+        <location filename="../src/TachieHelper.py" line="50"/>
         <source>Ready</source>
         <translation>就绪</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="42"/>
+        <location filename="../src/TachieHelper.py" line="43"/>
         <source>CN</source>
-        <translation>Bilibili服</translation>
+        <translation>B服</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="42"/>
+        <location filename="../src/TachieHelper.py" line="43"/>
         <source>JP</source>
         <translation>日服</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="95"/>
+        <location filename="../src/TachieHelper.py" line="96"/>
         <source>Server</source>
         <translation>区服</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="44"/>
+        <location filename="../src/TachieHelper.py" line="45"/>
         <source>EN</source>
         <translation>国际服</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="38"/>
+        <location filename="../src/TachieHelper.py" line="39"/>
         <source>Off</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="39"/>
-        <source>Adaptive</source>
-        <translation>自适应</translation>
-    </message>
-    <message>
-        <location filename="../src/TachieHelper.py" line="92"/>
+        <location filename="../src/TachieHelper.py" line="93"/>
         <source>Paintingface Mode</source>
         <translation>高拆模式</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="40"/>
-        <source>Maximum</source>
-        <translation>最大</translation>
-    </message>
-    <message>
-        <location filename="../src/TachieHelper.py" line="100"/>
+        <location filename="../src/TachieHelper.py" line="101"/>
         <source>Successfully written into</source>
         <translation>成功导出到</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="92"/>
-        <location filename="../src/TachieHelper.py" line="95"/>
-        <location filename="../src/TachieHelper.py" line="100"/>
+        <location filename="../src/TachieHelper.py" line="93"/>
+        <location filename="../src/TachieHelper.py" line="96"/>
+        <location filename="../src/TachieHelper.py" line="101"/>
         <source>: </source>
         <translation>：</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="133"/>
+        <location filename="../src/TachieHelper.py" line="40"/>
+        <source>Auto</source>
+        <translation>自动</translation>
+    </message>
+    <message>
+        <location filename="../src/TachieHelper.py" line="41"/>
+        <source>Custom</source>
+        <translation>自定义</translation>
+    </message>
+    <message>
+        <location filename="../src/TachieHelper.py" line="134"/>
         <source>Select Metadata</source>
         <translation>选择元数据</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="139"/>
+        <location filename="../src/TachieHelper.py" line="140"/>
         <source>Select Paintings</source>
         <translation>选择立绘图层</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="151"/>
+        <location filename="../src/TachieHelper.py" line="149"/>
         <source>Select Paintingface Folder</source>
         <translation>选择表情差分</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="168"/>
+        <location filename="../src/TachieHelper.py" line="163"/>
         <source>Select Icons</source>
         <translation>选择图标</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="174"/>
+        <location filename="../src/TachieHelper.py" line="169"/>
         <source>Select Reference</source>
         <translation>选择参照图</translation>
+    </message>
+</context>
+<context>
+    <name>BaseTable</name>
+    <message>
+        <location filename="../src/ui/Table.py" line="34"/>
+        <source>Layers</source>
+        <translation>图层</translation>
     </message>
 </context>
 <context>
@@ -102,7 +110,7 @@
     <message>
         <location filename="../src/ui/Menu.py" line="56"/>
         <source>Clip Icons</source>
-        <translation>截取图标</translation>
+        <translation>裁剪图标</translation>
     </message>
     <message>
         <location filename="../src/ui/Menu.py" line="57"/>
@@ -129,13 +137,13 @@
     </message>
     <message>
         <location filename="../src/ui/Menu.py" line="98"/>
-        <source>Adaptive</source>
-        <translation>自适应</translation>
+        <source>Auto</source>
+        <translation>自动</translation>
     </message>
     <message>
         <location filename="../src/ui/Menu.py" line="99"/>
-        <source>Maximum</source>
-        <translation>最大</translation>
+        <source>Custom</source>
+        <translation>自定义</translation>
     </message>
 </context>
 <context>
@@ -177,16 +185,11 @@
     </message>
 </context>
 <context>
-    <name>Icon</name>
+    <name>IconTable</name>
     <message>
-        <location filename="../src/ui/Table.py" line="152"/>
+        <location filename="../src/ui/Table.py" line="123"/>
         <source>Icons</source>
         <translation>图标</translation>
-    </message>
-    <message>
-        <location filename="../src/ui/Table.py" line="157"/>
-        <source>Layers</source>
-        <translation>图层</translation>
     </message>
 </context>
 <context>
@@ -197,7 +200,7 @@
         <translation>碧蓝航线立绘助手</translation>
     </message>
     <message>
-        <location filename="../src/ui/IconViewer.py" line="134"/>
+        <location filename="../src/ui/IconViewer.py" line="135"/>
         <source>Clip</source>
         <translation>裁剪</translation>
     </message>
@@ -211,34 +214,19 @@
     </message>
 </context>
 <context>
-    <name>Painting</name>
+    <name>PaintingTable</name>
     <message>
-        <location filename="../src/ui/Table.py" line="32"/>
+        <location filename="../src/ui/Table.py" line="53"/>
         <source>Dependencies</source>
         <translation>依赖项</translation>
     </message>
-    <message>
-        <location filename="../src/ui/Table.py" line="37"/>
-        <source>Layers</source>
-        <translation>图层</translation>
-    </message>
 </context>
 <context>
-    <name>Paintingface</name>
+    <name>PaintingfaceTable</name>
     <message>
-        <location filename="../src/ui/Table.py" line="76"/>
+        <location filename="../src/ui/Table.py" line="79"/>
         <source>Paintingfaces</source>
         <translation>表情差分</translation>
-    </message>
-    <message>
-        <location filename="../src/ui/Table.py" line="81"/>
-        <source>Clip</source>
-        <translation>裁剪</translation>
-    </message>
-    <message>
-        <location filename="../src/ui/Table.py" line="81"/>
-        <source>Layers</source>
-        <translation>图层</translation>
     </message>
 </context>
 <context>
