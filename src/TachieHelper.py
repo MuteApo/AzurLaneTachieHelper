@@ -30,7 +30,7 @@ class AzurLaneTachieHelper(QMainWindow):
         super().__init__()
         self.setWindowTitle(self.tr("AzurLane Tachie Helper"))
         self.setAcceptDrops(True)
-        self.resize(720, 560)
+        self.resize(960, 540)
 
         Config.init()
         self.asset_manager = AssetManager()
@@ -111,6 +111,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
         self.tPainting.table.clearContents()
         self.tFace.table.clearContents()
+        self.tIcon.table.clearContents()
 
         self.asset_manager.analyze(file)
 
@@ -119,7 +120,7 @@ class AzurLaneTachieHelper(QMainWindow):
         face_layer = self.asset_manager.face_layer
         prefered = prefered_layer(self.asset_manager.layers, face_layer)
         self.tFace.set_data(self.asset_manager.faces, face_layer, prefered)
-        self.tIcon.set_data(self.asset_manager.icons)
+        self.tIcon.set_data(self.asset_manager.icons, face_layer)
 
         self.preview.setAcceptDrops(True)
         self.mFile.aImportPainting.setEnabled(True)
@@ -148,9 +149,9 @@ class AzurLaneTachieHelper(QMainWindow):
         last = os.path.dirname(Config.get_recent_path())
         dir = QFileDialog.getExistingDirectory(self, self.tr("Select Paintingface Folder"), last)
         if dir:
-            if self.tFace.load(dir):
-                self.preview.refresh()
-                self.mEdit.aEncodeTexture.setEnabled(True)
+            self.tFace.load(dir)
+            self.preview.refresh()
+            self.mEdit.aEncodeTexture.setEnabled(True)
 
     def import_icon(self, files: list[str]):
         with ThreadPoolExecutor(max_workers=8) as executor:

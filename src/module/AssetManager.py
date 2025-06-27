@@ -8,6 +8,7 @@ from PIL import Image
 from UnityPy.classes import GameObject, MonoBehaviour, Texture2D
 from UnityPy.enums import ClassIDType
 
+from ..base import Config
 from ..base.Data import IconPreset, IconPresets, MetaInfo
 from ..base.Layer import FaceLayer, IconLayer, Layer, prefered_layer
 from ..base.Vector import Vector2
@@ -77,14 +78,6 @@ class AssetManager:
             self.layers["face"] = base_layer.get_child("face")
         [logger.attr(layer.__repr__(), layer.__str__()) for layer in self.layers.values()]
 
-        base = os.path.basename(file).removesuffix("_n")
-        path = os.path.join(os.path.dirname(file), "paintingface", base)
-        if os.path.exists(path):
-            env = UnityPy.load(path)
-            tex2ds: list[Texture2D] = [x.read() for x in env.objects if x.type == ClassIDType.Texture2D]
-            self.faces = {x.m_Name: FaceLayer(x, path) for x in tex2ds if re.match(r"^0|([1-9]\d*)$", x.m_Name)}
-            self.faces = {k: v for k, v in sorted(self.faces.items(), key=lambda x: int(x[0]))}
-
         x_min = min([_.posMin.X for _ in self.layers.values()])
         x_max = max([_.posMax.X for _ in self.layers.values()])
         y_min = min([_.posMin.Y for _ in self.layers.values()])
@@ -94,11 +87,21 @@ class AssetManager:
 
         self.meta = MetaInfo(file, base_layer.name, size, bias)
 
+        base = os.path.basename(file).removesuffix("_n")
+        path = os.path.join(os.path.dirname(file), "paintingface", base)
+        if os.path.exists(path):
+            env = UnityPy.load(path)
+            tex2ds: list[Texture2D] = [x.read() for x in env.objects if x.type == ClassIDType.Texture2D]
+            self.faces = {x.m_Name: FaceLayer(self.meta, x, path) for x in tex2ds}
+            self.faces = {k: v for k, v in sorted(self.faces.items(), key=lambda x: int(x[0]))}
+
         for k, v in self.layers.items():
             v.meta = self.meta
             if k != "face":
                 dep = f"painting/{v.texture2D.m_Name}_tex".lower()
                 v.path = self.deps[dep] if dep in self.deps else file
+                if Config.get_face_extension(self.meta.name_stem, k) is None:
+                    Config.set_face_extension(self.meta.name_stem, k, [0] * 4)
 
         presets = IconPresets()
         for k, v in presets.to_dict().items():
@@ -111,7 +114,7 @@ class AssetManager:
                     if x.type == ClassIDType.Texture2D:
                         tex2d: Texture2D = x.read()
                         if re.match(f"(?i)^{base}$", tex2d.m_Name):
-                            icon_layer = IconLayer(tex2d, path)
+                            icon_layer = IconLayer(self.meta, tex2d, path)
                 self.icons[k] = icon_layer
 
     def clip_icons(self, workload: str, presets: IconPresets) -> list[str]:

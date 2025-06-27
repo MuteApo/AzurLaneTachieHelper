@@ -67,27 +67,27 @@
         <translation>自定义</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="134"/>
+        <location filename="../src/TachieHelper.py" line="135"/>
         <source>Select Metadata</source>
         <translation>选择元数据</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="140"/>
+        <location filename="../src/TachieHelper.py" line="141"/>
         <source>Select Paintings</source>
         <translation>选择立绘图层</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="149"/>
+        <location filename="../src/TachieHelper.py" line="150"/>
         <source>Select Paintingface Folder</source>
         <translation>选择表情差分</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="163"/>
+        <location filename="../src/TachieHelper.py" line="164"/>
         <source>Select Icons</source>
         <translation>选择图标</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="169"/>
+        <location filename="../src/TachieHelper.py" line="170"/>
         <source>Select Reference</source>
         <translation>选择参照图</translation>
     </message>
@@ -187,7 +187,7 @@
 <context>
     <name>IconTable</name>
     <message>
-        <location filename="../src/ui/Table.py" line="123"/>
+        <location filename="../src/ui/Table.py" line="126"/>
         <source>Icons</source>
         <translation>图标</translation>
     </message>
@@ -224,7 +224,7 @@
 <context>
     <name>PaintingfaceTable</name>
     <message>
-        <location filename="../src/ui/Table.py" line="79"/>
+        <location filename="../src/ui/Table.py" line="81"/>
         <source>Paintingfaces</source>
         <translation>表情差分</translation>
     </message>
@@ -250,6 +250,29 @@
         <location filename="../src/ui/Menu.py" line="71"/>
         <source>EN</source>
         <translation>国际服</translation>
+    </message>
+</context>
+<context>
+    <name>SliderPanel</name>
+    <message>
+        <location filename="../src/ui/Previewer.py" line="29"/>
+        <source>left: </source>
+        <translation>左扩：</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/Previewer.py" line="32"/>
+        <source>bottom: </source>
+        <translation>下扩：</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/Previewer.py" line="35"/>
+        <source>right: </source>
+        <translation>右扩：</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/Previewer.py" line="38"/>
+        <source>top: </source>
+        <translation>上扩：</translation>
     </message>
 </context>
 <context>

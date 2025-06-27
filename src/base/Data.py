@@ -11,8 +11,6 @@ class FaceModeType(Enum):
     Custom = 2
 
 
-
-
 @dataclass
 class MetaInfo:
     path: str

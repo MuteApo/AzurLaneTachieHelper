@@ -33,6 +33,7 @@ class Layer:
         self.path: str = "Not Found"
         self.meta: MetaInfo = None
         self.modified: bool = False
+        self.full: Image.Image = None
         self.repl: Image.Image = None
 
     def __repr__(self) -> str:
@@ -290,17 +291,32 @@ class Layer:
         w, h = self.sizeDelta
         return floor(x), ceil(y), floor(x + w), ceil(y + h)
 
-    def crop(self, img: Image.Image) -> Image.Image:
-        return img.crop(self.box).resize(self.spriteSize.round(), Image.Resampling.BICUBIC)
+    def crop(self) -> Image.Image:
+        if Config.get_face_mode() == FaceModeType.Custom:
+            face_extension = Config.get_face_extension(self.meta.name_stem, self.name)
+            box = [a + b for a, b in zip(self.box, face_extension)]
+        else:
+            box = self.box
+        img = self.safe_crop(self.full, box)
+        if self.depth == 1:
+            img = img.resize(self.spriteSize.round(), Image.Resampling.BICUBIC)
+        return img
 
-    def load(self, path: str) -> bool:
-        name, _ = os.path.splitext(os.path.basename(path))
-        if self.name != name:
-            return False
-        self.modified = True
-        self.repl = self.crop(open_and_transpose(path))
+    def safe_crop(self, x: Image.Image, box: tuple[int, int, int, int]):
+        w, h = x.size
+        x1, y1, x2, y2 = box
+        safe_box = (max(0, x1), max(0, y1), min(x2, w), min(y2, h))
+        return x.crop(safe_box)
+
+    def refresh(self):
+        if self.full is not None:
+            self.repl = self.crop()
+
+    def load(self, path: str):
         logger.attr("Painting", f"'{QDir.toNativeSeparators(path)}'")
-        return True
+        self.modified = True
+        self.full = open_and_transpose(path)
+        self.refresh()
 
 
 def prefered_layer(layers: dict[str, Layer], layer: Layer) -> Layer:
@@ -309,7 +325,8 @@ def prefered_layer(layers: dict[str, Layer], layer: Layer) -> Layer:
 
 
 class BaseLayer:
-    def __init__(self, tex2d: Texture2D, path: str):
+    def __init__(self, meta: MetaInfo, tex2d: Texture2D, path: str):
+        self.meta = meta
         self.orig = tex2d.image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         self.name = tex2d.m_Name
         self.path = path
@@ -345,7 +362,7 @@ class FaceLayer(BaseLayer):
         if face_mode == FaceModeType.Auto:
             prefered_box = self.prefered.box
         elif face_mode == FaceModeType.Custom:
-            face_extension = Config.get_face_extension(self.layer.meta.name_stem)
+            face_extension = Config.get_face_extension(self.layer.meta.name_stem, "paintingface")
             prefered_box = [a + b for a, b in zip(self.layer.box, face_extension)]
         else:
             raise ValueError(f"Unknown face mode: {face_mode}")
@@ -360,6 +377,9 @@ class FaceLayer(BaseLayer):
 
 
 class IconLayer(BaseLayer):
+    def set_data(self, layer: Layer):
+        self.layer = layer
+
     def load_icon(self, path: str):
         logger.attr("Icon", f"'{QDir.toNativeSeparators(path)}'")
         self.modified = True

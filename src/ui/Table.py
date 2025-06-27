@@ -69,9 +69,11 @@ class PaintingTable(BaseTable):
         self.preview.display_painting(self.layers[dep.removesuffix("_tex")])
 
     def load(self, path: str):
+        name, _ = os.path.splitext(os.path.basename(path))
         for k, v in self.layers.items():
-            v.load(path)
-            set_bold(self.table.item(self.index[k], 0))
+            if v.name == name:
+                v.load(path)
+                set_bold(self.table.item(self.index[k], 0))
 
 
 class PaintingfaceTable(BaseTable):
@@ -86,9 +88,9 @@ class PaintingfaceTable(BaseTable):
         self.table.setRowCount(self.num)
         self.index: dict[str, int] = {}
 
-        if Config.get_face_extension(face_layer.meta.name_stem) is None:
+        if Config.get_face_extension(face_layer.meta.name_stem, "paintingface") is None:
             face_extension = [a - b for a, b in zip(prefered.box, face_layer.box)]
-            Config.set_face_extension(face_layer.meta.name_stem, face_extension)
+            Config.set_face_extension(face_layer.meta.name_stem, "paintingface", face_extension)
 
         for i, (k, v) in enumerate(faces.items()):
             v.set_data(face_layer, prefered)
@@ -98,11 +100,12 @@ class PaintingfaceTable(BaseTable):
     def onCellClicked(self, row: int, col: int = 0):
         self.last = row
         idx = os.path.basename(self.table.item(row, col).text())
-        self.preview.display_face(self.faces[idx])
+        self.preview.display_face(self.faces, idx)
 
     def refresh(self):
         if self.last is not None:
             self.onCellClicked(self.last)
+            
 
     def load(self, folder: str):
         def worker(file: str):
@@ -123,13 +126,14 @@ class IconTable(BaseTable):
         super().__init__(preview, self.tr("Icons"))
         self.last = None
 
-    def set_data(self, icons: dict[str, IconLayer]):
+    def set_data(self, icons: dict[str, IconLayer], face_layer: Layer):
         self.icons = icons
         self.num = len(icons)
         self.table.setMinimumHeight((self.num + 1) * 30)
         self.table.setRowCount(self.num)
         self.index = {}
         for i, (k, v) in enumerate(icons.items()):
+            v.set_data(face_layer)
             self.table.setItem(i, 0, QTableWidgetItem(k))
             self.index[k] = i
 

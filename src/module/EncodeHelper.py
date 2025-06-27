@@ -44,9 +44,17 @@ def set_mesh(mesh: ObjectReader, img: Image.Image):
     mesh.save_typetree(data)
 
 
+def set_meta(reader: ObjectReader, size_delta: Vector2, pivot: Vector2, anchored_position: Vector2):
+    data = reader.read_typetree()
+    data["m_SizeDelta"] = size_delta.dict()
+    data["m_Pivot"] = pivot.dict()
+    data["m_AnchoredPosition"] = anchored_position.dict()
+    reader.save_typetree(data)
+
+
 class EncodeHelper:
     @staticmethod
-    def replace_painting(dir: str, layer: Layer) -> str:
+    def replace_painting(dir: str, layer: Layer, reader: ObjectReader) -> tuple[str, bool]:
         path = layer.path if layer.path != "Not Found" else layer.meta.path
         env = UnityPy.load(path)
 
@@ -62,32 +70,25 @@ class EncodeHelper:
         path = os.path.join(dir, "output", "painting", os.path.basename(path))
         check_and_save(path, env.file.save(Config.get_compression()))
 
-        return path
+        if Config.get_face_mode() != FaceModeType.Custom:
+            return path, False
+
+        x1, y1, _, _ = Config.get_face_extension(layer.meta.name_stem, layer.name)
+        pivot = layer.pivot - Vector2(x1, y1) / layer.sizeDelta
+        set_meta(reader, layer.sizeDelta, pivot, layer.anchoredPosition)
+
+        return path, True
 
     @staticmethod
-    def replace_meta(dir: str, layer: Layer, size_delta: Vector2, pivot: Vector2, anchored_position: Vector2) -> str:
-        env = UnityPy.load(layer.meta.path)
-        cab = list(env.cabs.values())[0]
-        face_rt = cab.objects[layer.pathId]
-        data = face_rt.read_typetree()
-        data["m_SizeDelta"] = size_delta.dict()
-        data["m_Pivot"] = pivot.dict()
-        data["m_AnchoredPosition"] = anchored_position.dict()
-        face_rt.save_typetree(data)
-
-        path = os.path.join(dir, "output", "painting", os.path.basename(layer.meta.path))
-        check_and_save(path, env.file.save(Config.get_compression()))
-
-        return [path]
-
-    @staticmethod
-    def replace_face(dir: str, faces: dict[str, FaceLayer], progress: Progress) -> list[str]:
+    def replace_face(
+        dir: str, faces: dict[str, FaceLayer], reader: ObjectReader, progress: Progress
+    ) -> tuple[str, bool]:
         first = list(faces.values())[0]
         layer = first.layer
         face_mode = Config.get_face_mode()
 
-        base = layer.meta.name_stem
-        path = os.path.join(os.path.dirname(layer.meta.path), "paintingface", base)
+        name = layer.meta.name_stem
+        path = os.path.join(os.path.dirname(layer.meta.path), "paintingface", name)
         env = UnityPy.load(path)
 
         cur, cnt = 0, len(faces)
@@ -102,24 +103,26 @@ class EncodeHelper:
                     cur += 1
                     progress.update(task, advance=1, description=f"Encode paintingface ({cur}/{cnt}):")
 
-        path = os.path.join(dir, "output", "paintingface", base)
+        path = os.path.join(dir, "output", "paintingface", name)
         check_and_save(path, env.file.save(Config.get_compression()))
 
         if face_mode == FaceModeType.Off:
-            return [path]
+            return path, False
 
         if face_mode == FaceModeType.Auto:
-            prefered = first.prefered()
+            prefered = first.prefered
             size_delta = prefered.sizeDelta
             pivot = prefered.pivot
             anchored_position = prefered.pivotPosition - layer.pivotPosition + layer.anchoredPosition
         elif face_mode == FaceModeType.Custom:
             size_delta = Vector2(first.repl.size)
-            x1, y1, _, _ = Config.get_face_extension()
+            x1, y1, _, _ = Config.get_face_extension(name, "paintingface")
             pivot = (layer.sizeDelta * layer.pivot - Vector2(x1, y1)) / size_delta
             anchored_position = layer.anchoredPosition
 
-        return EncodeHelper.replace_meta(dir, layer, size_delta, pivot, anchored_position) + [path]
+        set_meta(reader, size_delta, pivot, anchored_position)
+
+        return path, True
 
     @staticmethod
     def replace_icon(dir: str, kind: Literal["shipyardicon", "herohrzicon", "squareicon"], icon: IconLayer) -> str:
@@ -136,6 +139,10 @@ class EncodeHelper:
 
     @staticmethod
     def exec(dir: str, layers: dict[str, Layer], faces: dict[str, FaceLayer], icons: dict[str, IconLayer]) -> list[str]:
+        meta_path = list(layers.values())[0].meta.path
+        meta_env = UnityPy.load(meta_path)
+        readers = list(meta_env.cabs.values())[0].objects
+        adv_mode = False
         result = []
         with Progress() as progress:
             valid = [v for v in layers.values() if v.modified]
@@ -143,13 +150,18 @@ class EncodeHelper:
                 cur, cnt = 0, len(valid)
                 task = progress.add_task(f"Encode painting ({cur}/{cnt}):", total=cnt)
                 for x in valid:
-                    result += [EncodeHelper.replace_painting(dir, x)]
+                    sub, flag = EncodeHelper.replace_painting(dir, x, readers[x.pathId])
+                    result += [sub]
+                    adv_mode |= flag
                     cur += 1
                     progress.update(task, advance=1, description=f"Encode painting ({cur}/{cnt}):")
 
             valid = {k: v for k, v in faces.items() if v.modified}
             if valid != {}:
-                result += EncodeHelper.replace_face(dir, valid, progress)
+                face_layer = list(valid.values())[0].layer
+                sub, flag = EncodeHelper.replace_face(dir, valid, readers[face_layer.pathId], progress)
+                result += [sub]
+                adv_mode |= flag
 
             valid = {k: v for k, v in icons.items() if v.modified and os.path.exists(v.path)}
             if valid != {}:
@@ -159,5 +171,10 @@ class EncodeHelper:
                     result += [EncodeHelper.replace_icon(dir, k, v)]
                     cur += 1
                     progress.update(task, advance=1, description=f"Encode icon ({cur}/{cnt}):")
+
+        if adv_mode:
+            path = os.path.join(dir, "output", "painting", os.path.basename(meta_path))
+            check_and_save(path, meta_env.file.save(Config.get_compression()))
+            result += [path]
 
         return result

@@ -38,13 +38,14 @@ def get_presets(group: str) -> IconPresets:
     presets = IconPresets()
     settings.beginGroup(group)
     for k, v in presets.to_dict().items():
-        config = settings.value(k, None)
-        try:
-            data = eval(config)
-        except:
-            data = parse_icon_preset(config)
-        for kk, vv in data.items():
-            v[kk] = vv
+        config = settings.value(k)
+        if config is not None:
+            try:
+                data = eval(config)
+            except:
+                data = parse_icon_preset(config)
+            for kk, vv in data.items():
+                v[kk] = vv
         settings.setValue(k, v.__repr__())
     settings.endGroup()
     return presets
@@ -83,13 +84,15 @@ def set_face_mode(mode: FaceModeType) -> FaceModeType:
     set_config("system", "FaceMode", mode_str)
 
 
-def get_face_extension(name: str) -> tuple[int, int, int, int]:
-    config = get_config(name, "paintingface")
-    return eval(config) if config else None
+def get_face_extension(base_name: str, layer_name: str) -> tuple[int, int, int, int]:
+    if settings.contains(f"{base_name}/{layer_name}"):
+        return eval(get_config(base_name, layer_name))
+    else:
+        return None
 
 
-def set_face_extension(name: str, box: tuple[int, int, int, int]):
-    set_config(name, "paintingface", str(box))
+def set_face_extension(base_name: str, layer_name: str, box: tuple[int, int, int, int]):
+    set_config(base_name, layer_name, str(box))
 
 
 def get_adb_path() -> str:
