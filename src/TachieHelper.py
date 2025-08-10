@@ -187,9 +187,10 @@ class AzurLaneTachieHelper(QMainWindow):
         self.show_path("\n".join(map(QDir.toNativeSeparators, res)))
 
     def onToggleFaceMode(self):
-        with ThreadPoolExecutor(max_workers=8) as executor:
-            executor.map(lambda x: x.refresh(), self.tPainting.layers.values())
-        self.preview.refresh()
+        if hasattr(self.tPainting, "layers"):
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                executor.map(lambda x: x.refresh(), self.tPainting.layers.values())
+            self.preview.refresh()
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():

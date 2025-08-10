@@ -1,4 +1,4 @@
-numpy
+numpy<2.3
 pillow
 pyqtdarktheme @ git+https://github.com/5yutan5/PyQtDarkTheme.git
 pyside6

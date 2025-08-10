@@ -103,7 +103,7 @@ class FaceMode(QMenu):
 
     def toggle(self, _: bool, mode: FaceModeType):
         Config.set_face_mode(mode)
-        self.cbs[0](mode != FaceModeType.Off)
+        self.cbs[0]()
         self.flush()
 
     def flush(self):

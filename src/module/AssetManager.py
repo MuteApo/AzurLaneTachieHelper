@@ -70,7 +70,7 @@ class AssetManager:
 
         logger.attr("Dependencies", list(self.deps.keys()))
 
-        base_go: GameObject = list(env.container.values())[0].read()
+        base_go: GameObject = [x.read() for x in env.container.values() if x.type == ClassIDType.GameObject][0]
         base_layer = Layer(base_go.m_Component[0].component)
 
         self.layers = base_layer.flatten()

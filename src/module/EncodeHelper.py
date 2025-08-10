@@ -74,7 +74,8 @@ class EncodeHelper:
             return path, False
 
         x1, y1, _, _ = Config.get_face_extension(layer.meta.name_stem, layer.name)
-        pivot = layer.pivot - Vector2(x1, y1) / layer.sizeDelta
+        x_min, y_min, _, _ = layer.box
+        pivot = layer.pivot - Vector2(max(x1, -x_min), max(y1, -y_min)) / layer.sizeDelta
         set_meta(reader, layer.sizeDelta, pivot, layer.anchoredPosition)
 
         return path, True
@@ -117,7 +118,8 @@ class EncodeHelper:
         elif face_mode == FaceModeType.Custom:
             size_delta = Vector2(first.repl.size)
             x1, y1, _, _ = Config.get_face_extension(name, "paintingface")
-            pivot = (layer.sizeDelta * layer.pivot - Vector2(x1, y1)) / size_delta
+            x_min, y_min, _, _ = layer.box
+            pivot = (layer.sizeDelta * layer.pivot -  Vector2(max(x1, -x_min), max(y1, -y_min))) / size_delta
             anchored_position = layer.anchoredPosition
 
         set_meta(reader, size_delta, pivot, anchored_position)
