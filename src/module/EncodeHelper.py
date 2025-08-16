@@ -130,9 +130,10 @@ class EncodeHelper:
     def replace_icon(dir: str, kind: Literal["shipyardicon", "herohrzicon", "squareicon"], icon: IconLayer) -> str:
         env = UnityPy.load(icon.path)
         for v in env.container.values():
-            sprite: Sprite = v.read()
-            set_sprite(sprite, icon.repl)
-            set_tex2d(sprite.m_RD.texture.read(), icon.repl)
+            if v.type == ClassIDType.Sprite:
+                set_sprite(v.read(), icon.repl)
+            elif v.type == ClassIDType.Texture2D:
+                set_tex2d(v.read(), icon.repl)
 
         path = os.path.join(dir, "output", kind, icon.layer.meta.name_stem)
         check_and_save(path, env.file.save(Config.get_compression()))
