@@ -1,16 +1,20 @@
+import os
+
 from PySide6.QtCore import QSettings
 
+from ..logger import logger
 from .Data import FaceModeType, IconPresets, parse_icon_preset
 
-settings = QSettings("./config.ini", QSettings.Format.IniFormat)
+settings = QSettings(os.path.expanduser("~/AzurLaneTachieHelper.ini"), QSettings.Format.IniFormat)
 default = {
-    "system/RecentPath": "",
-    "system/Compression": "original",
-    "system/Verbose": "false",
-    "system/FaceMode": "off",
     "system/AdbPath": "3rdparty/adb.exe",
+    "system/RecentPath": "",
+    "system/Verbose": "false",
+    "system/Compression": "original",
+    "system/FaceMode": "off",
     "system/Serial": "auto",
     "system/Server": "CN",
+    "system/Package": "",
 }
 
 
@@ -20,8 +24,8 @@ def init():
             settings.setValue(k, v)
 
 
-def get_config(group: str, key: str):
-    value = settings.value(f"{group}/{key}")
+def get_config(key: str):
+    value = settings.value(key)
     if value == "true":
         return True
     elif value == "false":
@@ -29,9 +33,9 @@ def get_config(group: str, key: str):
     return value
 
 
-def set_config(group: str, key: str, value):
-    settings.setValue(f"{group}/{key}", value)
-    return get_config(group, key)
+def set_config(key: str, value):
+    settings.setValue(key, value)
+    return get_config(key)
 
 
 def get_presets(group: str) -> IconPresets:
@@ -59,65 +63,69 @@ def set_presets(group: str, presets: IconPresets):
 
 
 def get_recent_path() -> str:
-    return get_config("system", "RecentPath")
+    return get_config("system/RecentPath")
 
 
 def set_recent_path(file: str):
-    set_config("system", "RecentPath", file)
+    set_config("system/RecentPath", file)
 
 
 def get_compression() -> str:
-    return get_config("system", "Compression")
+    return get_config("system/Compression")
 
 
 def get_verbosity() -> bool:
-    return get_config("system", "Verbose")
+    return get_config("system/Verbose")
 
 
 def get_face_mode() -> FaceModeType:
-    face_mode = get_config("system", "FaceMode").lower()
+    face_mode = get_config("system/FaceMode").lower()
     return {"off": FaceModeType.Off, "auto": FaceModeType.Auto, "custom": FaceModeType.Custom}[face_mode]
 
 
 def set_face_mode(mode: FaceModeType) -> FaceModeType:
     mode_str = {FaceModeType.Off: "off", FaceModeType.Auto: "auto", FaceModeType.Custom: "custom"}[mode]
-    set_config("system", "FaceMode", mode_str)
+    set_config("system/FaceMode", mode_str)
 
 
 def get_face_extension(base_name: str, layer_name: str) -> tuple[int, int, int, int]:
     if settings.contains(f"{base_name}/{layer_name}"):
-        return eval(get_config(base_name, layer_name))
+        return eval(get_config(f"{base_name}/{layer_name}"))
     else:
         return None
 
 
 def set_face_extension(base_name: str, layer_name: str, box: tuple[int, int, int, int]):
-    set_config(base_name, layer_name, str(box))
+    set_config(f"{base_name}/{layer_name}", str(box))
 
 
 def get_adb_path() -> str:
-    return get_config("system", "AdbPath")
+    return get_config("system/AdbPath")
 
 
 def get_serial() -> str:
-    return get_config("system", "Serial").lower()
+    return get_config("system/Serial").lower()
 
 
 def set_serial(serial: str):
-    set_config("system", "Serial", serial)
+    set_config("system/Serial", serial)
 
 
 def get_server() -> str:
-    return get_config("system", "Server").upper()
+    return get_config("system/Server").upper()
 
 
 def set_server(server: str):
-    set_config("system", "Server", server)
+    set_config("system/Server", server)
 
 
 def get_package() -> str:
-    return {
-        "CN": "com.bilibili.azurlane",
-        "JP": "com.YoStarJP.AzurLane",
-        "EN": "com.YoStarEN.AzurLane",
-    }[get_server()]
+    package = get_config("system/Package")
+    if package == "":
+        package = {
+            "CN": "com.bilibili.azurlane",
+            "JP": "com.YoStarJP.AzurLane",
+            "EN": "com.YoStarEN.AzurLane",
+        }[get_server()]
+    logger.info(f"[bold][Package][/bold] {package}")
+    return package

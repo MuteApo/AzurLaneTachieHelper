@@ -129,12 +129,12 @@ class AssetManager:
             if kind == "shipyardicon":
                 sub = img.copy()
                 img = Image.new("RGBA", sub.size)
-                img.paste(sub, (round(-9 / preset.scale), 0))
+                img.paste(sub, (round(-10 / preset.scale), 0))
                 data = np.array(img)
                 data[..., :3] = 0
                 data[..., 3] = np.where(data[..., 3] > 76, 76, data[..., 3])
                 img = Image.fromarray(data)
-                img.paste(sub)
+                img.alpha_composite(sub)
             img.crop((x, y, x + w, y + h)).transpose(Image.Transpose.FLIP_TOP_BOTTOM).save(path)
 
             return path

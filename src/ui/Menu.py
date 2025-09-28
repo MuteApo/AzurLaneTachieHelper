@@ -10,7 +10,6 @@ from UnityPy.enums import ClassIDType
 
 from ..base import Config
 from ..base.Data import FaceModeType
-from ..logger import logger
 from ..module.AdbHelper import AdbHelper
 from ..ui.TachiePuller import TachiePuller
 
@@ -78,7 +77,6 @@ class Server(QMenu):
 
     def toggle(self, _: bool, server: str):
         Config.set_server(server)
-        logger.attr(server, f"'{Config.get_package()}'")
         self.flush()
 
     def flush(self):

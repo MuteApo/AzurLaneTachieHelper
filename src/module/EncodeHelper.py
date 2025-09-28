@@ -34,12 +34,11 @@ def set_mesh(mesh: ObjectReader, img: Image.Image):
     data["m_SubMeshes"][0]["indexCount"] = 6
     data["m_SubMeshes"][0]["vertexCount"] = 4
     data["m_IndexBuffer"] = [0, 0, 1, 0, 2, 0, 2, 0, 3, 0, 0, 0]
-    data["m_VertexData"]["m_VertexCount"] = 4
 
     w, h = img.size
     buf = [0, 0, 0, 0, 0, 0, h, 0, 0, 1, w, h, 0, 1, 1, w, 0, 0, 1, 0]
-    data_size = struct.pack(mesh.reader.endian + "f" * 20, *buf)
-    data["m_VertexData"]["m_DataSize"] = memoryview(data_size)
+    data["m_VertexData"]["m_DataSize"] = struct.pack(mesh.reader.endian + "f" * 20, *buf)
+    data["m_VertexData"]["m_VertexCount"] = 4
 
     mesh.save_typetree(data)
 

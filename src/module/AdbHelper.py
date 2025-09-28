@@ -1,6 +1,7 @@
 import os
 import re
 import subprocess
+import traceback
 
 from ..base import Config
 from ..logger import logger
@@ -55,7 +56,8 @@ class AdbHelper:
     @classmethod
     def connect(cls) -> str:
         devices = cls.devices(serial_only=True)
-        logger.info(f"[bold][AdbHelper][/bold] Available devices: {", ".join(devices)}")
+        assert devices != [], "No device found, please check adb connection"
+        logger.info(f"[bold][ADB][/bold] Available devices: {", ".join(devices)}")
 
         serial = Config.get_serial()
         if serial == "auto":
@@ -84,7 +86,7 @@ class AdbHelper:
         os.makedirs(dst_dir, exist_ok=True)
 
         if not cls._connected:
-            logger.info(f"[bold][AdbHelper][/bold] Using {cls.connect()}")
+            logger.info(f"[bold][ADB][/bold] Connected to {cls.connect()}")
 
         succeeded, failed = [], []
         for file in files:
@@ -100,6 +102,7 @@ class AdbHelper:
                 cls.adb("pull", path, folder, progress=progress)
             except subprocess.CalledProcessError:
                 failed.append(file)
+                traceback.print_exc()
                 if log:
                     logger.warning(f"[bold][[red]Failed[/red]][/bold] '{file}'")
             else:

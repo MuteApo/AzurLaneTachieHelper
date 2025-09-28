@@ -118,7 +118,7 @@ class Previewer(QWidget):
                 executor.map(lambda x: x.refresh(), layers.values())
 
         self.layer = layers[idx]
-        if Config.get_face_mode() == FaceModeType.Custom and self.layer.repl is not None:
+        if Config.get_face_mode() != FaceModeType.Off and self.layer.repl is not None:
             self.fit = partial(ImageOps.contain, size=(512, 512), method=Image.Resampling.BICUBIC)
         else:
             self.fit = lambda x: x
