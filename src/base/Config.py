@@ -2,7 +2,6 @@ import os
 
 from PySide6.QtCore import QSettings
 
-from ..logger import logger
 from .Data import FaceModeType, IconPresets, parse_icon_preset
 
 settings = QSettings(os.path.expanduser("~/AzurLaneTachieHelper.ini"), QSettings.Format.IniFormat)
@@ -127,5 +126,4 @@ def get_package() -> str:
             "JP": "com.YoStarJP.AzurLane",
             "EN": "com.YoStarEN.AzurLane",
         }[get_server()]
-    logger.info(f"[bold][Package][/bold] {package}")
     return package

@@ -52,8 +52,7 @@ class PaintingTable(BaseTable):
     def __init__(self, preview: Previewer):
         super().__init__(preview, self.tr("Dependencies"))
 
-    def set_data(self, deps: dict[str, str], layers: dict[str, Layer]):
-        self.deps = deps
+    def set_data(self, layers: dict[str, Layer]):
         self.layers = layers
         self.num = len(self.layers) - 1
         self.table.setMinimumHeight((self.num + 1) * 30)

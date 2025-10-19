@@ -28,9 +28,9 @@ class AdbHelper:
 
         stderr = None if progress else subprocess.DEVNULL
         if Config.get_verbosity():
-            logger.info(f"[bold][Subprocess][/bold] {" ".join(cmd)}")
+            logger.info(f"[Subprocess] {" ".join(cmd)}")
             output = subprocess.check_output(cmd, stderr=stderr).decode("utf-8").strip()
-            logger.info(f"[bold][Subprocess][/bold] {output}")
+            logger.info(f"[Subprocess] {output}")
         else:
             output = subprocess.check_output(cmd, stderr=stderr).decode("utf-8").strip()
 
@@ -56,8 +56,8 @@ class AdbHelper:
     @classmethod
     def connect(cls) -> str:
         devices = cls.devices(serial_only=True)
-        assert devices != [], "No device found, please check adb connection"
-        logger.info(f"[bold][ADB][/bold] Available devices: {", ".join(devices)}")
+        assert devices, "No device found, please check emulator status or adb connection"
+        logger.info(f"[ADB] Available devices: {", ".join(devices)}")
 
         serial = Config.get_serial()
         if serial == "auto":
@@ -86,7 +86,7 @@ class AdbHelper:
         os.makedirs(dst_dir, exist_ok=True)
 
         if not cls._connected:
-            logger.info(f"[bold][ADB][/bold] Connected to {cls.connect()}")
+            logger.info(f"[ADB] Connected to {cls.connect()}")
 
         succeeded, failed = [], []
         for file in files:
@@ -104,17 +104,17 @@ class AdbHelper:
                 failed.append(file)
                 traceback.print_exc()
                 if log:
-                    logger.warning(f"[bold][[red]Failed[/red]][/bold] '{file}'")
+                    logger.warning(f"[[red]Failed[/red]] '{file}'")
             else:
                 succeeded.append(file)
                 if log:
-                    logger.info(f"[bold][[green]Succeeded[/green]][/bold] '{file}'")
+                    logger.info(f"[[green]Succeeded[/green]] '{file}'")
 
         return succeeded, failed
 
     @classmethod
     def detect(cls):
-        logger.info("[bold][AdbHelper][/bold] Auto detecting emulator")
+        logger.info("[AdbHelper] Auto detecting emulator")
 
         devices = cls.devices(serial_only=True)
         if devices != []:

@@ -115,7 +115,7 @@ class AzurLaneTachieHelper(QMainWindow):
 
         self.asset_manager.analyze(file)
 
-        self.tPainting.set_data(self.asset_manager.deps, self.asset_manager.layers)
+        self.tPainting.set_data(self.asset_manager.layers)
 
         face_layer = self.asset_manager.face_layer
         prefered = prefered_layer(self.asset_manager.layers, face_layer)

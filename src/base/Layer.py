@@ -276,14 +276,10 @@ class Layer:
         return self.meshSize
 
     @cached_property
-    def maxSize(self) -> Vector2:
-        return self.spriteSize if self.spriteSize.prod() > self.sizeDelta.prod() else self.sizeDelta
-
-    @cached_property
     def decode(self) -> Image.Image:
         size = self.spriteSize.round().tuple()
         dec = self.tex.transform(size, Image.Transform.MESH, self.buffer, Image.Resampling.BICUBIC)
-        return ImageOps.contain(dec, self.maxSize.round())
+        return ImageOps.contain(dec, self.sizeDelta.round())
 
     @cached_property
     def box(self) -> tuple[int, int, int, int]:
@@ -320,8 +316,8 @@ class Layer:
 
 
 def prefered_layer(layers: dict[str, Layer], layer: Layer) -> Layer:
-    expands = [x for x in layers.values() if layer in x and x.name != "face"]
-    return sorted(expands, key=lambda v: v.maxSize.prod())[0]
+    expands = [x for x in layers.values() if x.name != "face"]
+    return sorted(expands, key=lambda v: v.sizeDelta.prod())[0]
 
 
 class BaseLayer:

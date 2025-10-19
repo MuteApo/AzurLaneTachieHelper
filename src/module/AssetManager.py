@@ -1,6 +1,8 @@
 import os
+import pprint
 import re
 from concurrent.futures import ThreadPoolExecutor
+from stat import filemode
 
 import numpy as np
 import UnityPy
@@ -50,7 +52,7 @@ class AssetManager:
     def encode(self, dir: str) -> str:
         return EncodeHelper.exec(dir, self.layers, self.faces, self.icons)
 
-    def dependency(self, file: str) -> list[str]:
+    def get_dependency(self, file: str) -> list[str]:
         if not os.path.exists("dependencies"):
             AdbHelper.pull("dependencies", add_prefix=True)
         env = UnityPy.load("dependencies")
@@ -61,14 +63,21 @@ class AssetManager:
     def analyze(self, file: str):
         self.init()
 
+        self.deps = self.get_dependency(file)
+        logger.attr("Dependencies", self.deps)
+
         env = UnityPy.load(file)
-        for dep in self.dependency(file):
+        for dep in self.deps:
             path = os.path.join(os.path.dirname(file) + "/", dep)
             assert os.path.exists(path), f"Dependency not found: {dep}"
-            self.deps[dep] = path
             env.load_file(path)
 
-        logger.attr("Dependencies", list(self.deps.keys()))
+        file_map = {
+            os.path.basename(x)[:-4].lower(): k
+            for k, v in env.files.items()
+            for x in v.container.keys()
+            if x.endswith(".png")
+        }
 
         base_go: GameObject = [x.read() for x in env.container.values() if x.type == ClassIDType.GameObject][0]
         base_layer = Layer(base_go.m_Component[0].component)
@@ -98,8 +107,7 @@ class AssetManager:
         for k, v in self.layers.items():
             v.meta = self.meta
             if k != "face":
-                dep = f"painting/{v.texture2D.m_Name}_tex".lower()
-                v.path = self.deps[dep] if dep in self.deps else file
+                v.path = file_map[v.texture2D.m_Name.lower()]
                 if Config.get_face_extension(self.meta.name_stem, k) is None:
                     Config.set_face_extension(self.meta.name_stem, k, [0] * 4)
 
@@ -148,4 +156,4 @@ class AssetManager:
         prefered = prefered_layer(self.layers, self.face_layer)
         full = open_and_transpose(file).crop(prefered.box)
         center = self.face_layer.posMin - prefered.posMin + self.face_layer.sizeDelta / 2
-        return full.resize(prefered.maxSize.round()), center
+        return full.resize(prefered.sizeDelta.round()), center
