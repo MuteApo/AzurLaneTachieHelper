@@ -1,4 +1,3 @@
-import os
 from functools import cached_property
 from math import ceil, floor
 from typing import Callable, Optional, Self
@@ -270,16 +269,10 @@ class Layer:
         return Vector2(w, h)
 
     @cached_property
-    def spriteSize(self) -> Vector2:
-        if self.rawSpriteSize is not None and self.rawSpriteSize.prod() > self.meshSize.prod():
-            return self.rawSpriteSize
-        return self.meshSize
-
-    @cached_property
     def decode(self) -> Image.Image:
-        size = self.spriteSize.round().tuple()
+        size = self.meshSize.round().tuple()
         dec = self.tex.transform(size, Image.Transform.MESH, self.buffer, Image.Resampling.BICUBIC)
-        return ImageOps.contain(dec, self.sizeDelta.round())
+        return ImageOps.contain(dec, (self.sizeDelta * self.localScale).round())
 
     @cached_property
     def box(self) -> tuple[int, int, int, int]:
@@ -295,7 +288,7 @@ class Layer:
             box = self.box
         img = self.safe_crop(self.full, box)
         if self.depth == 1:
-            img = img.resize(self.spriteSize.round(), Image.Resampling.BICUBIC)
+            img = img.resize(self.meshSize.round(), Image.Resampling.BICUBIC)
         return img
 
     def safe_crop(self, x: Image.Image, box: tuple[int, int, int, int]):

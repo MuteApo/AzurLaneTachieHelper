@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from math import floor
 
 import numpy as np
@@ -29,19 +30,36 @@ def ps_layer(name: str, layer: Layer, img: Image.Image, visible: bool) -> nested
 class DecodeHelper:
     @staticmethod
     def exec(layers: dict[str, Layer], faces: dict[str, FaceLayer]) -> PsdFile:
-        painting = []
-        with Progress() as progress:
+        with Progress() as progress, ThreadPoolExecutor(max_workers=len(layers) + len(faces)) as executor:
+            painting_map = {}
             task = progress.add_task("Decode painting", total=len(layers))
+            future_to_key = {}
+
             for k, v in layers.items():
                 if k == "face":
-                    face = []
                     subtask = progress.add_task("Decode paintingface", total=len(faces))
-                    for kk, vv in sorted(faces.items()):
-                        face += [ps_layer(f"face #{kk}", v, vv.decode, visible=False)]
-                        progress.update(subtask, advance=1)
-                    painting += [nested_layers.Group(name="paintingface", layers=face, closed=False)]
+
+                    def process_faces_group(layer, face_items):
+                        def process_one_face(item):
+                            kk, vv = item
+                            result = ps_layer(f"face #{kk}", layer, vv.decode, visible=False)
+                            progress.update(subtask, advance=1)
+                            return result
+
+                        face_group_layers = list(executor.map(process_one_face, face_items))
+                        return nested_layers.Group(name="paintingface", layers=face_group_layers, closed=False)
+
+                    future = executor.submit(process_faces_group, v, sorted(faces.items()))
+                    future_to_key[future] = k
                 else:
-                    painting += [ps_layer(f"{v.name} [{v.texture2D.m_Name}]", v, v.decode, visible=True)]
+                    future = executor.submit(ps_layer, f"{v.name} [{v.texture2D.m_Name}]", v, v.decode, True)
+                    future_to_key[future] = k
+
+            for future in as_completed(future_to_key):
+                k = future_to_key[future]
+                painting_map[k] = future.result()
                 progress.update(task, advance=1)
+
+            painting = [painting_map[k] for k in layers]
 
         return nested_layers.nested_layers_to_psd(painting[::-1], color_mode=ColorMode.rgb)

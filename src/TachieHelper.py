@@ -107,7 +107,7 @@ class AzurLaneTachieHelper(QMainWindow):
         name = os.path.basename(file)
         self.msg_file.setText(f"({name}) {QDir.toNativeSeparators(file)}")
         logger.hr(name, 1)
-        logger.attr("Metadata", f"'{file}'")
+        logger.attr("Metadata", file)
 
         self.tPainting.table.clearContents()
         self.tFace.table.clearContents()

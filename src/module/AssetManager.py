@@ -91,7 +91,7 @@ class AssetManager:
         x_max = max([_.posMax.X for _ in self.layers.values()])
         y_min = min([_.posMin.Y for _ in self.layers.values()])
         y_max = max([_.posMax.Y for _ in self.layers.values()])
-        size = Vector2(x_max - x_min, y_max - y_min).round()
+        size = Vector2(x_max - x_min, y_max - y_min)
         bias = Vector2(-x_min, -y_min)
 
         self.meta = MetaInfo(file, base_layer.name, size, bias)

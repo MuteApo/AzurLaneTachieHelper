@@ -54,7 +54,7 @@ class TachiePuller(QDialog):
         if AdbHelper.devices() == []:
             AdbHelper.connect()
         name = self.combo_box.currentText()
-        logger.attr("Metadata", f"'{name}'")
+        logger.attr("Metadata", name)
 
         deps = [f"painting/{name}"] + self.data.get(f"painting/{name}", [])
         if f"{name}_n" in self.metas:
