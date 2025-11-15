@@ -1,0 +1,21 @@
+[project]
+name = "alth"
+version = "1.8.4"
+description = "Azur Lane Tachie Helper"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "numpy<2.3",
+    "pillow",
+    "pyqtdarktheme",
+    "pyside6",
+    "pytoshop",
+    "rich",
+    "setuptools",
+    "six",
+    "unitypy",
+]
+
+[tool.uv.sources]
+pyqtdarktheme = { git = "https://github.com/5yutan5/PyQtDarkTheme.git" }
+pytoshop = { git = "https://github.com/mdboom/pytoshop.git" }

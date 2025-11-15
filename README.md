@@ -9,12 +9,9 @@
 
 #### Installation
 
-- Python>=3.10 with following libraries:
+- Python>=3.12 is recommended, with following packages:
   - NumPy
   - Pillow
   - Pytoshop
   - UnityPy
-- Or with given env spec:
-  ```shell
-  pip install -U -r requirements.txt --ignore-requires-python
-  ```
+- Or simply install by `uv sync`.

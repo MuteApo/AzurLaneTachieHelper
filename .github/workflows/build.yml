@@ -21,7 +21,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           architecture: "x64"
           cache: "pip"
           cache-dependency-path: "requirements.txt"
@@ -48,7 +48,6 @@ jobs:
           nuitka-version: 2.5.9
           script-name: app.py
           mode: standalone
-          mingw64: true
           lto: no
           enable-plugins: pyside6
           nofollow-import-to: tkinter
