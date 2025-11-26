@@ -10,6 +10,7 @@ default = {
     "system/RecentPath": "",
     "system/Verbose": "false",
     "system/Compression": "original",
+    "system/MeshMode": 0,
     "system/FaceMode": "off",
     "system/Serial": "auto",
     "system/Server": "CN",
@@ -87,11 +88,19 @@ def set_face_mode(mode: FaceModeType) -> FaceModeType:
     set_config("system/FaceMode", mode_str)
 
 
+def get_mesh_mode() -> int:
+    return int(get_config("system/MeshMode"))
+
+
+def set_mesh_mode(mode: int) -> int:
+    set_config("system/MeshMode", mode)
+
+
 def get_face_extension(base_name: str, layer_name: str) -> tuple[int, int, int, int]:
     if settings.contains(f"{base_name}/{layer_name}"):
         return eval(get_config(f"{base_name}/{layer_name}"))
     else:
-        return None
+        raise KeyError(f"Face config not found: {base_name}/{layer_name}")
 
 
 def set_face_extension(base_name: str, layer_name: str, box: tuple[int, int, int, int]):

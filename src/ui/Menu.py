@@ -59,6 +59,53 @@ class Edit(QMenu):
         self.addActions([self.aClipIcons, self.aDecodeTexture, self.aEncodeTexture])
 
 
+class FaceMode(QMenu):
+    def __init__(self, *cbs: list[Callable]):
+        super().__init__()
+        self.setTitle(self.tr("Paintingface Mode"))
+
+        self.cbs = cbs
+        self.aOff = QAction(self.tr("Off"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Off))
+        self.aAuto = QAction(self.tr("Auto"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Auto))
+        self.aCustom = QAction(self.tr("Custom"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Custom))
+
+        self.addActions([self.aOff, self.aAuto, self.aCustom])
+        self.flush()
+
+    def toggle(self, _: bool, mode: FaceModeType):
+        Config.set_face_mode(mode)
+        self.cbs[1]()
+        self.flush()
+
+    def flush(self):
+        mode = Config.get_face_mode()
+        self.aOff.setChecked(mode == FaceModeType.Off)
+        self.aAuto.setChecked(mode == FaceModeType.Auto)
+        self.aCustom.setChecked(mode == FaceModeType.Custom)
+        self.cbs[0]()
+
+
+class MeshMode(QMenu):
+    def __init__(self):
+        super().__init__()
+        self.setTitle(self.tr("Mesh Decoding Mode"))
+
+        self.aZero = QAction("0", checkable=True, triggered=partial(self.toggle, mode=0))
+        self.aOne = QAction("1", checkable=True, triggered=partial(self.toggle, mode=1))
+
+        self.addActions([self.aZero, self.aOne])
+        self.flush()
+
+    def toggle(self, _: bool, mode: int):
+        Config.set_mesh_mode(mode)
+        self.flush()
+
+    def flush(self):
+        mode = Config.get_mesh_mode()
+        self.aZero.setChecked(mode == 0)
+        self.aOne.setChecked(mode == 1)
+
+
 class Server(QMenu):
     def __init__(self, cb: Callable):
         super().__init__()
@@ -86,40 +133,16 @@ class Server(QMenu):
         self.cb()
 
 
-class FaceMode(QMenu):
-    def __init__(self, *cbs: list[Callable]):
-        super().__init__()
-        self.setTitle(self.tr("Paintingface Mode"))
-
-        self.cbs = cbs
-        self.aOff = QAction(self.tr("Off"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Off))
-        self.aAuto = QAction(self.tr("Auto"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Auto))
-        self.aCustom = QAction(self.tr("Custom"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Custom))
-
-        self.addActions([self.aOff, self.aAuto, self.aCustom])
-        self.flush()
-
-    def toggle(self, _: bool, mode: FaceModeType):
-        Config.set_face_mode(mode)
-        self.cbs[0]()
-        self.flush()
-
-    def flush(self):
-        mode = Config.get_face_mode()
-        self.aOff.setChecked(mode == FaceModeType.Off)
-        self.aAuto.setChecked(mode == FaceModeType.Auto)
-        self.aCustom.setChecked(mode == FaceModeType.Custom)
-        self.cbs[1]()
-
-
 class Option(QMenu):
     def __init__(self, *cbs: list[Callable]):
         super().__init__()
         self.setTitle(self.tr("Option"))
 
         self.aFaceMode = FaceMode(*cbs)
-        self.mServer = Server(cbs[1])
+        self.aMeshMode = MeshMode()
+        self.mServer = Server(cbs[0])
 
         self.addMenu(self.aFaceMode)
+        self.addMenu(self.aMeshMode)
         self.addSeparator()
         self.addMenu(self.mServer)

@@ -72,7 +72,7 @@ class EncodeHelper:
         if Config.get_face_mode() != FaceModeType.Custom:
             return path, False
 
-        x1, y1, _, _ = Config.get_face_extension(layer.meta.name_stem, layer.name)
+        x1, y1, _, _ = Config.get_face_extension(layer.meta.name_stem, layer.validName)
         x_min, y_min, _, _ = layer.box
         pivot = layer.pivot - Vector2(max(x1, -x_min), max(y1, -y_min)) / layer.sizeDelta
         set_meta(reader, layer.sizeDelta, pivot, layer.anchoredPosition)

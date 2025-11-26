@@ -105,11 +105,11 @@ class Previewer(QWidget):
     def display_painting(self, layer: Layer):
         self.layer = layer
         self.fit = partial(ImageOps.contain, size=(512, 512), method=Image.Resampling.BICUBIC)
-        self.lPath.setText(f"Path: {QDir.toNativeSeparators(layer.path)}")
-        self.lName.setText(f"Name: {layer.texture2D.m_Name}")
+        self.lPath.setText(self.tr("Path:") + QDir.toNativeSeparators(layer.path))
+        self.lName.setText(self.tr("Name: ") + layer.texture2D.m_Name)
         if Config.get_face_mode() == FaceModeType.Custom:
             self.slider_panel.setVisible(True)
-            self.slider_panel.set_data(layer.meta.name_stem, layer.name, self.callback_wrapper(layer.refresh))
+            self.slider_panel.set_data(layer.meta.name_stem, layer.validName, self.callback_wrapper(layer.refresh))
         self.refresh()
 
     def display_face(self, layers: dict[str, FaceLayer], idx: str):
@@ -122,8 +122,8 @@ class Previewer(QWidget):
             self.fit = partial(ImageOps.contain, size=(512, 512), method=Image.Resampling.BICUBIC)
         else:
             self.fit = lambda x: x
-        self.lName.setText(f"Name: {self.layer.name}")
-        self.lPath.setText(QDir.toNativeSeparators(self.layer.path))
+        self.lName.setText(self.tr("Name: ") + self.layer.name)
+        self.lPath.setText(self.tr("Path:") + QDir.toNativeSeparators(self.layer.path))
         if Config.get_face_mode() == FaceModeType.Custom:
             self.slider_panel.setVisible(True)
             self.slider_panel.set_data(self.layer.meta.name_stem, "paintingface", self.callback_wrapper(all_refresh))
@@ -132,15 +132,15 @@ class Previewer(QWidget):
     def display_icon(self, layer: IconLayer):
         self.layer = layer
         self.fit = lambda x: x
-        self.lName.setText(f"Name: {layer.name}")
-        self.lPath.setText(QDir.toNativeSeparators(layer.path))
+        self.lName.setText(self.tr("Name: ") + layer.name)
+        self.lPath.setText(self.tr("Path:") + QDir.toNativeSeparators(layer.path))
         self.slider_panel.setVisible(False)
         self.refresh()
 
     def refresh(self):
-        img = self.layer.repl if exists(self.layer.repl) else self.layer.decode
-        self.lWidth.setText(f"Width: {img.size[0]}")
-        self.lHeight.setText(f"Height: {img.size[1]}")
+        img = self.layer.repl if exists(self.layer.repl) else self.layer.decode()
+        self.lWidth.setText(self.tr("Width: ") + str(img.size[0]))
+        self.lHeight.setText(self.tr("Height: ") + str(img.size[1]))
         self.lImage.setPixmap(self.fit(img).transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         self.update()
 

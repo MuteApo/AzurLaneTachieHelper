@@ -102,6 +102,9 @@ class Vector2(Generic[T]):
         other = Vector2(other)
         return Vector2(self.X**other.X, self.Y**other.Y)
 
+    def abs(self):
+        return Vector2[int](abs(self.X), abs(self.Y))
+
     def round(self):
         return Vector2[int](round(self.X), round(self.Y))
 

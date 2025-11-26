@@ -1,7 +1,6 @@
 import os
 import re
 import subprocess
-import traceback
 
 from ..base import Config
 from ..logger import logger
@@ -102,7 +101,6 @@ class AdbHelper:
                 cls.adb("pull", path, folder, progress=progress)
             except subprocess.CalledProcessError:
                 failed.append(file)
-                traceback.print_exc()
                 if log:
                     logger.attr("[red]Failed[/red]", file)
             else:

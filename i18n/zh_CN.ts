@@ -30,7 +30,7 @@
         <translation>区服</translation>
     </message>
     <message>
-        <location filename="../src/TachieHelper.py" line="45"/>
+        <location filename="../src/TachieHelper.py" line="43"/>
         <source>EN</source>
         <translation>国际服</translation>
     </message>
@@ -103,22 +103,22 @@
 <context>
     <name>Edit</name>
     <message>
-        <location filename="../src/ui/Menu.py" line="54"/>
+        <location filename="../src/ui/Menu.py" line="53"/>
         <source>Edit</source>
         <translation>编辑</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="56"/>
+        <location filename="../src/ui/Menu.py" line="55"/>
         <source>Clip Icons</source>
         <translation>裁剪图标</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="57"/>
+        <location filename="../src/ui/Menu.py" line="56"/>
         <source>Decode Texture</source>
         <translation>解包立绘</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="58"/>
+        <location filename="../src/ui/Menu.py" line="57"/>
         <source>Encode Texture</source>
         <translation>封包立绘</translation>
     </message>
@@ -126,22 +126,22 @@
 <context>
     <name>FaceMode</name>
     <message>
-        <location filename="../src/ui/Menu.py" line="94"/>
+        <location filename="../src/ui/Menu.py" line="65"/>
         <source>Paintingface Mode</source>
         <translation>高拆模式</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="97"/>
+        <location filename="../src/ui/Menu.py" line="68"/>
         <source>Off</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="98"/>
+        <location filename="../src/ui/Menu.py" line="69"/>
         <source>Auto</source>
         <translation>自动</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="99"/>
+        <location filename="../src/ui/Menu.py" line="70"/>
         <source>Custom</source>
         <translation>自定义</translation>
     </message>
@@ -149,37 +149,37 @@
 <context>
     <name>File</name>
     <message>
-        <location filename="../src/ui/Menu.py" line="32"/>
+        <location filename="../src/ui/Menu.py" line="31"/>
         <source>File</source>
         <translation>文件</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="39"/>
+        <location filename="../src/ui/Menu.py" line="38"/>
         <source>Pull Dependencies</source>
         <translation>拉取依赖</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="34"/>
+        <location filename="../src/ui/Menu.py" line="33"/>
         <source>Open Metadata</source>
         <translation>打开元数据</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="35"/>
+        <location filename="../src/ui/Menu.py" line="34"/>
         <source>Import Painting</source>
         <translation>导入立绘图层</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="36"/>
+        <location filename="../src/ui/Menu.py" line="35"/>
         <source>Import Paintingface</source>
         <translation>导入表情差分</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="37"/>
+        <location filename="../src/ui/Menu.py" line="36"/>
         <source>Import Icons</source>
         <translation>导入图标</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="44"/>
+        <location filename="../src/ui/Menu.py" line="43"/>
         <source>Pull Tachie</source>
         <translation>拉取立绘</translation>
     </message>
@@ -187,7 +187,7 @@
 <context>
     <name>IconTable</name>
     <message>
-        <location filename="../src/ui/Table.py" line="126"/>
+        <location filename="../src/ui/Table.py" line="125"/>
         <source>Icons</source>
         <translation>图标</translation>
     </message>
@@ -206,9 +206,17 @@
     </message>
 </context>
 <context>
+    <name>MeshMode</name>
+    <message>
+        <location filename="../src/ui/Menu.py" line="91"/>
+        <source>Mesh Decoding Mode</source>
+        <translation>网格解码模式</translation>
+    </message>
+</context>
+<context>
     <name>Option</name>
     <message>
-        <location filename="../src/ui/Menu.py" line="120"/>
+        <location filename="../src/ui/Menu.py" line="139"/>
         <source>Option</source>
         <translation>选项</translation>
     </message>
@@ -224,30 +232,57 @@
 <context>
     <name>PaintingfaceTable</name>
     <message>
-        <location filename="../src/ui/Table.py" line="81"/>
+        <location filename="../src/ui/Table.py" line="80"/>
         <source>Paintingfaces</source>
         <translation>表情差分</translation>
     </message>
 </context>
 <context>
+    <name>Previewer</name>
+    <message>
+        <location filename="../src/ui/Previewer.py" line="108"/>
+        <location filename="../src/ui/Previewer.py" line="126"/>
+        <location filename="../src/ui/Previewer.py" line="136"/>
+        <source>Path:</source>
+        <translation>路径：</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/Previewer.py" line="109"/>
+        <location filename="../src/ui/Previewer.py" line="125"/>
+        <location filename="../src/ui/Previewer.py" line="135"/>
+        <source>Name: </source>
+        <translation>名称：</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/Previewer.py" line="142"/>
+        <source>Width: </source>
+        <translation>宽度：</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/Previewer.py" line="143"/>
+        <source>Height: </source>
+        <translation>高度：</translation>
+    </message>
+</context>
+<context>
     <name>Server</name>
     <message>
-        <location filename="../src/ui/Menu.py" line="66"/>
+        <location filename="../src/ui/Menu.py" line="112"/>
         <source>Server</source>
         <translation>区服</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="69"/>
+        <location filename="../src/ui/Menu.py" line="115"/>
         <source>CN</source>
         <translation>Bilibili服</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="70"/>
+        <location filename="../src/ui/Menu.py" line="116"/>
         <source>JP</source>
         <translation>日服</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="71"/>
+        <location filename="../src/ui/Menu.py" line="117"/>
         <source>EN</source>
         <translation>国际服</translation>
     </message>

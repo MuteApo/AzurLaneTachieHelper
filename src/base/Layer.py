@@ -1,5 +1,4 @@
 from functools import cached_property
-from math import ceil, floor
 from typing import Callable, Optional, Self
 
 from PIL import Image, ImageOps
@@ -73,8 +72,7 @@ class Layer:
     def flatten(self) -> dict[str, Self]:
         res = {}
         if self.sprite is not None:
-            name = self.sprite.m_Name if self.name in ["part"] else self.name
-            res[name] = self
+            res[self.validName] = self
         for x in self.child:
             res |= x.flatten()
         return res
@@ -87,6 +85,10 @@ class Layer:
     @cached_property
     def name(self) -> str:
         return self.gameObject.m_Name if self.gameObject is not None else "Undefined"
+    
+    @cached_property
+    def validName(self) -> str:
+        return self.sprite.m_Name if self.name in ["part"] else self.name
 
     @cached_property
     def pathId(self) -> int:
@@ -268,27 +270,27 @@ class Layer:
         h = max([x[3] for x in v])
         return Vector2(w, h)
 
-    @cached_property
     def decode(self) -> Image.Image:
-        size = self.meshSize.round().tuple()
-        dec = self.tex.transform(size, Image.Transform.MESH, self.buffer, Image.Resampling.BICUBIC)
+        size = self.rawSpriteSize if Config.get_mesh_mode() == 0 else self.meshSize
+        dec = self.tex.transform(size.round().tuple(), Image.Transform.MESH, self.buffer, Image.Resampling.BICUBIC)
         return ImageOps.contain(dec, (self.sizeDelta * self.localScale).round())
 
     @cached_property
     def box(self) -> tuple[int, int, int, int]:
         x, y = self.posBiased
         w, h = self.sizeDelta
-        return floor(x), ceil(y), floor(x + w), ceil(y + h)
+        return round(x), round(y), round(x + w), round(y + h)
 
     def crop(self) -> Image.Image:
         if Config.get_face_mode() == FaceModeType.Custom:
-            face_extension = Config.get_face_extension(self.meta.name_stem, self.name)
+            face_extension = Config.get_face_extension(self.meta.name_stem, self.validName)
             box = [a + b for a, b in zip(self.box, face_extension)]
         else:
             box = self.box
         img = self.safe_crop(self.full, box)
         if self.depth == 1:
-            img = img.resize(self.meshSize.round(), Image.Resampling.BICUBIC)
+            size = self.rawSpriteSize if Config.get_mesh_mode() == 0 else self.meshSize
+            img = img.resize(size.round(), Image.Resampling.BICUBIC)
         return img
 
     def safe_crop(self, x: Image.Image, box: tuple[int, int, int, int]):

@@ -46,7 +46,7 @@ def hr(title, level=3):
 
 
 def attr(name, text):
-    logger.info(f"[bold]\[{name}] {text}[bold]", extra={"markup": True})
+    logger.info(f"[[bold]{name}[/bold]] {text}", extra={"markup": True})
 
 
 def log_wrapper(func):

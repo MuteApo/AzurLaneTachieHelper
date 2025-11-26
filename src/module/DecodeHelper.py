@@ -52,7 +52,7 @@ class DecodeHelper:
                     future = executor.submit(process_faces_group, v, sorted(faces.items()))
                     future_to_key[future] = k
                 else:
-                    future = executor.submit(ps_layer, f"{v.name} [{v.texture2D.m_Name}]", v, v.decode, True)
+                    future = executor.submit(ps_layer, f"{v.name} [{v.texture2D.m_Name}]", v, v.decode(), True)
                     future_to_key[future] = k
 
             for future in as_completed(future_to_key):
