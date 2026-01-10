@@ -99,8 +99,6 @@ def set_mesh_mode(mode: int) -> int:
 def get_face_extension(base_name: str, layer_name: str) -> tuple[int, int, int, int]:
     if settings.contains(f"{base_name}/{layer_name}"):
         return eval(get_config(f"{base_name}/{layer_name}"))
-    else:
-        raise KeyError(f"Face config not found: {base_name}/{layer_name}")
 
 
 def set_face_extension(base_name: str, layer_name: str, box: tuple[int, int, int, int]):

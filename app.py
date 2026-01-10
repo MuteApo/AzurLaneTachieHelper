@@ -3,7 +3,6 @@ import locale
 import os
 import sys
 
-import pyximport
 import qdarktheme
 from PySide6.QtCore import QTranslator
 from PySide6.QtGui import QIcon
@@ -11,7 +10,6 @@ from PySide6.QtWidgets import QApplication
 
 from src.TachieHelper import AzurLaneTachieHelper
 
-pyximport.install()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

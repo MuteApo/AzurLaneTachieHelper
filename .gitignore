@@ -1,5 +1,7 @@
 __pycache__
 .DS_Store
+app.build
+app.dist
 char
 dependencies
 out

@@ -90,8 +90,8 @@ class MeshMode(QMenu):
         super().__init__()
         self.setTitle(self.tr("Mesh Decoding Mode"))
 
-        self.aZero = QAction("0", checkable=True, triggered=partial(self.toggle, mode=0))
-        self.aOne = QAction("1", checkable=True, triggered=partial(self.toggle, mode=1))
+        self.aZero = QAction(self.tr("Mode") + " 0", checkable=True, triggered=partial(self.toggle, mode=0))
+        self.aOne = QAction(self.tr("Mode") + " 1", checkable=True, triggered=partial(self.toggle, mode=1))
 
         self.addActions([self.aZero, self.aOne])
         self.flush()

@@ -212,6 +212,12 @@
         <source>Mesh Decoding Mode</source>
         <translation>网格解码模式</translation>
     </message>
+    <message>
+        <location filename="../src/ui/Menu.py" line="93"/>
+        <location filename="../src/ui/Menu.py" line="94"/>
+        <source>Mode</source>
+        <translation>模式</translation>
+    </message>
 </context>
 <context>
     <name>Option</name>

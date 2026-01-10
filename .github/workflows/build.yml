@@ -18,57 +18,40 @@ jobs:
       - name: Check-out Repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Install UV
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.13"
-          architecture: "x64"
-          cache: "pip"
-          cache-dependency-path: "requirements.txt"
+          enable-cache: true
 
       - name: Install Dependencies
         run: |
-          pip install -r requirements.txt --ignore-requires-python
-          pyside6-lrelease.exe (Get-ChildItem -Path i18n\*.ts)
-          git clone https://github.com/mdboom/pytoshop.git
-          cd pytoshop
-          python setup.py install
-      
-      - name: Prepare Data
-        shell: python
-        run: |
-          import os
-          import sysconfig
-          fh = open(os.environ["GITHUB_ENV"], "a")
-          print(f"PURELIB={sysconfig.get_paths()['purelib']}", file=fh)
+          uv run pyside6-lrelease.exe (Get-ChildItem -Path i18n\*.ts)
 
       - name: Build Executable
-        uses: Nuitka/Nuitka-Action@main
-        with:
-          nuitka-version: 2.5.9
-          script-name: app.py
-          mode: standalone
-          lto: no
-          enable-plugins: pyside6
-          nofollow-import-to: tkinter
-          windows-icon-from-ico: ico\cheshire.ico
-          include-data-files: |
-            ${{env.PURELIB}}\UnityPy\resources\uncompressed.tpk=UnityPy\resources\
-            ${{env.PURELIB}}\archspec\json\cpu\*.json=archspec\json\cpu\
-            i18n\*.qm=i18n\
-          output-file: AzurLaneTachieHelper
+        run : |
+          uv run nuitka app.py `
+            --clang `
+            --standalone `
+            --assume-yes-for-downloads `
+            --enable-plugins=pyside6 `
+            --nofollow-import-to=tkinter `
+            --windows-icon-from-ico=cheshire.ico `
+            --include-data-files=.venv\Lib\site-packages\UnityPy\resources\uncompressed.tpk=UnityPy\resources\ `
+            --include-data-files=.venv\Lib\site-packages\archspec\json\cpu\*.json=archspec\json\cpu\ `
+            --include-data-files=.venv\Lib\site-packages\fmod_toolkit\libfmod\Windows\x64\fmod.dll=fmod_toolkit\libfmod\Windows\x64\ `
+            --include-data-files=i18n\*.qm=i18n\ `
+            --include-data-files=3rdparty\*.*=3rdparty\ `
+            --output-file=AzurLaneTachieHelper
     
       - name: Pack Files
         run: |
-          cd build
-          mv ../3rdparty app.dist/
           mv app.dist ${{env.APP_NAME}}
           7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on ${{env.APP_NAME}}.7z ${{env.APP_NAME}}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{env.APP_NAME}}-x86_64
-          path: build/${{env.APP_NAME}}.7z
+          name: ${{github.ref_name}}-x86_64
+          path: ${{env.APP_NAME}}.7z
           compression-level: 0
           retention-days: 21

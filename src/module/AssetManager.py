@@ -64,7 +64,7 @@ class AssetManager:
         self.init()
 
         self.deps = self.get_dependency(file)
-        logger.attr("Dependencies", self.deps)
+        logger.attr("Dependencies", ", ".join(self.deps))
 
         env = UnityPy.load(file)
         for dep in self.deps:
