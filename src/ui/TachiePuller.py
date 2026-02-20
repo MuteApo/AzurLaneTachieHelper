@@ -68,7 +68,7 @@ class TachiePuller(QDialog):
         _, failed = AdbHelper.pull(*deps, *icons, dst_dir=f"projects/{name}", add_prefix=True)
         if failed != []:
             if not os.path.exists("base.apk"):
-                apk = AdbHelper.exec_out("ls", "-R", f"/data/app/*/{Config.get_package()}*/*.apk", as_root=True)
+                apk = AdbHelper.adb("exec-out", f"ls -R /data/app/*/{Config.get_package()}*/*.apk")
                 AdbHelper.pull(apk, progress=True, log=False)
 
             with ZipFile("base.apk") as z:

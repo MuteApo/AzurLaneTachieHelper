@@ -61,7 +61,7 @@ class Icon(QWidget):
                 self.apply(angle=self.calc_angle(cur, prev))
             else:
                 diff = current_pos - self.prev_pos
-                self.apply(pivot=Vector2(diff.x(), -diff.y()))
+                self.apply(pivot=self.calc_move(*diff.toTuple()))
             self.prev_pos = current_pos
 
     def wheelEvent(self, event: QWheelEvent):
@@ -77,13 +77,13 @@ class Icon(QWidget):
             case Qt.Key.Key_Control:
                 self.rotate = True
             case Qt.Key.Key_A:
-                self.apply(pivot=Vector2(-1, 0))
+                self.apply(pivot=self.calc_move(-1, 0))
             case Qt.Key.Key_D:
-                self.apply(pivot=Vector2(1, 0))
+                self.apply(pivot=self.calc_move(1, 0))
             case Qt.Key.Key_W:
-                self.apply(pivot=Vector2(0, 1))
+                self.apply(pivot=self.calc_move(0, -1))
             case Qt.Key.Key_S:
-                self.apply(pivot=Vector2(0, -1))
+                self.apply(pivot=self.calc_move(0, 1))
 
     def keyReleaseEvent(self, event: QKeyEvent) -> None:
         match event.key():
@@ -103,10 +103,13 @@ class Icon(QWidget):
             painter.drawPixmap(0, 0, sub.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         painter.drawRect(0, 0, *(self.preset.size - 1))
 
+    def calc_move(self, dx: float, dy: float):
+        return Vector2(dx, dy).rotate(-math.radians(self.preset.angle))
+
     def calc_angle(self, u: QPoint, v: QPoint) -> float:
-        a = Vector2(u.x(), -u.y())
-        b = Vector2(v.x(), -v.y())
-        return math.degrees(math.asin(a.normalize().cross(b.normalize())))
+        a = Vector2(u.toTuple()).normalize()
+        b = Vector2(v.toTuple()).normalize()
+        return -math.degrees(math.asin(a.cross(b)))
 
     def texrect(self) -> tuple[float, float, float, float]:
         w, h = self.preset.size / self.preset.scale
@@ -114,7 +117,8 @@ class Icon(QWidget):
         return x, y, w, h
 
     def apply(self, pivot: Vector2 = Vector2(0.0, 0.0), scale: float = 0, angle: float = 0):
-        self.preset.apply(pivot / self.preset.size, scale, angle)
+        pivot = Vector2(pivot.X, -pivot.Y) / self.preset.size
+        self.preset.apply(pivot, scale, angle)
         self.update()
 
 
@@ -127,7 +131,7 @@ class IconViewer(QDialog):
         self.icons: dict[str, Icon] = {}
         self.presets = Config.get_presets(name)
         for k, v in self.presets.to_dict().items():
-            ref = refs[k].decode if k in refs else Image.new("RGBA", v.size.tuple())
+            ref = refs[k].decode() if k in refs else Image.new("RGBA", v.size.tuple())
             v.size = Vector2(ref.size)
             self.icons[k] = Icon(img, ref, v, center, self.setLast)
         self.last: Icon = None

@@ -39,10 +39,10 @@ class DecodeHelper:
                 if k == "face":
                     subtask = progress.add_task("Decode paintingface", total=len(faces))
 
-                    def process_faces_group(layer, face_items):
-                        def process_one_face(item):
+                    def process_faces_group(layer: Layer, face_items: list[tuple[str, FaceLayer]]):
+                        def process_one_face(item: tuple[str, FaceLayer]):
                             kk, vv = item
-                            result = ps_layer(f"face #{kk}", layer, vv.decode, visible=False)
+                            result = ps_layer(f"face #{kk}", layer, vv.decode(), visible=False)
                             progress.update(subtask, advance=1)
                             return result
 

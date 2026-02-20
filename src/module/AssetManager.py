@@ -85,6 +85,9 @@ class AssetManager:
         self.layers = base_layer.flatten()
         if "face" not in [x.name for x in self.layers.values()]:
             self.layers["face"] = base_layer.get_child("face")
+        for k in set(self.layers.keys()) - {"face"}:
+            if self.layers[k].texture2D.m_Name.lower() == "uisprite":
+                self.layers.pop(k)
         [logger.attr(layer.__repr__(), layer.__str__()) for layer in self.layers.values()]
 
         x_min = min([_.posMin.X for _ in self.layers.values()])

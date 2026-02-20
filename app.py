@@ -1,7 +1,9 @@
 import ctypes
 import locale
 import os
+import subprocess
 import sys
+from ast import literal_eval
 
 import qdarktheme
 from PySide6.QtCore import QTranslator
@@ -9,7 +11,6 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from src.TachieHelper import AzurLaneTachieHelper
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -19,6 +20,12 @@ if __name__ == "__main__":
     if sys.platform == "win32":
         code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
         lang = locale.windows_locale[code]
+    elif sys.platform == "darwin":
+        cmd = ["defaults", "read", "-g", "AppleLanguages"]
+        output = subprocess.check_output(cmd, text=True)
+        lang = literal_eval(output)[0]
+        if lang == "zh-Hans-CN":
+            lang = "zh_CN"
     else:
         lang = locale.getlocale()[0]
 

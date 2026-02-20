@@ -195,12 +195,12 @@
 <context>
     <name>IconViewer</name>
     <message>
-        <location filename="../src/ui/IconViewer.py" line="124"/>
+        <location filename="../src/ui/IconViewer.py" line="128"/>
         <source>AzurLane Tachie Helper</source>
         <translation>碧蓝航线立绘助手</translation>
     </message>
     <message>
-        <location filename="../src/ui/IconViewer.py" line="135"/>
+        <location filename="../src/ui/IconViewer.py" line="139"/>
         <source>Clip</source>
         <translation>裁剪</translation>
     </message>
@@ -231,8 +231,8 @@
     <name>PaintingTable</name>
     <message>
         <location filename="../src/ui/Table.py" line="53"/>
-        <source>Dependencies</source>
-        <translation>依赖项</translation>
+        <source>Paintings</source>
+        <translation>立绘</translation>
     </message>
 </context>
 <context>

@@ -325,7 +325,6 @@ class BaseLayer:
         self.full: Image.Image = None
         self.repl: Image.Image = None
 
-    @cached_property
     def decode(self) -> Image.Image:
         return self.orig
 

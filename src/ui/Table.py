@@ -50,7 +50,7 @@ class BaseTable(QVBoxLayout):
 
 class PaintingTable(BaseTable):
     def __init__(self, preview: Previewer):
-        super().__init__(preview, self.tr("Dependencies"))
+        super().__init__(preview, self.tr("Paintings"))
 
     def set_data(self, layers: dict[str, Layer]):
         self.layers = layers

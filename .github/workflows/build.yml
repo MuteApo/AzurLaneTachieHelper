@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Check-out Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install UV
         uses: astral-sh/setup-uv@v7
@@ -49,7 +49,7 @@ jobs:
           7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on ${{env.APP_NAME}}.7z ${{env.APP_NAME}}
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{github.ref_name}}-x86_64
           path: ${{env.APP_NAME}}.7z

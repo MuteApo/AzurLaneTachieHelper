@@ -27,9 +27,9 @@ class AdbHelper:
 
         stderr = None if progress else subprocess.DEVNULL
         if Config.get_verbosity():
-            logger.attr("[Subprocess]", " ".join(cmd))
+            logger.attr("Subprocess", " ".join(cmd))
             output = subprocess.check_output(cmd, stderr=stderr).decode("utf-8").strip()
-            logger.attr("[Subprocess]", output)
+            logger.attr("Subprocess", output)
         else:
             output = subprocess.check_output(cmd, stderr=stderr).decode("utf-8").strip()
 
@@ -73,7 +73,7 @@ class AdbHelper:
 
     @classmethod
     def devices(cls, serial_only: bool = False) -> list[str]:
-        output = list(map(lambda x: x.split("\t"), cls.adb("devices").split("\r\n")[1:]))
+        output = list(map(lambda x: x.split("\t"), cls.adb("devices").splitlines()[1:]))
         if serial_only:
             output = list(map(lambda x: x[0], output))
         return output
