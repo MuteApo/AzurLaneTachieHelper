@@ -1,7 +1,7 @@
 import math
 from typing import Callable, Self
 
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageOps
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import (
     QKeyEvent,
@@ -18,6 +18,15 @@ from ..base.Data import IconPreset
 from ..base.Layer import IconLayer
 from ..base.Vector import Vector2
 from ..logger import logger
+
+
+def get_padding(w: int, h: int, center: Vector2, angle: float):
+    max_w, max_h = 0, 0
+    for x, y in [[w, 0], [w, h], [0, h]]:
+        xx, yy = (Vector2(x, y) - center).rotate(-math.radians(angle)) + center
+        max_w = max(max_w, xx)
+        max_h = max(max_h, yy)
+    return round(max_w) - w, round(max_h) - h
 
 
 class Icon(QWidget):
@@ -97,8 +106,10 @@ class Icon(QWidget):
         painter = QPainter(self)
         painter.drawPixmap(0, 0, self.ref)
         x, y, w, h = self.texrect()
+        center = (x + w / 2, y + h / 2)
         if self.display:
-            sub = self.img.rotate(self.preset.angle, center=(x + w / 2, y + h / 2))
+            pad_x, pad_y = get_padding(*self.img.size, center, self.preset.angle)
+            sub = ImageOps.expand(self.img, border=(0, 0, pad_x, pad_y)).rotate(self.preset.angle, center=center)
             sub = sub.crop((x, y, x + w, y + h)).resize(self.preset.size)
             painter.drawPixmap(0, 0, sub.transpose(Image.Transpose.FLIP_TOP_BOTTOM).toqpixmap())
         painter.drawRect(0, 0, *(self.preset.size - 1))

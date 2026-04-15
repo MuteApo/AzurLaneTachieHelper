@@ -14,7 +14,7 @@ from ..base.Layer import FaceLayer, Layer
 def ps_layer(name: str, layer: Layer, img: Image.Image, visible: bool) -> nested_layers.Image:
     w, h = img.size
     x, y = layer.posBiased
-    r, g, b, a = img.transpose(Image.Transpose.FLIP_TOP_BOTTOM).split()
+    r, g, b, a = img.transpose(Image.Transpose.FLIP_TOP_BOTTOM).convert("RGBA").split()
     channels = {i - 1: np.array(x) for i, x in enumerate([a, r, g, b])}
     return nested_layers.Image(
         name=name,

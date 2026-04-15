@@ -195,12 +195,12 @@
 <context>
     <name>IconViewer</name>
     <message>
-        <location filename="../src/ui/IconViewer.py" line="128"/>
+        <location filename="../src/ui/IconViewer.py" line="139"/>
         <source>AzurLane Tachie Helper</source>
         <translation>碧蓝航线立绘助手</translation>
     </message>
     <message>
-        <location filename="../src/ui/IconViewer.py" line="139"/>
+        <location filename="../src/ui/IconViewer.py" line="150"/>
         <source>Clip</source>
         <translation>裁剪</translation>
     </message>

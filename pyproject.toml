@@ -21,3 +21,6 @@ dependencies = [
 [tool.uv.sources]
 pyqtdarktheme = { git = "https://github.com/5yutan5/PyQtDarkTheme.git" }
 pytoshop = { git = "https://github.com/MuteApo/pytoshop" }
+
+[[tool.uv.index]]
+url = "http://mirrors.aliyun.com/pypi/simple"

@@ -36,7 +36,7 @@ jobs:
             --enable-plugins=pyside6 `
             --nofollow-import-to=tkinter `
             --windows-icon-from-ico=cheshire.ico `
-            --include-data-files=.venv\Lib\site-packages\UnityPy\resources\uncompressed.tpk=UnityPy\resources\ `
+            --include-data-files=.venv\Lib\site-packages\UnityPy\resources\lzma.tpk=UnityPy\resources\ `
             --include-data-files=.venv\Lib\site-packages\archspec\json\cpu\*.json=archspec\json\cpu\ `
             --include-data-files=.venv\Lib\site-packages\fmod_toolkit\libfmod\Windows\x64\fmod.dll=fmod_toolkit\libfmod\Windows\x64\ `
             --include-data-files=i18n\*.qm=i18n\ `

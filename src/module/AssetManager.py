@@ -1,12 +1,10 @@
 import os
-import pprint
 import re
 from concurrent.futures import ThreadPoolExecutor
-from stat import filemode
 
 import numpy as np
 import UnityPy
-from PIL import Image
+from PIL import Image, ImageOps
 from UnityPy.classes import GameObject, MonoBehaviour, Texture2D
 from UnityPy.enums import ClassIDType
 
@@ -15,6 +13,7 @@ from ..base.Data import IconPreset, IconPresets, MetaInfo
 from ..base.Layer import FaceLayer, IconLayer, Layer, prefered_layer
 from ..base.Vector import Vector2
 from ..logger import logger
+from ..ui.IconViewer import get_padding
 from ..utility import open_and_transpose
 from .AdbHelper import AdbHelper
 from .DecodeHelper import DecodeHelper
@@ -135,10 +134,12 @@ class AssetManager:
             w, h = preset.size / preset.scale
             x, y = center - Vector2(w, h) * preset.pivot
 
-            path = os.path.join(os.path.dirname(self.meta.path), f"{kind}.png")
-            img = full.rotate(preset.angle, center=(x + w / 2, y + h / 2))
+            pad_x, pad_y = get_padding(*full.size, (x + w / 2, y + h / 2), preset.angle)
+            img = ImageOps.expand(full, border=(0, 0, pad_x, pad_y)).rotate(
+                preset.angle, Image.Resampling.BICUBIC, center=(x + w / 2, y + h / 2)
+            )
             if kind == "shipyardicon":
-                sub = img.copy()
+                sub = img.copy().crop((0, 0, x + w, y + h))
                 img = Image.new("RGBA", sub.size)
                 img.paste(sub, (round(-10 / preset.scale), 0))
                 data = np.array(img)
@@ -146,6 +147,8 @@ class AssetManager:
                 data[..., 3] = np.where(data[..., 3] > 76, 76, data[..., 3])
                 img = Image.fromarray(data)
                 img.alpha_composite(sub)
+
+            path = os.path.join(os.path.dirname(self.meta.path), f"{kind}.png")
             img.crop((x, y, x + w, y + h)).transpose(Image.Transpose.FLIP_TOP_BOTTOM).save(path)
 
             return path
