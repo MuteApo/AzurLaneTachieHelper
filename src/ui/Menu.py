@@ -18,7 +18,7 @@ def pull_tachie():
     if not os.path.exists("dependencies"):
         AdbHelper.pull("dependencies", add_prefix=True)
     env = UnityPy.load("dependencies")
-    mb: MonoBehaviour = [x.read() for x in env.objects if x.type == ClassIDType.MonoBehaviour][0]
+    mb: MonoBehaviour = [x.parse_as_object() for x in env.objects if x.type == ClassIDType.MonoBehaviour][0]
     data = {k: v.m_Dependencies for k, v in zip(mb.m_Keys, mb.m_Values) if k.startswith("painting/")}
     puller = TachiePuller(data)
     if puller.exec():
@@ -67,7 +67,9 @@ class FaceMode(QMenu):
         self.cbs = cbs
         self.aOff = QAction(self.tr("Off"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Off))
         self.aAuto = QAction(self.tr("Auto"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Auto))
-        self.aCustom = QAction(self.tr("Custom"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Custom))
+        self.aCustom = QAction(
+            self.tr("Custom"), checkable=True, triggered=partial(self.toggle, mode=FaceModeType.Custom)
+        )
 
         self.addActions([self.aOff, self.aAuto, self.aCustom])
         self.flush()

@@ -6,11 +6,14 @@ import sys
 from ast import literal_eval
 
 import qdarktheme
+import UnityPy.config
 from PySide6.QtCore import QTranslator
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from src.TachieHelper import AzurLaneTachieHelper
+
+UnityPy.config.FALLBACK_UNITY_VERSION = "2022.3.62f3"
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

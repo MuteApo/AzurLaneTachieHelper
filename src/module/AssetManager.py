@@ -55,7 +55,7 @@ class AssetManager:
         if not os.path.exists("dependencies"):
             AdbHelper.pull("dependencies", add_prefix=True)
         env = UnityPy.load("dependencies")
-        mb: MonoBehaviour = [x.read() for x in env.objects if x.type == ClassIDType.MonoBehaviour][0]
+        mb: MonoBehaviour = [x.parse_as_object() for x in env.objects if x.type == ClassIDType.MonoBehaviour][0]
         idx = mb.m_Keys.index(f"painting/{os.path.basename(file)}")
         return mb.m_Values[idx].m_Dependencies
 
@@ -75,19 +75,23 @@ class AssetManager:
             os.path.basename(x)[:-4].lower(): k
             for k, v in env.files.items()
             for x in v.container.keys()
-            if x.endswith(".png")
+            if not k.endswith("commonui_atlas") and x.endswith(".png")
         }
 
-        base_go: GameObject = [x.read() for x in env.container.values() if x.type == ClassIDType.GameObject][0]
+        base_go: GameObject = [
+            x.deref_parse_as_object() for x in env.container.values() if x.type == ClassIDType.GameObject
+        ][0]
         base_layer = Layer(base_go.m_Component[0].component)
 
         self.layers = base_layer.flatten()
         if "face" not in [x.name for x in self.layers.values()]:
             self.layers["face"] = base_layer.get_child("face")
+
         for k in set(self.layers.keys()) - {"face"}:
-            if self.layers[k].texture2D.m_Name.lower() == "uisprite":
+            if self.layers[k].texture2D is None:
                 self.layers.pop(k)
-        [logger.attr(layer.__repr__(), layer.__str__()) for layer in self.layers.values()]
+            else:
+                logger.attr(self.layers[k].__repr__(), self.layers[k].__str__())
 
         x_min = min([_.posMin.X for _ in self.layers.values()])
         x_max = max([_.posMax.X for _ in self.layers.values()])
@@ -102,7 +106,7 @@ class AssetManager:
         path = os.path.join(os.path.dirname(file), "paintingface", base)
         if os.path.exists(path):
             env = UnityPy.load(path)
-            tex2ds: list[Texture2D] = [x.read() for x in env.objects if x.type == ClassIDType.Texture2D]
+            tex2ds: list[Texture2D] = [x.parse_as_object() for x in env.objects if x.type == ClassIDType.Texture2D]
             self.faces = {x.m_Name: FaceLayer(self.meta, x, path) for x in tex2ds}
             self.faces = {k: v for k, v in sorted(self.faces.items(), key=lambda x: int(x[0]))}
 
@@ -122,7 +126,7 @@ class AssetManager:
                 env = UnityPy.load(path)
                 for x in env.objects:
                     if x.type == ClassIDType.Texture2D:
-                        tex2d: Texture2D = x.read()
+                        tex2d: Texture2D = x.parse_as_object()
                         if re.match(f"(?i)^{base}$", tex2d.m_Name):
                             icon_layer = IconLayer(self.meta, tex2d, path)
                 self.icons[k] = icon_layer

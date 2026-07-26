@@ -68,7 +68,7 @@ class TachiePuller(QDialog):
         _, failed = AdbHelper.pull(*deps, *icons, dst_dir=f"projects/{name}", add_prefix=True)
         if failed != []:
             if not os.path.exists("base.apk"):
-                apk = AdbHelper.adb("exec-out", f"ls -R /data/app/*/{Config.get_package()}*/*.apk")
+                apk = AdbHelper.exec_out("ls", "-R", f"/data/app/*/{Config.get_package()}*/*.apk", as_root=True)
                 AdbHelper.pull(apk, progress=True, log=False)
 
             with ZipFile("base.apk") as z:
@@ -77,9 +77,9 @@ class TachiePuller(QDialog):
                         with z.open(f"assets/AssetBundles/{file}") as i, open(f"projects/{name}/{file}", "wb") as o:
                             o.write(i.read())
                     except:
-                        logger.warning(f"[bold][[red]Failed[/red]][/bold] '{file}'")
+                        logger.warning(f"[bold][[red]Failed[/red]][/bold] {file}")
                     else:
-                        logger.info(f"[bold][[green]Succeeded[/green]][/bold] '{file}'")
+                        logger.info(f"[bold][[green]Succeeded[/green]][/bold] {file}")
 
         if os.path.exists(meta := f"projects/{name}/painting/{name}"):
             os.replace(meta, f"projects/{name}/{name}")

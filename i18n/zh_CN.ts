@@ -141,7 +141,7 @@
         <translation>自动</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="70"/>
+        <location filename="../src/ui/Menu.py" line="71"/>
         <source>Custom</source>
         <translation>自定义</translation>
     </message>
@@ -208,13 +208,13 @@
 <context>
     <name>MeshMode</name>
     <message>
-        <location filename="../src/ui/Menu.py" line="91"/>
+        <location filename="../src/ui/Menu.py" line="93"/>
         <source>Mesh Decoding Mode</source>
         <translation>网格解码模式</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="93"/>
-        <location filename="../src/ui/Menu.py" line="94"/>
+        <location filename="../src/ui/Menu.py" line="95"/>
+        <location filename="../src/ui/Menu.py" line="96"/>
         <source>Mode</source>
         <translation>模式</translation>
     </message>
@@ -222,7 +222,7 @@
 <context>
     <name>Option</name>
     <message>
-        <location filename="../src/ui/Menu.py" line="139"/>
+        <location filename="../src/ui/Menu.py" line="141"/>
         <source>Option</source>
         <translation>选项</translation>
     </message>
@@ -273,22 +273,22 @@
 <context>
     <name>Server</name>
     <message>
-        <location filename="../src/ui/Menu.py" line="112"/>
+        <location filename="../src/ui/Menu.py" line="114"/>
         <source>Server</source>
         <translation>区服</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="115"/>
+        <location filename="../src/ui/Menu.py" line="117"/>
         <source>CN</source>
         <translation>Bilibili服</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="116"/>
+        <location filename="../src/ui/Menu.py" line="118"/>
         <source>JP</source>
         <translation>日服</translation>
     </message>
     <message>
-        <location filename="../src/ui/Menu.py" line="117"/>
+        <location filename="../src/ui/Menu.py" line="119"/>
         <source>EN</source>
         <translation>国际服</translation>
     </message>

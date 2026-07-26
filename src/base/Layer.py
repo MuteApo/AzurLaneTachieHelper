@@ -24,7 +24,7 @@ from .Vector import Vector2
 
 class Layer:
     def __init__(self, rt: PPtr[RectTransform], parent: Self = None):
-        self.rt = rt.read()
+        self.rt = rt.deref_parse_as_object()
         self.parent = parent
         self.depth = 1 if parent is None else parent.depth + 1
         self.child = [Layer(x, self) for x in self.rt.m_Children]
@@ -85,7 +85,7 @@ class Layer:
     @cached_property
     def name(self) -> str:
         return self.gameObject.m_Name if self.gameObject is not None else "Undefined"
-    
+
     @cached_property
     def validName(self) -> str:
         return self.sprite.m_Name if self.name in ["part"] else self.name
@@ -96,13 +96,13 @@ class Layer:
 
     @cached_property
     def gameObject(self) -> GameObject:
-        return self.rt.m_GameObject.read()
+        return self.rt.m_GameObject.deref_parse_as_object()
 
     @cached_property
     def monoBehaviour(self) -> Optional[MonoBehaviour]:
         for x in self.gameObject.m_Component:
             if x.component.type == ClassIDType.MonoBehaviour:
-                return x.component.read()
+                return x.component.deref_parse_as_object()
         return None
 
     @cached_property
@@ -110,20 +110,21 @@ class Layer:
         if self.monoBehaviour is None or not hasattr(self.monoBehaviour, "m_Sprite"):
             return None
         sprite: PPtr = self.monoBehaviour.m_Sprite
-        return sprite.read() if sprite.m_PathID != 0 else None
+        return sprite.deref_parse_as_object() if sprite.m_PathID != 0 else None
 
     @cached_property
     def texture2D(self) -> Optional[Texture2D]:
         if self.sprite is None:
             return None
-        return self.sprite.m_RD.texture.read()
+        tex2d: PPtr = self.sprite.m_RD.texture
+        return tex2d.deref_parse_as_object() if tex2d.m_PathID != 0 else None
 
     @cached_property
     def mesh(self) -> Optional[Mesh]:
         if self.monoBehaviour is None or not hasattr(self.monoBehaviour, "mMesh"):
             return None
         mesh: PPtr = self.monoBehaviour.mMesh
-        return mesh.read() if mesh.m_PathID != 0 else None
+        return mesh.deref_parse_as_object() if mesh.m_PathID != 0 else None
 
     @cached_property
     def rawSpriteSize(self) -> Optional[Vector2]:

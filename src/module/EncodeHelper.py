@@ -29,7 +29,7 @@ def set_tex2d(tex2d: Texture2D, img: Image.Image):
 
 
 def set_mesh(mesh: ObjectReader, img: Image.Image):
-    data = mesh.read_typetree()
+    data = mesh.parse_as_dict()
 
     data["m_SubMeshes"][0]["indexCount"] = 6
     data["m_SubMeshes"][0]["vertexCount"] = 4
@@ -40,15 +40,17 @@ def set_mesh(mesh: ObjectReader, img: Image.Image):
     data["m_VertexData"]["m_DataSize"] = struct.pack(mesh.reader.endian + "f" * 20, *buf)
     data["m_VertexData"]["m_VertexCount"] = 4
 
-    mesh.save_typetree(data)
+    mesh.patch(data)
 
 
 def set_meta(reader: ObjectReader, size_delta: Vector2, pivot: Vector2, anchored_position: Vector2):
-    data = reader.read_typetree()
+    data = reader.parse_as_dict()
+
     data["m_SizeDelta"] = size_delta.dict()
     data["m_Pivot"] = pivot.dict()
     data["m_AnchoredPosition"] = anchored_position.dict()
-    reader.save_typetree(data)
+
+    reader.patch(data)
 
 
 class EncodeHelper:
@@ -59,12 +61,10 @@ class EncodeHelper:
 
         for x in env.objects:
             match x.type:
-                # case ClassIDType.Sprite:
-                #     set_sprite(x.read(), layer.repl)
                 case ClassIDType.Texture2D:
-                    set_tex2d(x.read(), layer.repl)
+                    set_tex2d(x.parse_as_object(), layer.repl)
                 case ClassIDType.Mesh:
-                    set_mesh(x, layer.repl)
+                    set_mesh(x.parse_as_object(), layer.repl)
 
         path = os.path.join(dir, "output", "painting", os.path.basename(path))
         check_and_save(path, env.file.save(Config.get_compression()))
@@ -95,11 +95,11 @@ class EncodeHelper:
         task = progress.add_task(f"Encode paintingface ({cur}/{cnt}):", total=cnt)
         for x in env.objects:
             if x.type == ClassIDType.Sprite:
-                sprite: Sprite = x.read()
+                sprite: Sprite = x.parse_as_object()
                 if sprite.m_Name in faces:
                     if face_mode != FaceModeType.Off:
                         set_sprite(sprite, faces[sprite.m_Name].repl)
-                    set_tex2d(sprite.m_RD.texture.read(), faces[sprite.m_Name].repl)
+                    set_tex2d(sprite.m_RD.texture.deref_parse_as_object(), faces[sprite.m_Name].repl)
                     cur += 1
                     progress.update(task, advance=1, description=f"Encode paintingface ({cur}/{cnt}):")
 
@@ -118,7 +118,7 @@ class EncodeHelper:
             size_delta = Vector2(first.repl.size)
             x1, y1, _, _ = Config.get_face_extension(name, "paintingface")
             x_min, y_min, _, _ = layer.box
-            pivot = (layer.sizeDelta * layer.pivot -  Vector2(max(x1, -x_min), max(y1, -y_min))) / size_delta
+            pivot = (layer.sizeDelta * layer.pivot - Vector2(max(x1, -x_min), max(y1, -y_min))) / size_delta
             anchored_position = layer.anchoredPosition
 
         set_meta(reader, size_delta, pivot, anchored_position)
@@ -130,9 +130,9 @@ class EncodeHelper:
         env = UnityPy.load(icon.path)
         for v in env.container.values():
             if v.type == ClassIDType.Sprite:
-                set_sprite(v.read(), icon.repl)
+                set_sprite(v.deref_parse_as_object(), icon.repl)
             elif v.type == ClassIDType.Texture2D:
-                set_tex2d(v.read(), icon.repl)
+                set_tex2d(v.deref_parse_as_object(), icon.repl)
 
         path = os.path.join(dir, "output", kind, icon.layer.meta.name_stem)
         check_and_save(path, env.file.save(Config.get_compression()))
