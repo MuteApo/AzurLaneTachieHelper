@@ -16,20 +16,21 @@ jobs:
 
     steps:
       - name: Check-out Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Install UV
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v9.0.0
         with:
+          python-version: "3.13"
           enable-cache: true
 
       - name: Install Dependencies
         run: |
-          uv run pyside6-lrelease.exe (Get-ChildItem -Path i18n\*.ts)
+          uv run --extra build pyside6-lrelease.exe (Get-ChildItem -Path i18n\*.ts)
 
       - name: Build Executable
         run : |
-          uv run nuitka app.py `
+          uv run --extra build nuitka app.py `
             --clang `
             --standalone `
             --assume-yes-for-downloads `
@@ -49,9 +50,9 @@ jobs:
           7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on ${{env.APP_NAME}}.7z ${{env.APP_NAME}}
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
-          name: ${{github.ref_name}}-x86_64
           path: ${{env.APP_NAME}}.7z
+          archive: false
           compression-level: 0
           retention-days: 21

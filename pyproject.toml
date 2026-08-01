@@ -1,13 +1,12 @@
 [project]
 name = "alth"
-version = "1.8.8"
+version = "1.8.9"
 description = "Azur Lane Tachie Helper"
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "cython",
-    "nuitka<2.6",
-    "numpy<2.3",
+    "numpy",
     "pillow",
     "pyqtdarktheme",
     "pyside6",
@@ -17,6 +16,9 @@ dependencies = [
     "six",
     "unitypy",
 ]
+
+[project.optional-dependencies]
+build = ["nuitka<2.6", "numpy<2.3"]
 
 [tool.uv.sources]
 pyqtdarktheme = { git = "https://github.com/5yutan5/PyQtDarkTheme.git" }

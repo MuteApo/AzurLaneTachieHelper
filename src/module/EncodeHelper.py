@@ -64,7 +64,7 @@ class EncodeHelper:
                 case ClassIDType.Texture2D:
                     set_tex2d(x.parse_as_object(), layer.repl)
                 case ClassIDType.Mesh:
-                    set_mesh(x.parse_as_object(), layer.repl)
+                    set_mesh(x, layer.repl)
 
         path = os.path.join(dir, "output", "painting", os.path.basename(path))
         check_and_save(path, env.file.save(Config.get_compression()))
