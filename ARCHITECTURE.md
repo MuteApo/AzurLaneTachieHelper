@@ -4,7 +4,7 @@
 
 ## 范围与技术选择
 
-应用是单进程本地桌面工具，覆盖 Unity 资源读取、图集还原、编辑预览、PSD 导出、头像裁切、资源回写及 ADB 拉取。Python 3.14 与 Qt 满足现有需求；Web 前端留待实际需求出现后讨论。不建设 CI/CD、安装包、自动更新或发布流水线。
+应用是单进程本地桌面工具，覆盖 Unity 资源读取、图集还原、编辑预览、PSD 导出、头像裁切、资源回写及 ADB 拉取。Python 3.14 与 Qt 满足现有需求；Web 前端留待实际需求出现后讨论。维护已有 Windows 构建工作流及其共用的本地 Nuitka 脚本，不新增 CI/CD、安装包、自动更新或发布流水线。
 
 | 选择 | 用途与边界 |
 | --- | --- |
@@ -114,9 +114,9 @@ ADB 仅在用户进入设备流程时访问设备。自动选择使用第一台�
 - 主题默认跟随系统，切换只更新外观，不重建项目或历史。透明网格默认开启；常用预览控制留在画布区域。
 - 进度来自实际任务事件，短任务不闪现进度条。进度和短暂反馈悬浮显示，不改变画布布局；普通成功不弹模态窗口，歧义、覆盖输出或丢弃未保存修改时才要求选择。
 
-Windows 主窗口和应用内弹窗通过共用 `ui/widgets/chrome.py` 合并标题区域，保留系统按钮、拖动和边缘缩放；系统文件选择器及其他平台保留原生装饰。
+Windows 主窗口和应用内弹窗使用 `FramelessWindowHint` 完全停用原生标题栏与边框，不使用 Qt 的 `ExpandedClientAreaHint` 和 `_q_titlebar` 样式补丁。共用 `ui/widgets/chrome.py` 组织顶栏，`window_controls.py` 绘制随主题变化的窗口按钮并提供边缘缩放热区。关闭按钮调用 QWidget 的关闭流程，保留未保存编辑提示和后台任务取消行为。系统文件选择器及其他平台保留原生装饰。
 
-Qt 6.12 的 `_q_titlebar` 辅助窗口会因 `WS_CAPTION` 在重绘时露出额外标题条。目前仅清除该辅助窗口的标题栏样式，保留主窗口边框和 Qt 按钮。兼容处理集中在 chrome 模块；升级 Qt 时需用原生窗口测试复核，依据见 [Qt Windows 实现](https://github.com/qt/qtbase/blob/v6.12.0/src/plugins/platforms/windows/qwindowswindow.cpp)。
+拖动和边缘缩放通过 Qt 的 [startSystemMove / startSystemResize](https://doc.qt.io/qt-6/qwindow.html#startSystemResize) 交给窗口管理器；固定大小窗口及最大化时禁用相应缩放热区。原生窗口回归检查创建、重建、激活和窗口状态切换，确保无系统标题栏，并保留按钮操作、拖动、缩放及任务栏可用性。
 
 ## 国际化、日志与验证
 
@@ -127,3 +127,25 @@ Qt 6.12 的 `_q_titlebar` 辅助窗口会因 `WS_CAPTION` 在重绘时露出额�
 标准 logging 接入 RichHandler，文件日志轮转且无颜色控制字符；Qt 提供日志入口。业务消息不含终端样式，任务进度不从日志解析，完整异常由负责处理的边界记录一次。错误反馈保留编辑状态，并说明受影响项与可采取的行动。
 
 测试集中覆盖几何和像素规则、已知缺陷、代表性资源的导入导出及未修改对象保留。真实素材只读，ADB 使用模拟接口；Windows 装饰需原生窗口验证。既不追求覆盖率数字，也不为简单转发或静态布局写镜像测试。检查命令和运行条件见 README，阶段性结果放在任务反馈中，不累积到架构文档。
+
+## Windows 构建与裁剪
+
+使用 Nuitka standalone 与 Visual Studio 的 clang-cl / lld-link，沿用 MSVC SDK 和运行库。MSVC 的 cl.exe 编译 UnityPy 自动生成的大模块时出现过高内存峰值及 C1002，因此采用 Clang 并将默认编译并发限制为 4。构建依赖独立锁定，构建时排除 dev 分组。
+
+现有工作流与本地共用 [build.ps1](scripts/build.ps1)，脚本负责步骤和全局选项；[包配置](scripts/nuitka-package.config.yml) 负责模块、资源文件和原生库。Qt 插件和 ADB 程序作为二进制声明，产物按完整目录分发。
+
+构建版关闭控制台，保留文件日志与界面日志入口；移除运行时文档字符串，保留类型注解与断言。LTO 保持关闭；此前 MSVC 对照实测未获明显收益，更换编译器后如需启用，应重新测量构建资源与运行性能。
+
+裁剪以应用实际使用的能力为边界：
+
+| 依赖 | 保留与裁剪决策 |
+| --- | --- |
+| Qt | 保留 Windows 窗口后端、SVG、ICO 和中文翻译，使用 Fusion 样式；不带备用显示后端、原生样式、TLS 及重复图片解码插件 |
+| Pillow | 保留 PNG、JPEG、WebP、TIFF、BMP、GIF、ICO、PSD，以及内部依赖 MPO、PPM；排除 AVIF 等其他格式及 FreeType 字体引擎。图片解码与几何遮罩使用 Pillow，界面文字由 Qt 绘制 |
+| NumPy | 保留数组与线性代数；排除随机数、FFT、掩码数组和多项式模块 |
+| UnityPy / psd-tools | 保留资源结构读写和 PSD 图层编码；排除音频采样解码、FMOD 运行库及 PSD 合成渲染 |
+| Pydantic | 使用 v2 模型；排除 v1 兼容实现，不使用旧式 `__get_validators__` 类型 |
+| Rich / Pygments | 保留 Python/Cython、纯文本及默认和回退主题；其他异常上下文回退为纯文本，不改变日志内容 |
+| adbutils | 保留设备通信、文件传输与 APK 文件读取；排除从网址下载 APK 的辅助函数及其 requests 依赖 |
+
+Pillow、Pygments 的编译期名单与运行时注册表共用定义，避免两处维护。新增被裁剪的能力时同步调整包配置；验证应使用实际构建产物检查窗口、图片读取和资源导出，不能只依赖源码环境测试。瘦身以功能等效和维护成本为先，不为零碎体积收益持续增加补丁或引入定制依赖构建。

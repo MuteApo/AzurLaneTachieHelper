@@ -3,7 +3,7 @@
 ## 范围与授权
 
 - 本仓库是碧蓝航线立绘桌面工具，当前代码位于根目录的 `src/`。开始相关工作前阅读 [ARCHITECTURE.md](ARCHITECTURE.md)，运行与检查命令见 [README.md](README.md)。
-- 保留 Python 3.14 与 Qt；Web 前端待实际需求出现后讨论。不建设 CI/CD、发布流水线、安装包或自动更新，不顺带修改 `.github/`，不自动安装 Git hooks。
+- 保留 Python 3.14 与 Qt；Web 前端待实际需求出现后讨论。现有 Windows 构建由 `.github/workflows/build.yml` 调用 `scripts/build.ps1`；构建任务可维护它们，不顺带扩展其他工作流，不新增 CI/CD、发布流水线、安装包、自动更新或 Git hooks。
 - 旧版已移除，必要时查阅 Git 历史，不恢复并行维护的旧入口。旧版行为是线索，不是算法正确性的唯一依据。
 - 任务要求讨论或文档时，不自行继续实现；获准实施后连续完成范围内工作，不为普通可逆修改反复要求确认。
 

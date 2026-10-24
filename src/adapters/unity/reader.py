@@ -258,5 +258,6 @@ class UnityReader:
             project.options.extensions["paintingface"] = cast(
                 Box, tuple(a - b for a, b in zip(preferred, face.box(project.bias)))
             )
-        progress(Message(QT_TRANSLATE_NOOP("Messages", "Project ready")), 1, 1)
+        # Session restoration and the first preview still follow resource decoding.
+        progress(Message(QT_TRANSLATE_NOOP("Messages", "Preparing project…")), 0, 0)
         return project

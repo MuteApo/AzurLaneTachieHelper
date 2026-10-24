@@ -42,6 +42,8 @@ COLORS = {
     "track": ("#303036", "#dedee5"),
     "handle": ("#b6a6e8", "#76639f"),
     "focus": ("#b6a6e8", "#76639f"),
+    "danger": ("#c42b1c", "#c42b1c"),
+    "danger_text": ("#ffffff", "#ffffff"),
 }
 
 _STYLESHEET = Template("""

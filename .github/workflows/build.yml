@@ -12,41 +12,24 @@ env:
 
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-latest
 
     steps:
       - name: Check-out Repository
         uses: actions/checkout@v7
 
       - name: Install UV
-        uses: astral-sh/setup-uv@v9.0.0
+        uses: astral-sh/setup-uv@v10.0.0
         with:
-          python-version: "3.13"
+          python-version: "3.14"
           enable-cache: true
 
-      - name: Install Dependencies
-        run: |
-          uv run --extra build pyside6-lrelease.exe (Get-ChildItem -Path i18n\*.ts)
-
       - name: Build Executable
-        run : |
-          uv run --extra build nuitka app.py `
-            --clang `
-            --standalone `
-            --assume-yes-for-downloads `
-            --enable-plugins=pyside6 `
-            --nofollow-import-to=tkinter `
-            --windows-icon-from-ico=cheshire.ico `
-            --include-data-files=.venv\Lib\site-packages\UnityPy\resources\lzma.tpk=UnityPy\resources\ `
-            --include-data-files=.venv\Lib\site-packages\archspec\json\cpu\*.json=archspec\json\cpu\ `
-            --include-data-files=.venv\Lib\site-packages\fmod_toolkit\libfmod\Windows\x64\fmod.dll=fmod_toolkit\libfmod\Windows\x64\ `
-            --include-data-files=i18n\*.qm=i18n\ `
-            --include-data-files=3rdparty\*.*=3rdparty\ `
-            --output-file=AzurLaneTachieHelper
+        run: ./scripts/build.ps1
     
       - name: Pack Files
         run: |
-          mv app.dist ${{env.APP_NAME}}
+          mv .artifacts/nuitka/main.dist ${{env.APP_NAME}}
           7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on ${{env.APP_NAME}}.7z ${{env.APP_NAME}}
 
       - name: Upload Artifact

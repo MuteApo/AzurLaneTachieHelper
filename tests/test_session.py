@@ -5,6 +5,7 @@ import pytest
 from PIL import Image, UnidentifiedImageError
 
 from application.session import MissingSourceError, Session
+from domain.imaging import prepare_replacement
 from domain.model import Asset, FaceMode, IconPreset, Kind, ObjectRef, Placement, Project
 
 
@@ -110,7 +111,18 @@ def test_save_reopen_relative_sources_and_independent_export_state(project_facto
     # Version 1 documents may still carry the retired reconstruction switch.
     document["options"]["mesh_mode"] = True
     document_path.write_text(json.dumps(document), encoding="utf-8")
-    restored = Session.open(document_path)
+    progress = []
+
+    def prepare(*args):
+        # Decoding saved replacements must not leave the bar at resource-load completion.
+        assert progress[-1] == ("Restoring edits…", 0, 0)
+        return prepare_replacement(*args)
+
+    monkeypatch.setattr("application.session.prepare_replacement", prepare)
+    restored = Session.open(
+        document_path,
+        progress=lambda message, current, total: progress.append((str(message), current, total)),
+    )
     assert not restored.dirty
     assert restored.export_dirty
     assert restored.sources == {"painting/ship": saved_source}

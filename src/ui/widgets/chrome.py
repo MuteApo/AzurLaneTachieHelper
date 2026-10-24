@@ -1,8 +1,8 @@
-"""A workbench header that shares the Windows titlebar's client area."""
+"""Application-drawn window chrome shared by the studio and its dialogs."""
 
 from typing import cast, override
 
-from PySide6.QtCore import QCoreApplication, Qt, Slot
+from PySide6.QtCore import QCoreApplication, QEvent, QObject, Qt
 from PySide6.QtGui import QMouseEvent, QResizeEvent, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from ui.i18n import render_message
+from ui.widgets.window_controls import CaptionButton, position_resize_grips, resize_grips
 
 
 class WindowHeader(QWidget):
@@ -26,58 +27,71 @@ class WindowHeader(QWidget):
         super().__init__(window)
         self.setObjectName("header")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setAttribute(Qt.WidgetAttribute.WA_ContentsMarginsRespectsSafeArea, False)
-        self.row = QHBoxLayout(self)
+        self._frameless = QApplication.platformName() == "windows"
+        outer = QHBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        content = QWidget(self)
+        self.row = QHBoxLayout(content)
         self.row.setContentsMargins(22, 12, 22, 12)
         self.row.setSpacing(8)
-        self._buttons = max(
-            1,
-            sum(
-                bool(window.windowFlags() & flag)
-                for flag in (
-                    Qt.WindowType.WindowMinimizeButtonHint,
-                    Qt.WindowType.WindowMaximizeButtonHint,
-                    Qt.WindowType.WindowCloseButtonHint,
-                )
-            ),
-        )
-        self._expanded = QApplication.platformName() == "windows"
-        if self._expanded:
+        outer.addWidget(content, 1)
+        self.minimize_button: CaptionButton | None = None
+        self.maximize_button: CaptionButton | None = None
+        self.close_button: CaptionButton | None = None
+        if self._frameless:
+            flags = window.windowFlags()
             window.setWindowFlags(
-                window.windowFlags()
-                | Qt.WindowType.ExpandedClientAreaHint
-                | Qt.WindowType.NoTitleBarBackgroundHint
-                | Qt.WindowType.CustomizeWindowHint
+                (flags | Qt.WindowType.FramelessWindowHint)
+                & ~(Qt.WindowType.ExpandedClientAreaHint | Qt.WindowType.NoTitleBarBackgroundHint)
             )
-            window.setAttribute(Qt.WidgetAttribute.WA_ContentsMarginsRespectsSafeArea, False)
-            # Reserve space before the native handle is created; update from Qt on show.
-            self.row.setContentsMargins(22, 12, 22 + 48 * self._buttons, 12)
+            controls = QWidget(self)
+            buttons = QHBoxLayout(controls)
+            buttons.setContentsMargins(0, 0, 0, 0)
+            buttons.setSpacing(0)
+            if flags & Qt.WindowType.WindowMinimizeButtonHint:
+                self.minimize_button = CaptionButton("minimize", controls)
+                self.minimize_button.clicked.connect(window.showMinimized)
+                buttons.addWidget(self.minimize_button)
+            if flags & Qt.WindowType.WindowMaximizeButtonHint:
+                self.maximize_button = CaptionButton("maximize", controls)
+                self.maximize_button.clicked.connect(self._toggle_maximized)
+                buttons.addWidget(self.maximize_button)
+            if flags & Qt.WindowType.WindowCloseButtonHint:
+                self.close_button = CaptionButton("close", controls)
+                self.close_button.clicked.connect(window.close)
+                buttons.addWidget(self.close_button)
+            outer.addWidget(controls, 0, Qt.AlignmentFlag.AlignTop)
+            self._grips = resize_grips(window)
+            window.installEventFilter(self)
 
     @override
-    def showEvent(self, event: QShowEvent) -> None:
-        super().showEvent(event)
-        handle = self.window().windowHandle()
-        if self._expanded and handle:
-            # QWidget adds WindowTitleHint for system buttons. QWindow lets us keep
-            # those buttons while omitting the duplicate title text and icon.
-            handle.setFlag(Qt.WindowType.WindowTitleHint, False)
-            _remove_helper_caption(int(handle.winId()))
-            handle.safeAreaMarginsChanged.connect(self._reserve_controls, Qt.ConnectionType.UniqueConnection)
-            self._reserve_controls()
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if event.type() in (
+            QEvent.Type.Show,
+            QEvent.Type.Resize,
+            QEvent.Type.WindowStateChange,
+            QEvent.Type.LayoutRequest,
+        ):
+            self._sync_frame()
+        return super().eventFilter(watched, event)
 
-    @Slot()
-    def _reserve_controls(self):
-        handle = self.window().windowHandle()
-        if handle:
-            # Each native caption button is 1.5 titlebar heights wide.
-            # Keep the standard button allowance when fractional scaling rounds
-            # the reported safe area down.
-            buttons = round(max(32, handle.safeAreaMargins().top()) * 1.5 * self._buttons)
-            self.row.setContentsMargins(22, 12, 22 + buttons, 12)
+    def _sync_frame(self) -> None:
+        window = self.window()
+        if self.maximize_button:
+            self.maximize_button.set_action("restore" if window.isMaximized() else "maximize")
+        position_resize_grips(window, self._grips)
+
+    def _toggle_maximized(self) -> None:
+        window = self.window()
+        if window.isMaximized():
+            window.showNormal()
+        else:
+            window.showMaximized()
 
     @override
     def mousePressEvent(self, event: QMouseEvent) -> None:
-        if self._expanded and event.button() == Qt.MouseButton.LeftButton:
+        if self._frameless and event.button() == Qt.MouseButton.LeftButton:
             handle = self.window().windowHandle()
             if handle and handle.startSystemMove():
                 event.accept()
@@ -86,65 +100,11 @@ class WindowHeader(QWidget):
 
     @override
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
-        if (
-            self._expanded
-            and event.button() == Qt.MouseButton.LeftButton
-            and self.window().windowFlags() & Qt.WindowType.WindowMaximizeButtonHint
-        ):
-            window = self.window()
-            if window.isMaximized():
-                window.showNormal()
-            else:
-                window.showMaximized()
+        if self.maximize_button and event.button() == Qt.MouseButton.LeftButton:
+            self._toggle_maximized()
             event.accept()
             return
         super().mouseDoubleClickEvent(event)
-
-
-def _remove_helper_caption(hwnd: int) -> None:
-    """Remove the accidental Win32 caption on Qt's layered button window.
-
-    Qt 6.12 creates `_q_titlebar` with style 0, which acquires WS_CAPTION,
-    then reparents it without removing that style. Windows can paint a blue
-    caption over Qt's transparent surface on activation or frame updates.
-    Only this helper is changed; the main window keeps its native resize frame.
-    """
-    import ctypes
-    from ctypes import wintypes
-
-    user32 = ctypes.WinDLL("user32", use_last_error=True)
-    find = user32.FindWindowExW
-    find.argtypes = [wintypes.HWND, wintypes.HWND, wintypes.LPCWSTR, wintypes.LPCWSTR]
-    find.restype = wintypes.HWND
-    helper = find(hwnd, None, "_q_titlebar", None)
-    if not helper:  # Other Qt versions may not use this internal helper.
-        return
-    get_style = user32.GetWindowLongW
-    get_style.argtypes = [wintypes.HWND, ctypes.c_int]
-    get_style.restype = wintypes.LONG
-    style = get_style(helper, -16)  # GWL_STYLE
-    if not style & 0x00C00000:  # WS_CAPTION; already fixed by us or a newer Qt.
-        return
-    set_style = user32.SetWindowLongW
-    set_style.argtypes = [wintypes.HWND, ctypes.c_int, wintypes.LONG]
-    set_style.restype = wintypes.LONG
-    if not set_style(helper, -16, style & ~0x00C00000):
-        raise ctypes.WinError(ctypes.get_last_error())
-    position = user32.SetWindowPos
-    position.argtypes = [
-        wintypes.HWND,
-        wintypes.HWND,
-        ctypes.c_int,
-        ctypes.c_int,
-        ctypes.c_int,
-        ctypes.c_int,
-        wintypes.UINT,
-    ]
-    position.restype = wintypes.BOOL
-    # FRAMECHANGED | NOMOVE | NOSIZE | NOZORDER | NOACTIVATE applies the style
-    # without changing the helper's geometry, stacking order or keyboard focus.
-    if not position(helper, None, 0, 0, 0, 0, 0x0037):
-        raise ctypes.WinError(ctypes.get_last_error())
 
 
 def _dialog_header(window: QWidget) -> WindowHeader:
@@ -160,7 +120,7 @@ def _dialog_header(window: QWidget) -> WindowHeader:
 
 
 class WorkbenchDialog(QDialog):
-    """The same native integrated titlebar as the workbench, with a content layout."""
+    """The same application-drawn titlebar as the studio, with a content layout."""
 
     def __init__(self, parent=None):
         super().__init__(parent)

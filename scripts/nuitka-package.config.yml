@@ -1,0 +1,150 @@
+# Match Pillow's runtime registry and Nuitka's dynamic plugin discovery.
+# MPO is a JPEG dependency; PPM is used by Pillow's core initialization.
+- module-name: 'PIL.Image'
+  variables:
+    declarations:
+      'pil_image_plugins': >-
+        tuple('PIL.' + name + 'ImagePlugin' for name in
+              ('Bmp', 'Gif', 'Ico', 'Jpeg', 'Mpo', 'Png', 'Ppm', 'Psd', 'Tiff', 'WebP'))
+  anti-bloat:
+    - description: 'Only ship artwork formats and Pillow internal dependencies'
+      append_result: >-
+        '_plugins = ' + repr([name.removeprefix('PIL.')
+                             for name in get_variable('pil_image_plugins')])
+
+# ImageDraw only fills geometry masks; text is rendered by Qt.
+- module-name: 'PIL'
+  anti-bloat:
+    - description: 'Exclude the unused FreeType text rendering engine'
+      no-auto-follow:
+        'PIL._imagingft': 'ignore'
+
+# Retain arrays and linear algebra used by geometry and Unity/PSD codecs.
+- module-name: 'numpy'
+  anti-bloat:
+    - description: 'Exclude unused numerical feature families'
+      no-auto-follow:
+        'numpy.random': 'ignore'
+        'numpy.fft': 'ignore'
+        'numpy.ma': 'ignore'
+        'numpy.polynomial': 'ignore'
+
+# Rich tracebacks need Python/Cython and plain text, not every Pygments language.
+# Keep the registry consistent so filename guessing falls back to plain text.
+- module-name: 'pygments'
+  variables: &pygments_modules
+    declarations:
+      'lexers': "('pygments.lexers.python', 'pygments.lexers.special')"
+      'styles': "('pygments.styles.default', 'pygments.styles.monokai')"
+  implicit-imports:
+    - depends:
+        - "('pygments.lexers._mapping', 'pygments.styles._mapping') + get_variable('lexers') + get_variable('styles')"
+
+- module-name: 'pygments.lexers'
+  variables: *pygments_modules
+  anti-bloat:
+    - description: 'Limit traceback lexers to Python and plain text'
+      no-auto-follow:
+        'pygments.lexers': 'ignore'
+      replacements:
+        'from pygments.lexers._mapping import LEXERS': >-
+          'from pygments.lexers._mapping import LEXERS\n'
+          'LEXERS = {name: entry for name, entry in LEXERS.items() if entry[0] in '
+          + repr(get_variable('lexers')) + '}'
+
+- module-name: 'pygments.styles'
+  variables: *pygments_modules
+  anti-bloat:
+    - description: 'Keep Rich syntax default and fallback themes'
+      no-auto-follow:
+        'pygments.styles': 'ignore'
+      replacements:
+        'from pygments.styles._mapping import STYLES': >-
+          'from pygments.styles._mapping import STYLES\n'
+          'STYLES = {name: entry for name, entry in STYLES.items() if entry[0] in '
+          + repr(get_variable('styles')) + '}'
+
+# All persisted documents use Pydantic v2; no legacy __get_validators__ types.
+- module-name: 'pydantic'
+  anti-bloat:
+    - description: 'Exclude the unused Pydantic v1 compatibility implementation'
+      no-auto-follow:
+        'pydantic.v1': 'ignore'
+
+- module-name: 'psd_tools'
+  anti-bloat:
+    - description: 'Layer encoding only; previews use the application renderer'
+      no-auto-follow:
+        'psd_tools.composite': 'ignore'
+
+# Unity object reading/writing stays intact; the app never decodes audio samples.
+- module-name: 'UnityPy.export.AudioClipConverter'
+  anti-bloat:
+    - description: 'Exclude unused audio sample decoding and its FMOD runtime'
+      replacements_plain:
+        'import fmod_toolkit': ''
+      change_function:
+        'extract_audioclip_samples': 'un-callable'
+
+# Resource pulling uses device shell/sync, never APK installation from a URL.
+- module-name: 'adbutils.install'
+  anti-bloat:
+    - description: 'Exclude unused HTTP APK downloading and its requests stack'
+      replacements_plain:
+        'import requests': ''
+      change_function:
+        'download_apk': 'un-callable'
+
+# Native helpers loaded at runtime; these are binaries, not ordinary data files.
+- module-name: 'adbutils'
+  implicit-imports:
+    - depends:
+        - 'adbutils.binaries'
+  dlls:
+    - from_filenames:
+        relative_path: 'binaries'
+        prefixes:
+          - 'adb'
+        executable: 'yes'
+      when: 'win32'
+    - from_filenames:
+        relative_path: 'binaries'
+        prefixes:
+          - 'AdbWin'
+      when: 'win32'
+
+# Package data and native Qt plugins live here; build.ps1 disables Qt's defaults.
+- module-name: 'ui'
+  data-files:
+    - patterns:
+        - 'icons/*.svg'
+        - 'translations/*.qm'
+
+- module-name: 'PySide6'
+  data-files:
+    - patterns:
+        - 'translations/qtbase_zh_CN.qm'
+  dlls:
+    - from_filenames:
+        relative_path: 'plugins/platforms'
+        prefixes: ['qwindows']
+      dest_path: 'PySide6/qt-plugins/platforms'
+      when: 'win32'
+    - from_filenames:
+        relative_path: 'plugins/imageformats'
+        prefixes: ['qsvg', 'qico']
+      dest_path: 'PySide6/qt-plugins/imageformats'
+      when: 'win32'
+    - from_filenames:
+        relative_path: 'plugins/iconengines'
+        prefixes: ['qsvgicon']
+      dest_path: 'PySide6/qt-plugins/iconengines'
+      when: 'win32'
+
+- module-name: 'UnityPy'
+  data-files:
+    - patterns: ['resources/*.tpk']
+
+- module-name: 'archspec'
+  data-files:
+    - dirs: ['json', 'vendor/cpuid']

@@ -883,8 +883,13 @@ Log: {1}</source>
     </message>
     <message>
         <location filename="../../adapters/unity/reader.py" line="261"/>
-        <source>Project ready</source>
-        <translation>项目已就绪</translation>
+        <source>Preparing project…</source>
+        <translation>正在准备项目…</translation>
+    </message>
+    <message>
+        <location filename="../../application/session.py" line="137"/>
+        <source>Restoring edits…</source>
+        <translation>正在恢复编辑…</translation>
     </message>
     <message>
         <location filename="../../adapters/psd.py" line="31"/>
@@ -2020,6 +2025,25 @@ Object: {1}</source>
         <location filename="../studio/window.py" line="1013"/>
         <source>Stopping the current task. Close the window once it finishes.</source>
         <translation>正在结束当前任务，请完成后关闭窗口。</translation>
+    </message>
+</context>
+<context>
+    <name>WindowChrome</name>
+    <message>
+        <source>Minimize</source>
+        <translation>最小化</translation>
+    </message>
+    <message>
+        <source>Maximize</source>
+        <translation>最大化</translation>
+    </message>
+    <message>
+        <source>Restore</source>
+        <translation>还原窗口</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>关闭</translation>
     </message>
 </context>
 </TS>

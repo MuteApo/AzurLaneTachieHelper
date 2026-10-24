@@ -124,6 +124,7 @@ class Session:
         )
         session = cls(UnityReader().load(metadata, source_manifest, progress))
         session.manifest = source_manifest
+        progress(Message(QT_TRANSLATE_NOOP("Messages", "Restoring edits…")), 0, 0)
         sources = {
             key: locate(value, Message(QT_TRANSLATE_NOOP("Messages", "replacement image {0}"), (key,)))
             for key, value in document.sources.items()

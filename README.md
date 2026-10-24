@@ -4,7 +4,9 @@
 
 ## 启动
 
-安装 uv 后，在仓库根目录执行：
+使用 Windows 构建包时，解压完整目录并运行 `AzurLaneTachieHelper.exe`，无需安装 Python。不要单独移动 exe。
+
+从源码运行时，安装 uv 后在仓库根目录执行：
 
 ```powershell
 uv sync --locked
@@ -84,7 +86,7 @@ uv run --locked tachie editing.tachie.json --export .artifacts\exports
 
 ## 本地开发
 
-代码位于 `src/`。模块职责和设计依据见 [ARCHITECTURE.md](ARCHITECTURE.md)，协作约定见 [AGENTS.md](AGENTS.md)。依赖由 `pyproject.toml` 和 `uv.lock` 管理；当前使用清华 PyPI 镜像，不建设 CI/CD、Git hooks 或发布流程。
+代码位于 `src/`。模块职责和设计依据见 [ARCHITECTURE.md](ARCHITECTURE.md)，协作约定见 [AGENTS.md](AGENTS.md)。依赖由 `pyproject.toml` 和 `uv.lock` 管理；当前使用清华 PyPI 镜像，不新增 CI/CD、Git hooks 或发布流程。
 
 ```powershell
 uv run --locked ruff check src tests
@@ -102,6 +104,24 @@ $env:QT_QPA_PLATFORM="windows"
 uv run --locked pytest -q tests/test_chrome.py
 Remove-Item Env:QT_QPA_PLATFORM
 ```
+
+### Windows 本地构建
+
+安装 Visual Studio 2022 或更新版本的 C++ Build Tools，并勾选 **C++ Clang tools for Windows** 组件后，在 PowerShell 执行：
+
+```powershell
+./scripts/build.ps1
+```
+
+脚本使用 Python 3.14、锁定的 Nuitka 与 Visual Studio 的 clang-cl / lld-link，先编译翻译，再生成独立运行目录 `.artifacts/nuitka/main.dist/`，入口为 `AzurLaneTachieHelper.exe`。分发或移动时保留整个目录，不能只复制 exe。构建报告位于 `.artifacts/nuitka/report.xml`；可用 `-OutputDirectory .artifacts/另一目录` 指定独立输出位置。首次构建允许 Nuitka 下载所需辅助工具。
+
+默认最多同时编译 4 个 C 文件，可用 `-Jobs 1` 降低并发或按机器容量增加。构建仅安装运行与 `build` 依赖，不安装默认的 `dev` 分组。
+
+构建版不显示控制台，诊断信息通过文件日志和界面日志入口查看；需要终端输出时使用前述 `uv run --locked tachie` 命令。常用图片格式 PNG、JPEG、WebP、TIFF、BMP 保留，另保留 GIF、ICO、PSD 读取及 Pillow 内部依赖；不再打包 AVIF、JPEG 2000、TGA 等非常用格式。
+
+LTO 保持关闭，依赖按实际功能裁剪；最终取舍及新增功能时需要调整的边界见 [Windows 构建与裁剪](ARCHITECTURE.md#windows-构建与裁剪)。
+
+现有 [构建工作流](.github/workflows/build.yml) 调用同一脚本。构建依赖单独放在 `build` 分组，普通运行无需安装；包规则集中在 [nuitka-package.config.yml](scripts/nuitka-package.config.yml)。
 
 ### 更新翻译
 
