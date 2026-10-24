@@ -13,3 +13,12 @@ src/spine
 *.ini
 *.lock
 *.qm
+.venv/
+*.egg-info/
+.ruff_cache/
+.artifacts/
+.pytest_cache/
+.local/
+!uv.lock
+!src/ui/translations/*.qm
+!launch.bat

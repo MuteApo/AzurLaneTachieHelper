@@ -1,28 +1,62 @@
 [project]
-name = "alth"
-version = "1.8.9"
-description = "Azur Lane Tachie Helper"
+name = "azurlane-tachie"
+version = "2.0.0"
+description = "A local painting and Unity asset workbench for Azur Lane"
+requires-python = ">=3.14,<3.15"
 readme = "README.md"
-requires-python = ">=3.13,<3.14"
 dependencies = [
-    "cython",
-    "numpy",
-    "pillow",
-    "pyqtdarktheme",
-    "pyside6",
-    "pytoshop",
-    "rich",
-    "setuptools",
-    "six",
-    "unitypy",
+    "adbutils>=2.12,<3",
+    "numpy>=2,<3",
+    "pillow>=11,<13",
+    "pyside6-essentials>=6.10,<7",
+    "unitypy>=1.25,<1.26",
+    "psd-tools>=1.26,<2",
+    "pydantic>=2.12,<3",
+    "rich>=13,<15",
 ]
 
-[project.optional-dependencies]
-build = ["nuitka<2.6", "numpy<2.3"]
+[dependency-groups]
+dev = ["pytest>=8,<10", "ruff>=0.14", "pyright[nodejs]>=1.1"]
 
-[tool.uv.sources]
-pyqtdarktheme = { git = "https://github.com/5yutan5/PyQtDarkTheme.git" }
-pytoshop = { git = "https://github.com/MuteApo/pytoshop" }
+[project.scripts]
+tachie = "main:main"
+tachie-next = "main:main"
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["main", "logging_setup"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["adapters*", "application*", "domain*", "ui*"]
+
+[tool.setuptools.package-data]
+ui = ["translations/*.qm", "translations/*.ts", "icons/*.svg"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP006", "UP007", "UP035", "UP040"]
+
+[tool.pyright]
+include = ["src"]
+pythonVersion = "3.14"
+typeCheckingMode = "basic"
+reportImplicitOverride = "error"
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = ["integration: read-only local Unity fixture regression"]
 
 [[tool.uv.index]]
-url = "http://mirrors.aliyun.com/pypi/simple"
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+default = true
